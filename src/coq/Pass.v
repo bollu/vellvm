@@ -32,42 +32,160 @@ Set Contextual Implicit.
 
 Require Import Vellvm.Memory.
 
-Definition Pass (A: Type) := A -> A.
 
+(* 
 Definition InstrPass := Pass instr.
 Definition CodePass := Pass code.
 Definition BlockPass := Pass block.
 Definition CFGPass := Pass cfg.
 Definition CFGDefinitionPass := Pass (definition cfg).
 Definition MCFGPass := Pass mcfg.
+*)
 
 (* We can create fancy typeclass based machinery to lift passes to
 their correct embedding, similar to the way in which effect handlers
 get resolved (At least, I think this is possible), but let's not, for now *)
+(** Fancy typeclass machinery **)
 
-(* --- Lemmas --- *)
+(** a pass P is anything that can act on Unit **)
+Class Pass Unit P : Type :=
+  {
+    runPass: P -> Unit -> Unit
+  }.
 
-Definition liftInstrPassToIdInstrPass (pass: InstrPass):
-  Pass (instr_id * instr) :=
-  fun x => (fst x, pass (snd x)).
+Notation InstrPass := (Pass instr).
+Notation CodePass := (Pass code).
+Notation BlockPass := (Pass block).
+Notation CFGPass := (Pass cfg).
+Notation CFGDefinitionPass := (Pass (definition cfg)).
+Notation MCFGPass := (Pass mcfg).
+
+(** Functions of type (Unit -> Unit) can act on Units **)
+Instance functionAsPass {Unit: Type}: Pass Unit (Unit -> Unit) :=
+  {
+    runPass (p: Unit -> Unit) (u: Unit) := p u
+  }.
+
+(** Define a functorial structure that can transform a small transformation into a
+    larger one **)
+Class MonoFunctor (Out: Type) (In: Type) : Type :=
+  {
+    monomap: (In -> In) -> (Out -> Out);
+    (** Note that on having functional extensionality,
+     we have equality at the function level **)
+    monomap_functorial: forall f g i, (monomap f ∘ monomap g) i = monomap (f ∘ g) i;
+                           
+  }.
+
+(** Show how we can lift passes using the functorl structure **)
+Instance liftedFunctionAsPass {InnerUnit OuterUnit: Type}
+         `{MonoFunctor OuterUnit InnerUnit}: Pass OuterUnit (InnerUnit -> InnerUnit) :=
+  {
+     runPass (p: InnerUnit -> InnerUnit) (o: OuterUnit) := monomap p o;
+  }.
+
+Instance instrToIdInstrFunctor: MonoFunctor (instr_id * instr) instr :=
+  {
+    monomap (p: instr -> instr) (iid: instr_id * instr) := (fst iid, p (snd iid));
+  }.
+Proof.
+  intros.
+  auto.
+Qed.
+
+Check (instrToIdInstrFunctor).
+
+
+Instance instrToBlockFunctor: MonoFunctor block instr :=
+  {
+    monomap (pass: instr -> instr) (b: block) :=
+      mk_block (blk_id b)
+               (blk_phis b)
+               (List.map (monomap pass) (blk_code b))
+               (blk_term b);
+  }.
+Proof.
+  intros.
+  simpl.
+  destruct i; simpl.
+  assert (MAP_EQ: map (monomap f) (map (monomap g) blk_code) =
+          map (monomap (f ∘ g)) blk_code).
+  induction blk_code; auto.
+  repeat rewrite map_cons.
+  
+  replace (monomap (f ∘ g) a) with ((monomap f ∘ monomap g) a ).
+  simpl.
+  rewrite IHblk_code.
+  reflexivity.
+  apply monomap_functorial.
+
+  rewrite MAP_EQ.
+  reflexivity.
+Qed.
+
+Lemma map_map': forall {A B C: Type} (l: list A) (f: B -> C) (g: A -> B) (x: list A),
+    map f ((map g) x) = map (f ∘ g) x.
+Proof.
+  intros until x.
+  induction x; auto.
+  repeat rewrite map_cons.
+  rewrite IHx.
+  simpl.
+  reflexivity.
+Qed.
+Hint Resolve map_map'.
+
+Instance blockToCFGFunctor : MonoFunctor cfg block :=
+  {
+    monomap (pass: block -> block) (c: cfg) :=
+    {|
+      init := init c;
+      blks := map pass (blks c);
+      args := args c;
+    |}
+
+  }.
+Proof.
+  intros.
+  simpl.
+  rewrite map_map'.
+  reflexivity.
+  exact (blks i).
+Qed.
+
+(** NOTE: I needed funext **)
+Instance monofunctor_chain (A: Type) (B: Type) (C: Type) `{MonoFunctor B A} `{MonoFunctor C B}:
+  MonoFunctor C A :=
+  {
+    monomap (pass: A -> A) (c: C) := monomap (monomap pass) c;
+  }.
+Proof.
+  intros.
+  simpl.
+  Check (monomap_functorial).
+  assert (MONO_EQ: monomap (f ∘ g) = (monomap f ∘ monomap g)).
+  extensionality x.
+  rewrite monomap_functorial.
+  reflexivity.
+  rewrite MONO_EQ.
+  
+  rewrite <- monomap_functorial with (f0 := monomap f) (g0 := monomap g) (i0 := i).
+  simpl.
+  auto.
+Qed.
   
 
+Definition f_instr (i: instr): instr := id i.
+Opaque f_instr.
+Check (f_instr).
 
+(** NICE! I can automatically lift instances using monomap **)
+Definition map_f_instr_on_block (b: block): block :=  monomap (f_instr) b.
+Definition map_f_instr_on_cfg (c: cfg): cfg :=  monomap (f_instr) c.
 
-(* NOTE: Define it this way so that we don't modify the first instruction.
-If we modify the first instruction, this will fuck up jumps *)
-(* NOTE: My understading was slightly flawed. It uses *ID* of the
-first instruction. Which is still crazy, because me removing the first
-instruction will cause `jump` behaviour to change *)
-Definition liftInstrPassToBlockPass (pass: InstrPass): BlockPass :=
-  fun (b: block) =>
-    mk_block (blk_id b)
-                (blk_phis b)
-                (List.map (liftInstrPassToIdInstrPass pass) (blk_code b))
-                (blk_term b).
+    
 
-  
-
+(* 
 Definition liftBlockPassToCFGPass (pass: BlockPass): CFGPass:=
   fun (c: cfg) =>
     {|
@@ -95,6 +213,7 @@ Definition liftCFGDefinitionPassToMCFGPass
        m_declarations := m_declarations m;
        m_definitions := map pass (m_definitions m);
     |}.
+*)
 
 
 
@@ -158,12 +277,19 @@ Qed.
 
 Hint Resolve eval_type_I64.
 
-Definition preserves_types (p: MCFGPass): Prop :=
-  forall (CFG: mcfg), m_type_defs (p CFG) = m_type_defs CFG.
+(* 
+Class PreservesType (P: Type) (MCFP: MCFGPass P) {
+        preserves_type: forall (CFG: mcfg), m_type_defs (runPass P CFG) = m_type_defs CFG;
+      }.
+*)
 
-Definition preserves_eval_typ (p: MCFGPass) (MCFG: mcfg) (t: typ): Prop :=
-  eval_typ (p MCFG) t = eval_typ MCFG t.
+Definition preserves_types (P: Type) `{MCFGPass P} (p: P): Prop :=
+  forall (CFG: mcfg), m_type_defs (runPass p CFG) = m_type_defs CFG.
 
+Definition preserves_eval_typ (P: Type) `{MCFGPass P} (p: P) (t: typ): Prop :=
+  forall (CFG: mcfg), eval_typ (runPass p CFG) t = eval_typ CFG t.
+
+(* 
 Lemma preserves_types_implies_preserves_eval_typ:
   forall (p: MCFGPass) (CFG: mcfg) (t: typ),
     preserves_types p ->
@@ -631,6 +757,7 @@ Qed.
       
   
 End PASSTHEOREMS.
+*)
 
 
 
