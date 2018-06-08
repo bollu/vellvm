@@ -123,10 +123,30 @@ Inductive raw_id : Set :=
 | Raw  (n:int)        (* Used for code generation -- serializes as %_RAW_0 %_RAW_1 etc. *)
 .
 
+Theorem raw_id_eq_dec: forall (a b: raw_id), {a = b } + {a <> b}.
+Proof.
+  intros.
+  decide equality.
+  apply Classes.eq_dec_string.
+  apply Z.eq_dec.
+  apply Z.eq_dec.
+Qed.
+
+Hint Resolve raw_id_eq_dec.
+
 Inductive ident : Set :=
 | ID_Global (id:raw_id)   (* @id *)
 | ID_Local  (id:raw_id)   (* %id *)
 .
+
+
+Theorem ident_eq_dec: forall (a b: ident), {a = b } + {a <> b}.
+Proof.
+  intros.
+  decide equality; apply raw_id_eq_dec.
+Qed.
+
+Hint Resolve ident_eq_dec.
 
 (* auxilliary definitions for when we know which case we're in already *)
 Definition local_id  := raw_id.
@@ -234,6 +254,12 @@ Inductive exp : Set :=
 | OP_Select           (cnd:(typ * exp)) (v1:(typ * exp)) (v2:(typ * exp)) (* if * then * else *)
 .
 
+Lemma exp_eq_dec: forall (e1 e2: exp), {e1 = e2} + {e1 <> e2}.
+Proof.
+Admitted.
+Hint Resolve exp_eq_dec.
+  
+
 Definition texp : Set := typ * exp.
 
 Inductive instr_id : Set :=
@@ -241,6 +267,15 @@ Inductive instr_id : Set :=
 | IVoid (n:int)        (* "Void" return type, for "store",  "void call", and terminators.
                            Each with unique number (NOTE: these are distinct from Anon raw_id) *)
 .
+
+Lemma instr_id_eq_dec: forall (iid1 iid2: instr_id), {iid1 = iid2} + {iid1 <> iid2}.
+Proof.
+  decide equality.
+  unfold int in *.
+  apply Z.eq_dec.
+Qed.
+
+Hint Resolve instr_id_eq_dec.
 
 Inductive phi : Set :=
 | Phi  (t:typ) (args:list (block_id * exp))
@@ -260,6 +295,12 @@ Inductive instr : Set :=
 | INSTR_LandingPad
 .
 
+Lemma instr_eq_dec: forall (i1 i2: instr), {i1 = i2} + {i1 <> i2}.
+Proof.
+  intros.
+Admitted.
+Hint Resolve instr_eq_dec.
+
 Inductive terminator : Set :=
 (* Terminators *)
 (* Types in branches are TYPE_Label constant *)
@@ -272,6 +313,11 @@ Inductive terminator : Set :=
 | TERM_Resume     (v:texp)
 | TERM_Invoke     (fnptrval:tident) (args:list texp) (to_label:block_id) (unwind_label:block_id)
 .
+
+Lemma terminator_eq_dec: forall (t1 t2: terminator), {t1 = t2} + {t1 <> t2}.
+Proof.
+  intros.
+Admitted.
 
 Inductive thread_local_storage : Set :=
 | TLS_Localdynamic
@@ -323,6 +369,14 @@ Record block : Set :=
       blk_code  : code;
       blk_term  : instr_id * terminator;
     }.
+
+Lemma code_eq_dec: forall (c1 c2: code), {c1 = c2} +  {c1 <> c2}.
+Proof.
+  decide equality.
+  decide equality.
+Qed.
+
+Hint Resolve code_eq_dec.
 
 Record definition (FnBody:Set) :=
   mk_definition

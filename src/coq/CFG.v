@@ -98,7 +98,7 @@ Definition blk_entry_pc (fid:function_id) (b:block) :=
 Definition blk_term_pc (fid:function_id) (b:block) :=
   mk_pc fid (blk_id b) (blk_term_id b).
 
-Fixpoint find_block bs block_id : option block :=
+Definition find_block bs block_id : option block :=
   find (fun b => if (blk_id b) == block_id then true else false) bs.
 
 Fixpoint find_instr (cd : code) (p:instr_id) (t:instr_id) : option (cmd * option instr_id) :=

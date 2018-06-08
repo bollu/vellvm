@@ -1,3 +1,4 @@
+
 (* -------------------------------------------------------------------------- *
  *                     Vellvm - the Verified LLVM project                     *
  *                                                                            *
@@ -27,6 +28,12 @@ Require Import Vellvm.DynamicValues.
 Require Import Vellvm.TypeUtil.
 Import ListNotations.
 
+
+From mathcomp Require ssreflect ssrbool ssrfun bigop.
+Import ssreflect.SsrSyntax.
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
@@ -108,48 +115,30 @@ Module StepSemantics(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A)).
     match conv with
     | Trunc =>
       match t1, x, t2 with
-      | TYPE_I 8, DVALUE_I8 i1, TYPE_I 1 =>
-        mret (DVALUE_I1 (Int1.repr (Int8.unsigned i1)))
       | TYPE_I 32, DVALUE_I32 i1, TYPE_I 1 =>
         mret (DVALUE_I1 (Int1.repr (Int32.unsigned i1)))
-      | TYPE_I 32, DVALUE_I32 i1, TYPE_I 8 =>
-        mret (DVALUE_I8 (Int8.repr (Int32.unsigned i1)))
       | TYPE_I 64, DVALUE_I64 i1, TYPE_I 1 =>
         mret (DVALUE_I1 (Int1.repr (Int64.unsigned i1)))
-      | TYPE_I 64, DVALUE_I64 i1, TYPE_I 8 =>
-        mret (DVALUE_I8 (Int8.repr (Int64.unsigned i1)))
       | TYPE_I 64, DVALUE_I64 i1, TYPE_I 32 =>
         mret (DVALUE_I32 (Int32.repr (Int64.unsigned i1)))
       | _, _, _ => failwith "ill typed-conv"
       end
     | Zext =>
       match t1, x, t2 with
-      | TYPE_I 1, DVALUE_I1 i1, TYPE_I 8 =>
-        mret (DVALUE_I8 (Int8.repr (Int1.unsigned i1)))
       | TYPE_I 1, DVALUE_I1 i1, TYPE_I 32 =>
         mret (DVALUE_I32 (Int32.repr (Int1.unsigned i1)))
       | TYPE_I 1, DVALUE_I1 i1, TYPE_I 64 =>
         mret (DVALUE_I64 (Int64.repr (Int1.unsigned i1)))
-      | TYPE_I 8, DVALUE_I8 i1, TYPE_I 32 =>
-        mret (DVALUE_I32 (Int32.repr (Int8.unsigned i1)))
-      | TYPE_I 8, DVALUE_I8 i1, TYPE_I 64 =>
-        mret (DVALUE_I64 (Int64.repr (Int8.unsigned i1)))
       | TYPE_I 32, DVALUE_I32 i1, TYPE_I 64 =>
         mret (DVALUE_I64 (Int64.repr (Int32.unsigned i1)))
       | _, _, _ => failwith "ill typed-conv"
       end
     | Sext =>
       match t1, x, t2 with
-      | TYPE_I 1, DVALUE_I1 i1, TYPE_I 8 =>
-        mret (DVALUE_I8 (Int8.repr (Int1.signed i1)))
       | TYPE_I 1, DVALUE_I1 i1, TYPE_I 32 =>
         mret (DVALUE_I32 (Int32.repr (Int1.signed i1)))
       | TYPE_I 1, DVALUE_I1 i1, TYPE_I 64 =>
         mret (DVALUE_I64 (Int64.repr (Int1.signed i1)))
-      | TYPE_I 8, DVALUE_I8 i1, TYPE_I 32 =>
-        mret (DVALUE_I32 (Int32.repr (Int8.signed i1)))
-      | TYPE_I 8, DVALUE_I8 i1, TYPE_I 64 =>
-        mret (DVALUE_I64 (Int64.repr (Int8.signed i1)))
       | TYPE_I 32, DVALUE_I32 i1, TYPE_I 64 =>
         mret (DVALUE_I64 (Int64.repr (Int32.signed i1)))
       | _, _, _ => failwith "ill typed-conv"
@@ -203,7 +192,7 @@ Section IN_CFG_CONTEXT.
 Variable CFG:mcfg.
 
 Definition eval_typ (t:typ) : dtyp :=
-  TypeUtil.normalize_type_dtyp (m_type_defs CFG) t.
+  TypeUtil.normalize_type (m_type_defs CFG) t.
 
 
 Section IN_LOCAL_ENVIRONMENT.
@@ -332,7 +321,7 @@ Fixpoint eval_exp (top:option dtyp) (o:exp) {struct o} : Trace dvalue :=
     let dt1 := eval_typ t1 in
     'v <- eval_exp (Some dt1) op;
     eval_conv conv t1 v t2
-                       
+
   | OP_GetElementPtr _ (TYPE_Pointer t, ptrval) idxs =>
     let dt := eval_typ t in
     'vptr <- eval_exp (Some DTYPE_Pointer) ptrval;
@@ -341,7 +330,7 @@ Fixpoint eval_exp (top:option dtyp) (o:exp) {struct o} : Trace dvalue :=
 
   | OP_GetElementPtr _ (_, _) _ =>
     failwith "getelementptr has non-pointer type annotation"
-    
+              
   | OP_ExtractElement vecop idx =>
     (*    'vec <- monad_app_snd (eval_exp e) vecop;
     'vidx <- monad_app_snd (eval_exp e) idx;  *)
@@ -415,7 +404,7 @@ Inductive result :=
 .       
 
 Definition raise_p {X} (p:pc) s : Trace X := raise (s ++ ": " ++ (string_of p)).
-Definition cont (s:state)  : Trace result := mret (Step s).
+Definition cont (s:state) : Trace result := mret (Step s).
 Definition halt (v:dvalue) : Trace result := mret (Done v).
 
   
@@ -435,12 +424,12 @@ Definition jump (fid:function_id) (bid_src:block_id) (bid_tgt:block_id) (g:genv)
       'e_out <- monad_fold_right eval_phi phis e_init;
       cont (g, pc_entry, e_out, k)
   end.
-
-Definition step (s:state) : Trace result :=
-  let '(g, pc, e, k) := s in
+Definition step_cmd (g: genv)
+           (pc: pc)
+           (e: env)
+           (k: stack)
+           (cmd: cmd): Trace result :=
   let eval_exp top exp := eval_exp g e top exp in
-  
-  do cmd <- trywith ("CFG has no instruction at " ++ string_of pc) (fetch CFG pc);
   match cmd with
   | Term (TERM_Ret (t, op)) =>
     'dv <- eval_exp (Some (eval_typ t)) op;
@@ -480,7 +469,7 @@ Definition step (s:state) : Trace result :=
   | Term (TERM_Invoke _ _ _ _) => raise_p pc "Unsupport LLVM terminator" 
 
   | Inst insn =>  (* instruction *)
-    do pc_next <- trywith "no fallthrough instruction" (incr_pc CFG pc);
+    do pc_next <- trywith "no fallthrough intsruction" (incr_pc CFG pc);
     match (pt pc), insn  with
 
       | IId id, INSTR_Op op =>
@@ -534,12 +523,22 @@ Definition step (s:state) : Trace result :=
       | _, INSTR_AtomicCmpXchg 
       | _, INSTR_AtomicRMW
       | _, INSTR_VAArg 
-      | _, INSTR_LandingPad => raise_p pc "Unsupported LLVM instruction"
+      | _, INSTR_LandingPad => raise_p pc "Unsupported LLVM intsruction" 
 
       (* Error states *)                                     
       | _, _ => raise_p pc "ID / Instr mismatch void/non-void"
       end
   end.
+
+
+  
+
+Definition step (s:state) : Trace result :=
+  let '(g, pc, e, k) := s in
+  do cmd <- trywith ("CFG has no instruction at " ++ string_of pc) (fetch CFG pc);
+    step_cmd  g pc e k cmd.
+
+
 
 (* Defining the Global Environment ------------------------------------------------------- *)
 
@@ -591,6 +590,44 @@ CoFixpoint step_sem (r:result) : Trace dvalue :=
   | Step s => 'x <- step s ; step_sem x
   end.
 
+
 End IN_CFG_CONTEXT.
+
+
+Import Trace.MonadVerif.
+Lemma force_step_sem_step: forall (p: mcfg) (s: state),
+    step_sem p (Step s) ≡ bindM (step p s) (step_sem p).
+Proof.
+  intros until p.
+  cofix.
+
+  intros.
+  rewrite @Trace.matchM with (i := step_sem _ _).
+  simpl.
+  destruct (step p s) eqn:sstep; subst.
+  + euttnorm.
+  + euttnorm.
+  + rewrite @Trace.matchM with (i := bindM _ _).
+    simpl.
+    constructor.
+    reflexivity.
+    Guarded.
+  + rewrite @Trace.matchM with (i := bindM _ _).
+    simpl.
+    reflexivity.
+Qed.
+
+
+Lemma force_step_sem_done: forall (p: mcfg) (r:dvalue),
+    step_sem p (Done r) ≡ Ret r.
+Proof.
+  intros.
+  rewrite @Trace.matchM with (i := step_sem _ _).
+  auto.
+Qed.
+
+Ltac forcestepsem := simpl;
+                     first [rewrite force_step_sem_step | rewrite force_step_sem_done];
+                     simpl; auto. 
 
 End StepSemantics.

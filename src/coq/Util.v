@@ -837,6 +837,180 @@ Fixpoint find_map {A B} (f : A -> option B) (l : list A) : option B :=
             end
   end.
 
+Lemma find_map_cons_none:
+  forall {A B: Set}
+    (f: A -> option B)
+    (l: list A)
+    (a: A),
+  f a = None ->
+  find_map f (a :: l) = find_map f l.
+Proof.
+  intros until l.
+  intros.
+  unfold find_map.
+  rewrite H.
+  auto.
+Qed.
+
+Hint Resolve find_map_cons_none.
+
+
+Lemma find_map_cons_some:
+  forall {A B: Set}
+    (f: A -> option B)
+    (l: list A)
+    (a: A)
+    (b: B),
+  f a = Some b ->
+  find_map f (a :: l) = f a.
+Proof.
+  intros until l.
+  intros.
+  unfold find_map.
+  rewrite H.
+  auto.
+Qed.
+
+Hint Resolve find_map_cons_some.
+
+Lemma find_map_cons: forall {A B: Set}
+                       (f: A -> option B)
+                       (l: list A)
+                       (a: A)
+                       (b: B),
+  find_map f (a :: l) = Some b ->
+  f a = Some b \/
+  (f a = None /\ find_map f l = Some b).
+Proof.
+  intros.
+
+  remember (f a) as discriminant.
+  destruct (discriminant).
+
+  - left.
+    assert (EQUIV: find_map f (a :: l) = f a).
+    eapply find_map_cons_some; auto.
+    symmetry.
+    apply Heqdiscriminant.
+
+    rewrite Heqdiscriminant.
+    rewrite <- EQUIV.
+    rewrite H.
+    auto.
+
+  -  right.
+     rewrite <- H.
+     split; auto.
+     symmetry.
+     apply find_map_cons_none.
+     auto.
+Qed.
+
+Hint Resolve find_map_cons.
+
+Definition agress_on_filter {A B: Set} (filter: A -> option B) (g: A -> A): Prop := 
+    forall (a: A),
+      (forall (b: B), filter a = Some b -> exists b', filter (g a) = Some b') /\
+      (filter a = None -> filter (g a) = None).
+    
+  
+
+Theorem find_map_mapped_some_1: forall {A B: Set} (f: A -> option B)
+                              (g: A -> A)
+                              (l: list A)
+                              (b: B),
+    agress_on_filter f g ->
+    find_map f l = Some b ->
+    exists (a: A), Some b = f a /\ find_map f (map g l) = (f (g a)).
+Proof.
+  intros until l.
+  induction l; intros b G_AGRESS_ON_FILTER_F FIND_IN_LIST.
+  - 
+    unfold find_map in FIND_IN_LIST.
+    inversion FIND_IN_LIST.
+    
+  - intros.
+
+    assert (CASES: f a = Some b \/ (f a = None /\ find_map f l = Some b)).
+    apply find_map_cons; auto.
+
+    destruct CASES as [HD | TAIL].
+    + exists a.
+      split.
+      auto.
+
+      assert (MAP_ON_A_CONS_L: map g (a :: l) = g a :: (map g l)).
+      auto.
+
+      rewrite MAP_ON_A_CONS_L.
+      unfold agress_on_filter in G_AGRESS_ON_FILTER_F.
+      specialize (G_AGRESS_ON_FILTER_F a).
+      destruct (G_AGRESS_ON_FILTER_F) as [ON_FILTER  ON_NO_FILTER].
+      specialize (ON_FILTER b HD).
+      destruct ON_FILTER.
+
+      
+      eapply find_map_cons_some.
+      eauto.
+
+    + 
+      destruct TAIL as [F_A_NONE FIND_IN_L].
+      specialize (IHl b G_AGRESS_ON_FILTER_F FIND_IN_L).
+      destruct IHl as [AVAL [F_AVAL FIND_IN_L_WITNESS]].
+      exists AVAL.
+      split; auto.
+      assert (find_map f (map g (a :: l)) = find_map f (map g l)).
+      apply find_map_cons_none.
+      unfold agress_on_filter in G_AGRESS_ON_FILTER_F.
+      apply G_AGRESS_ON_FILTER_F; assumption.
+      rewrite H.
+      auto.
+Qed.
+
+      
+    
+    
+Theorem find_map_mapped_none: forall {A B: Set} (f: A -> option B)
+                              (g: A -> A)
+                              (l: list A),
+    agress_on_filter f g ->
+    find_map f l = None ->
+    find_map f (map g l) = None.
+Proof.
+  intros until l.
+  induction l; intros  G_AGRESS_ON_FILTER_F FIND_IN_LIST.
+  - unfold find_map in FIND_IN_LIST.
+    auto.
+    
+  - intros.
+    assert (FA_CASES: f a = None \/ exists b, f a = Some b).
+    destruct (f a); eauto.
+
+    destruct FA_CASES as [FA_NONE | FA_SOME].
+    ++  simpl.
+        cut (f (g a) = None).
+        intros FGA.
+        rewrite FGA.
+        apply IHl.
+        auto.
+        erewrite <- find_map_cons_none;
+          eauto.
+
+        unfold agress_on_filter in G_AGRESS_ON_FILTER_F.
+        apply G_AGRESS_ON_FILTER_F; auto.
+
+
+    ++ destruct FA_SOME as [b B_WITNESS].
+       unfold find_map in FIND_IN_LIST.
+       rewrite B_WITNESS in FIND_IN_LIST.
+       congruence.
+Qed.
+      
+    
+    
+
+
+
 
 
 Fixpoint combine_lists_err {A B:Type} (l1:list A) (l2:list B) : err (list (A * B)) :=

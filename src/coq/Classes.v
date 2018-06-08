@@ -257,6 +257,9 @@ Definition map_monad `{Monad F} {A B} (f:A -> F B) (l:list A) : F (list B) :=
       end
   in loop l.
 
+Require Import FunctionalExtensionality.
+                                
+
 Program Instance option_monad : (@Monad option) option_functor := _.
 Next Obligation.
   split.
