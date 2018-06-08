@@ -306,9 +306,6 @@ Proof.
 
   
   destruct (dc_name (df_prototype d) == Name "main").
-  + (** main function **)
-    assert (find_function_entry (rewrite_mcfg CFG) (Name "main") =
-            find_function_entry CFG (Name "main")).
 
   (* find function entry *)
   unfold find_function_entry.
@@ -325,25 +322,31 @@ Proof.
 
   destruct (ident_of ((rewrite_main_definition d)) ==
             ID_Global (Name "main")) as [DEF_REWRITE_MAIN | DEF_REWRITE_NOT_MAIN].
-  destruct (ident_of   d == ID_Global (Name "main")) as [DEF_MAIN | DEF_NOT_MAIN].
+  destruct (ident_of  d == ID_Global (Name "main")) as [DEF_MAIN | DEF_NOT_MAIN].
 
   + (* We have both mains, the case we care about *)
 
-    
     intros.
     unfold find_block.
     intros.
     unfold rewrite_main_definition.
     destruct (dc_name (df_prototype d) == Name "main") as [_ | CONTRA]; try contradiction.
     simpl.
-    destruct (blks (df_instrs d)) eqn:BLKS; try auto.
-    destruct l; auto.
+
+    destruct d; simpl.
+    destruct df_instrs; simpl.
+    destruct blks eqn:BLKS. simpl; try (unfold raise; unfold IO.exn_trace; euttnorm; fail).
+    simpl in *.
+    (** TWO CASES ARE GENERATED HERE ! **)
+    destruct l.
+     
 
 
     assert (CODE_MATCHES_DECIDABLE: {blk_code b = codeToMatch} + {blk_code b <> codeToMatch}).
     apply code_eq_dec.
-    destruct CODE_MATCHES_DECIDABLE as [CODE_MATCHES  | CODE_DOES_NOT_MATCH];
-      try (erewrite no_code_match_pattern_implies_no_rewrite; eauto; fail).
+    destruct CODE_MATCHES_DECIDABLE as [CODE_MATCHES  | CODE_DOES_NOT_MATCH].
+    admit.
+     erewrite no_code_match_pattern_implies_no_rewrite; eauto; fail).
 
     
     assert (TERM_MATCHES_DECIDABLE: {blk_term b = termToMatch} + {blk_term b <> termToMatch}).
@@ -352,37 +355,13 @@ Proof.
     destruct TERM_MATCHES_DECIDABLE as [TERM_MATCHES  | TERM_DOES_NOT_MATCH];
       try (erewrite no_term_match_pattern_implies_no_rewrite; eauto; fail).
 
+    unfold rewrite_main_bb; rewrite TERM_MATCHES, CODE_MATCHES; unfold termToMatch, codeToMatch.
 
-
-              
-
-      unfold rewrite_main_definition. simpl.
-      assert (DEF_NAME_MAIN': dc_name (df_prototype d) = Name "main").
-      simpl.
-      unfold ident_of in DEF_MAIN.
-      unfold ident_of_declaration in DEF_MAIN.
-      inversion DEF_MAIN.
-      auto.
-      
-      destruct (dc_name (df_prototype d) == Name "main"); try contradiction.
-    * admit.
-    * admit.
-      
     
-  + (** not main **)
-    destruct (ident_of (df_prototype (rewrite_main_definition d)) ==
-              ID_Global (Name "main")) as [DEF_REWRITE_MAIN | DEF_REWRITE_NOT_MAIN].
-    * (** rewrite has main, this is contradiction since we do not change names *)
-      cut (ident_of (df_prototype d) = ident_of (df_prototype (rewrite_main_definition d)));
-        try apply preserves_prototypes; auto.
-      intros IDENT_EQUAL.
-      rewrite IDENT_EQUAL, DEF_REWRITE_MAIN in DEF_NOT_MAIN.
-      contradiction.
-      simpl.
-      euttnorm.
-      unfold raise.
-      unfold IO.exn_trace.
-      euttnorm.
+    destruct (blk_phis b); auto.
+    simpl.
+
+    destruct (blk_id b == init (df_instrs d)) eqn:BLK_ID_B; auto.
 Abort.
   
 
