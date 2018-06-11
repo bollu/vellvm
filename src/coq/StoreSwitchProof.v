@@ -45,7 +45,7 @@ Unset Printing Implicit Defensive.
 Open Scope Z_scope.
 Open Scope string_scope.
 
-
+    
 
 
 Module STORESWITCHPROOF (A:MemoryAddress.ADDRESS) (LLVMIO:LLVM_INTERACTIONS(A)).
@@ -56,15 +56,18 @@ Import FunctionalExtensionality.
 Import SS.
 Import LLVMIO.
 
-Lemma bindM_Raise: forall {X Y : Type} (e : string) (f: X -> M IO Y),
-    bindM (raise e) f ≡ raise e.
+
+Lemma bindM_Raise: forall {A B: Type}
+                     (s: string) (f: A -> IO.Trace B), bindM (raise s) f ≡ Err s.
 Proof.
   intros.
   unfold raise.
-  unfold exn_trace.
+  unfold IO.exn_trace.
   euttnorm.
 Qed.
-Hint Rewrite (@bindM_Raise) : euttnormdb.
+
+Hint Resolve bindM_Raise.
+Hint Rewrite @bindM_Raise:euttnormdb.
     
 
 Lemma  eval_type_I64: forall (cfg: mcfg),
@@ -193,11 +196,108 @@ Qed.
 Hint Resolve allocate_globals_equals.
 Hint Rewrite allocate_globals_equals.
 
-Lemma find_function_entry_equals: forall (CFG: mcfg),
-    find_function_entry (rewrite_mcfg CFG) (Name "main") =
-    find_function_entry CFG (Name "main").
+
+Lemma find_function_equals:
+  forall (CFG: mcfg)
+    (globals : m_globals CFG = [])
+    (declarations : m_declarations CFG = [])
+    (d : definition cfg)
+    (definitions : m_definitions CFG = [d]),
+    find_function (rewrite_mcfg CFG) (Name "main") =
+    option_map (fun d =>
+                  {|
+                    df_prototype := df_prototype d;
+                    df_args := df_args d;
+                    df_instrs := rewrite_main_cfg (df_instrs d) 
+                  |})
+               (find_function CFG (Name "main")) /\
+    (forall d0, find_function CFG (Name "main") = Some d0 -> d0 = d).
 Proof.
   intros.
+  unfold find_function.
+  rewrite definitions.
+  unfold rewrite_mcfg.
+
+  destruct m_globals; try discriminate.
+  destruct m_declarations; try discriminate.
+  destruct m_definitions; try discriminate.
+  inversion definitions.
+  subst.
+  simpl.
+
+  unfold find_defn.
+  unfold ident_of.
+  unfold ident_of_definition.
+  unfold ident_of.
+  unfold rewrite_main_definition.
+  unfold ident_of_declaration.
+  split.
+
+  - destruct (dc_name (df_prototype d) == Name "main") eqn:name.
+    simpl.
+    rewrite e in *.
+    destruct (ID_Global (Name "main") == ID_Global (Name "main")) eqn:eqrefl;
+      try reflexivity.
+    destruct (ID_Global (dc_name (df_prototype d)) == ID_Global (Name "main"));
+      try reflexivity.
+    inversion e.
+    contradiction.
+  - intros.
+    destruct (ID_Global (dc_name (df_prototype d)) == ID_Global (Name "main"));
+      inversion H; auto.
+Qed.
+Hint Resolve find_function_equals.
+Hint Rewrite find_function_equals.
+
+
+Lemma find_function_entry_equals:
+  forall (CFG: mcfg)
+    (globals : m_globals CFG = [])
+    (declarations : m_declarations CFG = [])
+    (d : definition cfg)
+    (definitions : m_definitions CFG = [d]),
+    (find_function_entry (rewrite_mcfg CFG) (Name "main") =
+    find_function_entry CFG (Name "main")).
+Proof.
+  intros.
+  unfold find_function_entry.
+
+  assert (FIND_FN: find_function (rewrite_mcfg CFG) (Name "main") =
+          option_map (fun d =>
+                        {|
+                          df_prototype := df_prototype d;
+                          df_args := df_args d;
+                          df_instrs := rewrite_main_cfg (df_instrs d) 
+                        |})
+                     (find_function CFG (Name "main")) /\
+    (forall d0, find_function CFG (Name "main") = Some d0 -> d0 = d)).
+  eauto.
+
+  destruct FIND_FN as [REWRITE_FN  ORIGINAL_FN].
+
+  destruct (find_function CFG (Name "main")) eqn:FINDFN;
+    rewrite REWRITE_FN; auto.
+
+  (** We want a winess of d0 = d **)
+  specialize (ORIGINAL_FN d0 eq_refl).
+  subst.
+  simpl.
+  
+  destruct (blks (df_instrs d)); auto.
+  destruct l; auto.
+
+  simpl.
+  unfold rewrite_main_bb.
+  destruct (blk_phis b); auto.
+  assert (CODE_CASES:
+            {blk_code b = codeToMatch} + {blk_code b <> codeToMatch}); auto.
+  destruct CODE_CASES as [CODE_MATCH | CODE_NOMATCH]; auto.
+  - unfold codeToMatch in CODE_MATCH. inversion CODE_MATCH as [BB_CODE].
+    rewrite BB_CODE.
+
+    assert (TERM_CASES: {blk_term b = termToMatch} +
+                        {blk_term b <> termToMatch}); auto.
+    
 Abort.
 
 Lemma register_functions_equal: forall (CFG: mcfg) (ge: TopLevel.SS.genv),
@@ -223,40 +323,77 @@ Qed.
 Hint Resolve register_functions_equal.
 Hint Rewrite register_functions_equal.
 
-Lemma ident_of_prototype_equal: forall (d: definition cfg),
-    ident_of (df_prototype (rewrite_main_definition d)) =
-    ident_of (df_prototype d).
+(* 
+Lemma find_blocks:
+
+  (CFG : mcfg)
+  (globals : m_globals CFG = [])
+  (declarations : m_declarations CFG = [])
+  (d : definition cfg)
+  (definitions : m_definitions CFG = [d])
+  find_block (blks (df_instrs d)) (init (df_instrs d)) = Some x \/
+  find_block blk
+ *)
+
+Lemma rewrite_main_cfg_cases: forall c,
+    rewrite_main_cfg c = c \/
+    exists b bnew,
+      rewrite_main_bb b = Some bnew /\
+      blks c = [b] /\
+      rewrite_main_cfg c =  {| init := init c; blks := [bnew]; args := args c |} /\
+      blk_code b = codeToMatch /\
+      blk_term b = termToMatch /\
+      blk_phis b = [].
 Proof.
   intros.
-  destruct d. unfold rewrite_main_definition. simpl.
-  destruct (dc_name df_prototype == Name "main"); try reflexivity.
-Qed.
-
-                                   
-
-Hint Resolve ident_of_prototype_equal.
-Hint Rewrite ident_of_prototype_equal.
-
-Lemma find_block_of_rewritten_defn: forall (CFG: mcfg)
-                                  (GLOBALS_EMPTY: m_globals CFG = [])
-                                  (DECLARATIONS_EMPTY : m_declarations CFG = [])
-                                  (d : definition cfg)
-                                  (DEFINITIONS_VALUE : m_definitions CFG = [d])
-                                  (D_IS_MAIN : ident_of (df_prototype d) = ID_Global (Name "main")),
-    find_block (blks (df_instrs (rewrite_main_definition d)))
-               (init (df_instrs (rewrite_main_definition d))) =
-    find_block (blks (df_instrs (d)))
-               (init (df_instrs (d))).
-Proof.
-  intros.
-  unfold find_block.
-  unfold rewrite_main_definition.
+  unfold rewrite_main_cfg.
   simpl.
-  destruct (dc_name (df_prototype d) == Name "main"); try contradiction.
-  simpl.
-Abort.
+  destruct c eqn:CVAL; simpl.
+  destruct blks; auto.
+  destruct blks; auto.
+
+  assert (CODE_CASES:
+            {blk_code b = codeToMatch} + {blk_code b <> codeToMatch}); auto.
+
+  assert (TERM_CASES:
+            {blk_term b = termToMatch} + {blk_term b <> termToMatch}); auto.
+  (* need terminator decidable equality *)
+  admit.
+
+  destruct CODE_CASES as [CODE_MATCH | CODE_NOMATCH].
+  - (** CODE MATCHED **)
+
+    destruct TERM_CASES as [TERM_MATCH | TERM_NOMATCH].
+    + (** TERM MATCHED **)
+      unfold rewrite_main_bb.
+      destruct (blk_phis b) eqn:PHIS; auto.
+      rewrite CODE_MATCH. unfold codeToMatch.
+      rewrite TERM_MATCH. unfold termToMatch.
+      unfold isGEPAtIx, patternMkGEPAtIx. simpl.
+      right.
+      exists b.
+      repeat esplit; auto.
+      rewrite PHIS.
+      rewrite CODE_MATCH.
+      rewrite TERM_MATCH.
+      unfold codeToMatch, termToMatch.
+      unfold patternMkGEPAtIx.
+      simpl.
+      auto.
+
+    +  assert (REWRITE_BB: rewrite_main_bb b = None).
+       eapply no_term_match_pattern_implies_no_rewrite with (t := blk_term b);
+         auto.
+       rewrite REWRITE_BB; auto.
+       
+
     
-            
+  - assert (REWRITE_BB: rewrite_main_bb b = None).
+    eapply no_code_match_pattern_implies_no_rewrite; eauto.
+    rewrite REWRITE_BB.
+    auto.
+    (** Admitted because I need decidable equality on terminators **)
+Admitted.
 
 Theorem preserves_semantics:
   forall (CFG: mcfg),
@@ -300,69 +437,56 @@ Proof.
 
   repeat M.forcememd.
   repeat euttnorm.
+  simpl.
 
-  unfold initialize_globals; simpl.
+  unfold initialize_globals. simpl.
   repeat euttnorm.
 
-  
-  destruct (dc_name (df_prototype d) == Name "main").
-
-  (* find function entry *)
+  (** Find function entry **)
   unfold find_function_entry.
-  simpl.
 
-  unfold find_function.
-  simpl.
+  assert (FINDFN:
+    find_function (rewrite_mcfg CFG) (Name "main") =
+    option_map (fun d =>
+                  {|
+                    df_prototype := df_prototype d;
+                    df_args := df_args d;
+                    df_instrs := rewrite_main_cfg (df_instrs d) 
+                  |})
+               (find_function CFG (Name "main")) /\
+    (forall d0, find_function CFG (Name "main") = Some d0 -> d0 = d)); auto.
+  destruct FINDFN as [FINDFN_REWRITE FINDFN_VALUE].
 
-  unfold find_defn.
-  simpl.
-
-  rewrite globals, declarations, definitions.
-  simpl.
-
-  destruct (ident_of ((rewrite_main_definition d)) ==
-            ID_Global (Name "main")) as [DEF_REWRITE_MAIN | DEF_REWRITE_NOT_MAIN].
-  destruct (ident_of  d == ID_Global (Name "main")) as [DEF_MAIN | DEF_NOT_MAIN].
-
-  + (* We have both mains, the case we care about *)
-
-    intros.
-    unfold find_block.
-    intros.
-    unfold rewrite_main_definition.
-    destruct (dc_name (df_prototype d) == Name "main") as [_ | CONTRA]; try contradiction.
+  destruct (find_function CFG (Name "main")) as [mainfn | _].
+  - (** FOUND FUNCTION **)
+    assert (mainfn = d).
+    apply FINDFN_VALUE; auto.
+    subst.
+    (** CAREFUL HERE **)
+    clear FINDFN_VALUE.
+    simpl in FINDFN_REWRITE.
+    rewrite FINDFN_REWRITE.
+    Opaque rewrite_main_cfg.
     simpl.
 
-    destruct d; simpl.
-    destruct df_instrs; simpl.
-    destruct blks eqn:BLKS. simpl; try (unfold raise; unfold IO.exn_trace; euttnorm; fail).
+    destruct (blks (df_instrs d)) eqn:BLKS; simpl; try euttnorm.
+    destruct l; simpl.
+    + (** HAVE ONLY ONE BB **)
+      admit.
+    + (** HAVE MULTIPLE BBS **)
+      inversion BLKS.
+      simpl.
+      destruct (blk_id b == init (df_instrs d)); simpl.
+      
+
+
+
+    
+    
+  - (** NO FUNCTION **)
+    simpl in FINDFN_REWRITE.
+    rewrite FINDFN_REWRITE in *.
     simpl in *.
-    (** TWO CASES ARE GENERATED HERE ! **)
-    destruct l.
-     
-
-
-    assert (CODE_MATCHES_DECIDABLE: {blk_code b = codeToMatch} + {blk_code b <> codeToMatch}).
-    apply code_eq_dec.
-    destruct CODE_MATCHES_DECIDABLE as [CODE_MATCHES  | CODE_DOES_NOT_MATCH].
-    admit.
-     erewrite no_code_match_pattern_implies_no_rewrite; eauto; fail).
-
-    
-    assert (TERM_MATCHES_DECIDABLE: {blk_term b = termToMatch} + {blk_term b <> termToMatch}).
-    decide equality; auto.
-    apply terminator_eq_dec.
-    destruct TERM_MATCHES_DECIDABLE as [TERM_MATCHES  | TERM_DOES_NOT_MATCH];
-      try (erewrite no_term_match_pattern_implies_no_rewrite; eauto; fail).
-
-    unfold rewrite_main_bb; rewrite TERM_MATCHES, CODE_MATCHES; unfold termToMatch, codeToMatch.
-
-    
-    destruct (blk_phis b); auto.
-    simpl.
-
-    destruct (blk_id b == init (df_instrs d)) eqn:BLK_ID_B; auto.
-Abort.
-  
+    euttnorm.
 
 End STORESWITCHPROOF.
