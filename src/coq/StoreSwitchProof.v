@@ -47,6 +47,8 @@ Unset Printing Implicit Defensive.
 Open Scope Z_scope.
 Open Scope string_scope.
 
+Locate "==".
+
 Import SS.
     
 
@@ -541,6 +543,156 @@ Proof.
   simpl.
   rewrite (M.lookup_all_index_of_add_all_index_full_alias); auto.
 Qed.
+
+Lemma exec_old_program: forall
+  (CFG : mcfg)
+  (globals : m_globals CFG = [])
+  (declarations : m_declarations CFG = [])
+  (df_prototype : declaration)
+  (df_args : list local_id)
+  (df_instrs : cfg)
+  (definitions : m_definitions CFG =
+                [{|
+                 df_prototype := df_prototype;
+                 df_args := df_args;
+                 df_instrs := df_instrs |}])
+
+  (FINDMAIN : find_function CFG (Name "main") =
+             Some
+               {|
+               df_prototype := df_prototype;
+               df_args := df_args;
+               df_instrs := df_instrs |})
+  (FINDFN_REWRITE : find_function (rewrite_mcfg CFG) (Name "main") =
+                   Some
+                     {|
+                     df_prototype := LLVMAst.df_prototype
+                                       {|
+                                       df_prototype := df_prototype;
+                                       df_args := df_args;
+                                       df_instrs := df_instrs |};
+                     df_args := LLVMAst.df_args
+                                  {|
+                                  df_prototype := df_prototype;
+                                  df_args := df_args;
+                                  df_instrs := df_instrs |};
+                     df_instrs := rewrite_main_cfg
+                                    (LLVMAst.df_instrs
+                                       {|
+                                       df_prototype := df_prototype;
+                                       df_args := df_args;
+                                       df_instrs := df_instrs |}) |})
+  (bold bnew : block)
+  (REWRITE_WITNESS : rewrite_main_bb bold = Some bnew)
+  (BBS : blks df_instrs = [bold])
+  (REWRITE_MAIN_CFG : rewrite_main_cfg df_instrs =
+                     {|
+                     init := init df_instrs;
+                     blks := [bnew];
+                     args := args df_instrs |})
+  (CODE_OLD : blk_code bold = codeToMatch)
+  (TERM_OLD : blk_term bold = termToMatch)
+  (PHIS_OLD : blk_phis bold = [])
+  (BLK_ID_SAME : blk_id bnew = blk_id bold)
+  (BLKID_INIT : blk_id bold = init df_instrs),
+  M.memD (M.add (M.size (a:=Z)M.empty) (M.make_empty_block DTYPE_Pointer) M.empty)
+      (step_sem CFG
+         (Step
+            (ENV.add (dc_name df_prototype) (DVALUE_Addr (M.size (a:=Z) M.empty, 0))
+               (ENV.empty dvalue),
+            {|
+            fn := Name "main";
+            bk := init df_instrs;
+            pt := blk_entry_id bold |}, ENV.empty dvalue, []))) ≡
+      Ret (IO.DV.DVALUE_I32  (Int32.repr 0%Z)).
+Proof.
+  intros.
+  forcestepsem.
+  rewrite FINDMAIN; simpl.
+  unfold find_block; simpl.
+  rewrite BBS; simpl.
+  replace ( if blk_id bold == init df_instrs then true else false)
+    with true; try (destruct (blk_id bold == init df_instrs);
+                    try contradiction; auto).
+  unfold block_to_cmd.
+
+  assert (TERM_ID_NEQ_ENTRY_ID: blk_term_id bold <> blk_entry_id bold ).
+  unfold blk_term_id, blk_entry_id.
+  rewrite TERM_OLD, CODE_OLD.
+  unfold termToMatch, codeToMatch. simpl.
+  auto.
+
+  assert (ENTRY_ID_VAL: blk_entry_id bold = IId (Name "x")).
+  unfold blk_entry_id.
+  rewrite CODE_OLD.
+  unfold fallthrough.
+  unfold codeToMatch.
+  reflexivity.
+
+  assert (TERM_ID_VAL: blk_term_id bold = IVoid 2).
+  unfold blk_term_id.
+  rewrite TERM_OLD.
+  unfold termToMatch.
+  reflexivity.
+  
+  destruct (blk_term_id bold == blk_entry_id bold); try contradiction.
+  rewrite CODE_OLD. simpl.
+
+  destruct (blk_entry_id bold == IId (Name "x")); try contradiction.
+  simpl.
+
+  rewrite FINDMAIN; simpl.
+
+  progress unfold find_block; simpl; rewrite BBS; simpl.
+
+  
+  replace ( if blk_id bold == init df_instrs then true else false)
+    with true; try (destruct (blk_id bold == init df_instrs);
+                    try contradiction; auto).
+
+  unfold block_to_cmd.
+  destruct (blk_term_id bold == blk_entry_id bold); try contradiction.
+  rewrite CODE_OLD. simpl.
+
+  destruct (blk_entry_id bold == IId (Name "x")); try contradiction.
+  simpl.
+  unfold blk_entry_id.
+  rewrite CODE_OLD. simpl.
+
+  euttnorm.
+  
+  do 4! [progress (unfold cont; simpl; M.forcememd; euttnorm; forcestepsem) |
+         rewrite FINDMAIN; simpl |
+         progress unfold find_block; simpl; rewrite BBS; simpl |
+         replace ( if blk_id bold == init df_instrs then true else false)
+           with true; try (destruct (blk_id bold == init df_instrs);
+                           try contradiction; auto) |
+         
+         progress (unfold block_to_cmd;
+                   destruct (blk_term_id bold == blk_entry_id bold);
+                   try contradiction;
+                   try (rewrite CODE_OLD; simpl))].
+
+  
+         progress (unfold block_to_cmd;
+                   destruct (blk_term_id bold == blk_entry_id bold);
+                   try contradiction;
+                   try (rewrite CODE_OLD; simpl)).
+
+         progress destruct (blk_term_id bold == IVoid 0); try contradiction.
+
+         (* This will not work, use context pattern matches to get to the
+         part of the proof which matters
+         http://adam.chlipala.net/cpdt/html/Cpdt.Match.html
+         *)
+         progress destruct (true == false).
+
+  
+  
+  
+Abort.
+  
+
     
   
 
@@ -606,7 +758,7 @@ Proof.
     (forall d0, find_function CFG (Name "main") = Some d0 -> d0 = d)); auto.
   destruct FINDFN as [FINDFN_REWRITE FINDFN_VALUE].
 
-  destruct (find_function CFG (Name "main")) as [mainfn | _].
+  destruct (find_function CFG (Name "main")) as [mainfn | ] eqn:FINDMAIN.
   - (** FOUND FUNCTION **)
     assert (mainfn = d).
     apply FINDFN_VALUE; auto.
@@ -668,23 +820,9 @@ Proof.
       (** block id matches INIT **)
       * subst.
         euttnorm.
-
-        (** This is the interesting part, where we know
-            everything about the function and now just need to
-            write Ltac to execute everything **)
-        Check (M.size).
-        Check (M.add).
-        forcestepsem.
-        rewrite FINDFN_REWRITE.
-        simpl.
-        rewrite REWRITE_MAIN_CFG.
-        simpl.
-        destruct (blk_id bnew == init df_instrs); try contradiction.
-
-
-        destruct bold.
-        destruct bnew.
-        simpl in *.
+        
+        rewrite  exec_new_program.
+        rewrite exec_old_program.
         
         
       * (** block id does not match INIT **)
