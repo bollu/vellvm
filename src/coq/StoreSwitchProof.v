@@ -661,31 +661,91 @@ Proof.
 
   euttnorm.
   
-  do 4! [progress (unfold cont; simpl; M.forcememd; euttnorm; forcestepsem) |
-         rewrite FINDMAIN; simpl |
-         progress unfold find_block; simpl; rewrite BBS; simpl |
-         replace ( if blk_id bold == init df_instrs then true else false)
-           with true; try (destruct (blk_id bold == init df_instrs);
-                           try contradiction; auto) |
-         
-         progress (unfold block_to_cmd;
-                   destruct (blk_term_id bold == blk_entry_id bold);
-                   try contradiction;
-                   try (rewrite CODE_OLD; simpl))].
+  (*
 
-  
-         progress (unfold block_to_cmd;
-                   destruct (blk_term_id bold == blk_entry_id bold);
-                   try contradiction;
-                   try (rewrite CODE_OLD; simpl)).
+Error:
+Anomaly
+"File "plugins/ltac/tacinterp.ml", line 1157, characters 35-41: Assertion failed."
+Please report at http://coq.inria.fr/bugs/.
+   *)
+  do 52? [progress (unfold cont; simpl; M.forcememd; euttnorm; forcestepsem) |
+          rewrite FINDMAIN; simpl |
+          progress unfold find_block; simpl; rewrite BBS; simpl |
+          replace ( if blk_id bold == init df_instrs then true else false)
+            with true; try (destruct (blk_id bold == init df_instrs);
+                            try contradiction; auto) |
+          
+          match goal with
+          | [|- context [blk_term_id bold == blk_term_id bold]] =>
+            destruct (blk_term_id bold == blk_term_id bold);
+            try contradiction
+          | _ => fail
+          end |
+          
+          progress (unfold block_to_cmd;
+                    match goal with
+                    | [ |- context [blk_term_id bold == blk_entry_id bold]] =>
+                      destruct (blk_term_id bold == blk_entry_id bold);
+                      try contradiction;
+                      try (rewrite CODE_OLD; simpl)
+                    | _ => fail "no match"
+                    end) | 
 
-         progress destruct (blk_term_id bold == IVoid 0); try contradiction.
-
-         (* This will not work, use context pattern matches to get to the
+          (* This will not work, use context pattern matches to get to the
          part of the proof which matters
          http://adam.chlipala.net/cpdt/html/Cpdt.Match.html
-         *)
-         progress destruct (true == false).
+           *)
+          progress (unfold block_to_cmd;
+                    match goal with
+                    | [ |- context[(blk_term_id bold ==  ?X)]] =>
+                      destruct (blk_term_id bold ==  X)
+                        as [TERM_ID_VAL' | ];
+                      try (simpl;
+                           rewrite TERM_ID_VAL' in TERM_ID_VAL;
+                           inversion TERM_ID_VAL;
+                           fail 10)
+                    | _ => fail "no matching goal"
+                    end) |
+
+          rewrite eval_type_I32 |
+          rewrite eval_type_array_i32 |
+          rewrite CODE_OLD; simpl |
+          progress euttnorm |
+          progress M.forcememd |
+          progress forcestepsem |
+          progress (unfold cont)].
+
+  unfold block_to_cmd.
+
+  rewrite TERM_OLD; simpl.
+
+  
+  
+  replace (2 <=? Int32.unsigned (Int32.repr 0)) with false; auto.
+  replace (2 <=? Int32.unsigned (Int32.repr 1)) with false; auto.
+  simpl.
+  replace (Int32.unsigned (Int32.repr 0)) with 0;auto.
+  replace (Int32.unsigned (Int32.repr 1)) with 1; auto.
+  cbn.
+
+  euttnorm.
+  forcestepsem.
+  euttnorm.
+  rewrite @Trace.matchM with (i := M.memD _ _).
+  simpl.
+  rewrite (M.lookup_all_index_of_add_all_index_no_alias); auto; try omega.
+  rewrite (M.lookup_all_index_of_add_all_index_full_alias); auto.
+  euttnorm.
+  omega.
+  
+  
+  M.forcememd.
+
+
+
+
+
+
 
   
   
