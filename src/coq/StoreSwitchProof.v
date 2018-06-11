@@ -468,20 +468,39 @@ Proof.
     rewrite FINDFN_REWRITE.
     Opaque rewrite_main_cfg.
     simpl.
+    destruct d.
+    simpl.
 
-    destruct (blks (df_instrs d)) eqn:BLKS; simpl; try euttnorm.
-    destruct l; simpl.
-    + (** HAVE ONLY ONE BB **)
-      admit.
-    + (** HAVE MULTIPLE BBS **)
-      inversion BLKS.
-      simpl.
-      destruct (blk_id b == init (df_instrs d)); simpl.
+    assert (REWRITE_CASES: rewrite_main_cfg df_instrs = df_instrs \/
+                           exists b bnew,
+                             rewrite_main_bb b = Some bnew /\
+                             blks df_instrs = [b] /\
+                             rewrite_main_cfg df_instrs =
+                             {| init := init df_instrs;
+                                blks := [bnew];
+                                args := args df_instrs |} /\
+                             blk_code b = codeToMatch /\
+                             blk_term b = termToMatch /\
+                             blk_phis b = []
+           ).
+    apply rewrite_main_cfg_cases; auto.
+
+    destruct (REWRITE_CASES) as [NOREWRITE_CFG | REWRITE_CFG].
+    + (** NO REWRITE OF CFG **)
+      rewrite NOREWRITE_CFG.
       
+      assert (NOREWRITE_MCFG: rewrite_mcfg CFG = CFG).
+      unfold rewrite_mcfg.
+      simpl.
+      destruct CFG. simpl in *.
+      rewrite globals, declarations, definitions.
+      unfold rewrite_main_definition.
+      simpl.
+      destruct (dc_name (df_prototype) == Name "main"); auto.
+      rewrite NOREWRITE_CFG; auto.
+      rewrite NOREWRITE_MCFG.
+      reflexivity.
 
-
-
-    
     
   - (** NO FUNCTION **)
     simpl in FINDFN_REWRITE.
