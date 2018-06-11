@@ -24,11 +24,13 @@ Require Import Vellvm.Memory.
 Require Import Vellvm.Trace.
 Require Import Setoid Morphisms.
 Require Import Coq.Setoids.Setoid.
+
 Require Import SetoidClass.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Equivalence.
 Require Import Vellvm.StoreSwitch.
 Require Import Vellvm.TopLevel.
+Require Import Vellvm.Memory.
 Require FunctionalExtensionality.
 Require Import Eqdep_dec.
 Require Import Classical.
@@ -45,16 +47,12 @@ Unset Printing Implicit Defensive.
 Open Scope Z_scope.
 Open Scope string_scope.
 
+Import SS.
     
 
-
-Module STORESWITCHPROOF (A:MemoryAddress.ADDRESS) (LLVMIO:LLVM_INTERACTIONS(A)).
   (* Need this to simplify proofs, otherwise I need to painfully destruct
   execution chains. *)
 Import FunctionalExtensionality.
-
-Import SS.
-Import LLVMIO.
 
 
 Lemma bindM_Raise: forall {A B: Type}
@@ -395,6 +393,84 @@ Proof.
     (** Admitted because I need decidable equality on terminators **)
 Admitted.
 
+Lemma exec_new_program: forall (A: Type)
+  (CFG : mcfg)
+  (globals : m_globals CFG = [])
+  (declarations : m_declarations CFG = [])
+  (df_prototype : declaration)
+  (df_args : list local_id)
+  (df_instrs : cfg)
+  (definitions : m_definitions CFG =
+                [{|
+                 df_prototype := df_prototype;
+                 df_args := df_args;
+                 df_instrs := df_instrs |}])
+  (FINDFN_REWRITE : find_function (rewrite_mcfg CFG) (Name "main") =
+                   Some
+                     {|
+                     df_prototype := LLVMAst.df_prototype
+                                       {|
+                                       df_prototype := df_prototype;
+                                       df_args := df_args;
+                                       df_instrs := df_instrs |};
+                     df_args := LLVMAst.df_args
+                                  {|
+                                  df_prototype := df_prototype;
+                                  df_args := df_args;
+                                  df_instrs := df_instrs |};
+                     df_instrs := rewrite_main_cfg
+                                    (LLVMAst.df_instrs
+                                       {|
+                                       df_prototype := df_prototype;
+                                       df_args := df_args;
+                                       df_instrs := df_instrs |}) |})
+  (bold bnew : block)
+  (REWRITE_WITNESS : rewrite_main_bb bold = Some bnew)
+  (BBS : blks df_instrs = [bold])
+  (REWRITE_MAIN_CFG : rewrite_main_cfg df_instrs =
+                     {|
+                     init := init df_instrs;
+                     blks := [bnew];
+                     args := args df_instrs |})
+  (CODE_OLD : blk_code bold = codeToMatch)
+  (TERM_OLD : blk_term bold = termToMatch)
+  (PHIS_OLD : blk_phis bold = [])
+  (BLK_ID_SAME : blk_id bnew = blk_id bold)
+  (BLKID_INIT : blk_id bold = init df_instrs),
+  M.memD (M.add (M.size (a:=Z)(M.empty)) (M.make_empty_block DTYPE_Pointer) M.empty)
+    (step_sem (rewrite_mcfg CFG)
+       (Step
+          (ENV.add (dc_name df_prototype)
+             (IO.DV.DVALUE_Addr (M.size (a:=Z)M.empty, 0)) 
+             (ENV.empty IO.DV.dvalue),
+          {|
+          fn := Name "main";
+          bk := init df_instrs;
+          pt := blk_entry_id bnew |}, ENV.empty IO.DV.dvalue, []))) ≡
+    Ret (IO.DV.DVALUE_I32  (Int32.repr 1%Z)).
+Proof.
+  Opaque rewrite_main_cfg.
+  intros.
+  forcestepsem.
+  rewrite FINDFN_REWRITE; simpl.
+  rewrite REWRITE_MAIN_CFG; simpl.
+  rewrite BLK_ID_SAME.
+  rewrite BLKID_INIT.
+  destruct (init df_instrs == init df_instrs); try contradiction.
+
+  assert (bnew =
+            {|
+              
+              blk_id  := blk_id bold;
+              blk_phis := [];
+              blk_code  := codeAfterRewrite;
+              blk_term := termToMatch;
+            |}).
+Qed.
+    
+    
+  
+
 Theorem preserves_semantics:
   forall (CFG: mcfg),
     (run_mcfg_with_memory (rewrite_mcfg CFG)) ≡ (run_mcfg_with_memory CFG).
@@ -489,7 +565,7 @@ Proof.
                                [bold [bnew
                                        [REWRITE_WITNESS
                                           [BBS
-                                             [REWRITE_INSTRS
+                                             [REWRITE_MAIN_CFG
                                                 [CODE_OLD [TERM_OLD
                                                              PHIS_OLD]]]]]]]].
 
@@ -509,7 +585,7 @@ Proof.
       reflexivity.
 
     + (** REWRITE OF CFG **)
-      rewrite BBS, REWRITE_INSTRS. simpl.
+      rewrite BBS, REWRITE_MAIN_CFG. simpl.
 
       assert (BLK_ID_SAME: blk_id bnew = blk_id bold).
       admit.
@@ -518,7 +594,26 @@ Proof.
       destruct (blk_id bold == init df_instrs) as [BLKID_INIT |BLKID_NOINIT].
       (** block id matches INIT **)
       * subst.
-        admit.
+        euttnorm.
+
+        (** This is the interesting part, where we know
+            everything about the function and now just need to
+            write Ltac to execute everything **)
+        Check (M.size).
+        Check (M.add).
+        forcestepsem.
+        rewrite FINDFN_REWRITE.
+        simpl.
+        rewrite REWRITE_MAIN_CFG.
+        simpl.
+        destruct (blk_id bnew == init df_instrs); try contradiction.
+
+
+        destruct bold.
+        destruct bnew.
+        simpl in *.
+        
+        
       * (** block id does not match INIT **)
         euttnorm.
 
