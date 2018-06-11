@@ -485,7 +485,14 @@ Proof.
            ).
     apply rewrite_main_cfg_cases; auto.
 
-    destruct (REWRITE_CASES) as [NOREWRITE_CFG | REWRITE_CFG].
+    destruct REWRITE_CASES as [NOREWRITE_CFG |
+                               [bold [bnew
+                                       [REWRITE_WITNESS
+                                          [BBS
+                                             [REWRITE_INSTRS
+                                                [CODE_OLD [TERM_OLD
+                                                             PHIS_OLD]]]]]]]].
+
     + (** NO REWRITE OF CFG **)
       rewrite NOREWRITE_CFG.
       
@@ -501,11 +508,26 @@ Proof.
       rewrite NOREWRITE_MCFG.
       reflexivity.
 
+    + (** REWRITE OF CFG **)
+      rewrite BBS, REWRITE_INSTRS. simpl.
+
+      assert (BLK_ID_SAME: blk_id bnew = blk_id bold).
+      admit.
+
+      rewrite BLK_ID_SAME.
+      destruct (blk_id bold == init df_instrs) as [BLKID_INIT |BLKID_NOINIT].
+      (** block id matches INIT **)
+      * subst.
+        admit.
+      * (** block id does not match INIT **)
+        euttnorm.
+
     
   - (** NO FUNCTION **)
     simpl in FINDFN_REWRITE.
     rewrite FINDFN_REWRITE in *.
     simpl in *.
     euttnorm.
+Admitted.
 
 End STORESWITCHPROOF.
