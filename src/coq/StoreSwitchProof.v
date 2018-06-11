@@ -857,7 +857,13 @@ Proof.
       rewrite BBS, REWRITE_MAIN_CFG. simpl.
 
       assert (BLK_ID_SAME: blk_id bnew = blk_id bold).
-      admit.
+      unfold rewrite_main_bb in REWRITE_WITNESS.
+      rewrite CODE_OLD, TERM_OLD, PHIS_OLD in REWRITE_WITNESS.
+      unfold codeToMatch, termToMatch in REWRITE_WITNESS.
+      unfold isGEPAtIx in REWRITE_WITNESS.
+      simpl in REWRITE_WITNESS.
+      inversion REWRITE_WITNESS.
+      auto.
 
       rewrite BLK_ID_SAME.
       destruct (blk_id bold == init df_instrs) as [BLKID_INIT |BLKID_NOINIT].
@@ -877,6 +883,6 @@ Proof.
     rewrite FINDFN_REWRITE in *.
     simpl in *.
     euttnorm.
-Admitted.
+Qed.
 
 End STORESWITCHPROOF.
