@@ -80,6 +80,30 @@ Qed.
 
 Hint Resolve eval_type_I64.
 
+
+Lemma  eval_type_I32: forall (cfg: mcfg),
+    eval_typ cfg (TYPE_I 32) = DTYPE_I 32.
+Proof.
+  intros.
+  unfold eval_typ.
+  rewrite normalize_type_equation.
+  auto.
+Qed.
+
+Hint Resolve eval_type_I32.
+
+Lemma eval_type_array_i32: forall (CFG: mcfg),
+    (SS.eval_typ CFG (TYPE_Array 2 (TYPE_I 32))) =
+    DTYPE_Array 2 (DTYPE_I 32).
+Proof.
+  intros.
+  unfold SS.eval_typ.
+  repeat (rewrite normalize_type_equation; simpl).
+  auto.
+Qed.
+
+Hint Resolve eval_type_array_i32.
+
 Lemma eval_typ_equals: forall (mcfg: mcfg) (t: typ),
     eval_typ (rewrite_mcfg mcfg) t = eval_typ mcfg t.
 Proof.
@@ -104,6 +128,14 @@ Definition codeToMatch  : code :=
         (IVoid 0%Z, INSTR_Store  false (TYPE_I (32%Z), EXP_Integer 0)
                                  (patternMkGEPAtIx 0) None);
         (IVoid 1%Z, INSTR_Store  false (TYPE_I (32%Z), EXP_Integer 1) (patternMkGEPAtIx 1) None);
+        (IId (Name "xat0"), INSTR_Load false (TYPE_I (32%Z)) (patternMkGEPAtIx 0) None)].
+
+
+Definition codeAfterRewrite : code :=
+     [(IId (Name "x"), INSTR_Alloca i32PTRTY (Some ((TYPE_I (32%Z)),  EXP_Integer 0)) None);
+        (IVoid 1%Z, INSTR_Store  false (TYPE_I (32%Z), EXP_Integer 1)
+                                 (patternMkGEPAtIx 1) None);
+        (IVoid 0%Z, INSTR_Store  false (TYPE_I (32%Z), EXP_Integer 0) (patternMkGEPAtIx 0) None);
         (IId (Name "xat0"), INSTR_Load false (TYPE_I (32%Z)) (patternMkGEPAtIx 0) None)].
 
 
@@ -447,18 +479,20 @@ Lemma exec_new_program: forall (A: Type)
           fn := Name "main";
           bk := init df_instrs;
           pt := blk_entry_id bnew |}, ENV.empty IO.DV.dvalue, []))) ≡
-    Ret (IO.DV.DVALUE_I32  (Int32.repr 1%Z)).
+    Ret (IO.DV.DVALUE_I32  (Int32.repr 0%Z)).
 Proof.
+  Opaque M.add_all_index.
+  Opaque M.lookup_all_index.
   Opaque rewrite_main_cfg.
   intros.
-  forcestepsem.
+  repeat forcestepsem.
   rewrite FINDFN_REWRITE; simpl.
   rewrite REWRITE_MAIN_CFG; simpl.
   rewrite BLK_ID_SAME.
   rewrite BLKID_INIT.
   destruct (init df_instrs == init df_instrs); try contradiction.
 
-  assert (bnew =
+  assert (BNEW_VAL: bnew =
             {|
               
               blk_id  := blk_id bold;
@@ -466,8 +500,47 @@ Proof.
               blk_code  := codeAfterRewrite;
               blk_term := termToMatch;
             |}).
+
+  assert (BLK_ID_NEW_IS_INIT: blk_id bnew = init df_instrs).
+  congruence.
+  
+  unfold rewrite_main_bb in REWRITE_WITNESS.
+  rewrite PHIS_OLD, CODE_OLD, TERM_OLD in REWRITE_WITNESS.
+  unfold codeToMatch, termToMatch in REWRITE_WITNESS.
+  simpl in REWRITE_WITNESS.
+  inversion REWRITE_WITNESS.
+  unfold codeAfterRewrite.
+  unfold termToMatch.
+  simpl.
+  reflexivity.
+
+  do 100? [rewrite BNEW_VAL; simpl | rewrite FINDFN_REWRITE; simpl |
+         rewrite REWRITE_MAIN_CFG; simpl |
+         replace ( if blk_id bold == init df_instrs then true else false)
+           with true; try (destruct (blk_id bold == init df_instrs);
+                           try contradiction; auto) |
+         progress (unfold block_to_cmd; simpl) |
+         progress euttnorm |
+         progress (unfold cont; simpl; M.forcememd; euttnorm; forcestepsem) |
+         rewrite eval_type_I32 |
+         rewrite eval_type_array_i32 |
+         progress M.forcememd].
+
+  
+  replace (2 <=? Int32.unsigned (Int32.repr 0)) with false; auto.
+  replace (2 <=? Int32.unsigned (Int32.repr 1)) with false; auto.
+  simpl.
+  replace (Int32.unsigned (Int32.repr 0)) with 0;auto.
+  replace (Int32.unsigned (Int32.repr 1)) with 1; auto.
+  cbn.
+
+  euttnorm.
+  forcestepsem.
+  euttnorm.
+  rewrite @Trace.matchM with (i := M.memD _ _).
+  simpl.
+  rewrite (M.lookup_all_index_of_add_all_index_full_alias); auto.
 Qed.
-    
     
   
 

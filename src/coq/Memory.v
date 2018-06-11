@@ -464,7 +464,7 @@ Qed.
 
 
 Lemma force_memD_ret:
-  forall { X Y: Type}
+  forall { X: Type}
     (x:  Trace X)
     (mem: memory),
     memD mem  (Trace.Ret x) ≡ Trace.Ret x.
@@ -475,7 +475,7 @@ Proof.
   reflexivity.
 Qed.
 
-Ltac forcememd := first [rewrite force_memD_vis | rewrite force_memD_ret]; simpl; auto.
+Ltac forcememd := do [rewrite force_memD_ret | rewrite force_memD_vis ]; simpl; auto.
 
 Import Trace.MonadVerif.
 
