@@ -427,7 +427,7 @@ Proof.
     (** Admitted because I need decidable equality on terminators **)
 Admitted.
 
-Lemma exec_new_program: forall (A: Type)
+Lemma exec_new_program: forall 
   (CFG : mcfg)
   (globals : m_globals CFG = [])
   (declarations : m_declarations CFG = [])
@@ -668,19 +668,22 @@ Anomaly
 "File "plugins/ltac/tacinterp.ml", line 1157, characters 35-41: Assertion failed."
 Please report at http://coq.inria.fr/bugs/.
    *)
-  do 52? [progress (unfold cont; simpl; M.forcememd; euttnorm; forcestepsem) |
+  do 100? [progress (unfold cont; simpl; M.forcememd; euttnorm; forcestepsem) |
           rewrite FINDMAIN; simpl |
           progress unfold find_block; simpl; rewrite BBS; simpl |
           replace ( if blk_id bold == init df_instrs then true else false)
             with true; try (destruct (blk_id bold == init df_instrs);
                             try contradiction; auto) |
           
-          match goal with
-          | [|- context [blk_term_id bold == blk_term_id bold]] =>
-            destruct (blk_term_id bold == blk_term_id bold);
-            try contradiction
-          | _ => fail
-          end |
+          
+          progress (unfold block_to_cmd;
+                    match goal with
+                    | [ |- context [blk_term_id bold == blk_term_id bold]] =>
+                      destruct (blk_term_id bold == blk_term_id bold);
+                      try contradiction
+                    | _ => fail
+                    end) |
+          rewrite TERM_OLD; simpl |
           
           progress (unfold block_to_cmd;
                     match goal with
@@ -715,10 +718,6 @@ Please report at http://coq.inria.fr/bugs/.
           progress forcestepsem |
           progress (unfold cont)].
 
-  unfold block_to_cmd.
-
-  rewrite TERM_OLD; simpl.
-
   
   
   replace (2 <=? Int32.unsigned (Int32.repr 0)) with false; auto.
@@ -735,22 +734,7 @@ Please report at http://coq.inria.fr/bugs/.
   simpl.
   rewrite (M.lookup_all_index_of_add_all_index_no_alias); auto; try omega.
   rewrite (M.lookup_all_index_of_add_all_index_full_alias); auto.
-  euttnorm.
-  omega.
-  
-  
-  M.forcememd.
-
-
-
-
-
-
-
-  
-  
-  
-Abort.
+Qed.
   
 
     
@@ -881,9 +865,8 @@ Proof.
       * subst.
         euttnorm.
         
-        rewrite  exec_new_program.
-        rewrite exec_old_program.
-        
+        rewrite  exec_new_program; eauto.
+        rewrite exec_old_program; eauto.
         
       * (** block id does not match INIT **)
         euttnorm.
