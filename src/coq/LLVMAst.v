@@ -26,6 +26,7 @@ Require Import compcert.lib.Floats.
 Require Import List String Ascii ZArith.
 Require Import Vellvm.Util.
 
+
 Import ListNotations.
 Open Scope string_scope.
 Open Scope list_scope.
@@ -46,17 +47,33 @@ Inductive linkage : Set :=
 | LINKAGE_Weak_odr
 | LINKAGE_External
 .
+
+Lemma eq_dec_linkage: forall (l1 l2: linkage), {l1 = l2} + {l1 <> l2}.
+Proof.
+  decide equality.
+Qed.
       
 Inductive dll_storage : Set :=
 | DLLSTORAGE_Dllimport
 | DLLSTORAGE_Dllexport
 .      
 
+Lemma eq_dec_dll_storage: forall (ds1 ds2: dll_storage), {ds1 = ds2} + {ds1 <> ds2}.
+Proof.
+  decide equality.
+Qed.
+
 Inductive visibility : Set :=
 | VISIBILITY_Default
 | VISIBILITY_Hidden
 | VISIBILITY_Protected
 .
+
+
+Lemma eq_dec_visibility: forall (v1 v2: visibility), {v1 = v2} + {v1 <> v2}.
+Proof.
+  decide equality.
+Qed.
     
 Inductive cconv : Set :=
 | CC_Ccc
@@ -122,17 +139,16 @@ Inductive raw_id : Set :=
 | Anon (n:int)        (* Anonymous identifiers must be sequentially numbered %0, %1, %2, etc. *)
 | Raw  (n:int)        (* Used for code generation -- serializes as %_RAW_0 %_RAW_1 etc. *)
 .
+Hint Resolve string_dec.
+Hint Resolve Integers.Int.eq_dec.
+Hint Resolve Z.eq_dec.
 
-Theorem raw_id_eq_dec: forall (a b: raw_id), {a = b } + {a <> b}.
+Lemma eq_dec_raw_id: forall (r1 r2: raw_id), {r1 = r2} + {r1 <> r2}.
 Proof.
-  intros.
-  decide equality.
-  apply Classes.eq_dec_string.
-  apply Z.eq_dec.
-  apply Z.eq_dec.
+  decide equality; auto.
 Qed.
 
-Hint Resolve raw_id_eq_dec.
+Hint Resolve eq_dec_raw_id.
 
 Inductive ident : Set :=
 | ID_Global (id:raw_id)   (* @id *)
@@ -143,7 +159,7 @@ Inductive ident : Set :=
 Theorem ident_eq_dec: forall (a b: ident), {a = b } + {a <> b}.
 Proof.
   intros.
-  decide equality; apply raw_id_eq_dec.
+  decide equality; auto.
 Qed.
 
 Hint Resolve ident_eq_dec.
@@ -177,6 +193,85 @@ Inductive typ : Set :=
 | TYPE_Vector (sz:int) (t:typ)     (* t must be integer, floating point, or pointer type *)
 | TYPE_Identified (id:ident)
 .
+
+Check (list_rect).
+
+Open Scope list_scope.
+Section typ_nested_ind.
+  Variable P: typ -> Prop.
+  Hypothesis I: forall sz: int, P (TYPE_I sz).
+  Hypothesis POINTER: forall (t: typ), P t ->
+                        P (TYPE_Pointer t).
+  Hypothesis VOID: P (TYPE_Void).
+  Hypothesis HALF: P (TYPE_Half).
+  Hypothesis FLOAT: P (TYPE_Float).
+  Hypothesis DOUBLE: P (TYPE_Double).
+  Hypothesis X86_fp80: P (TYPE_X86_fp80).
+  Hypothesis FP128: P TYPE_Fp128.
+  Hypothesis PPC_FP128: P TYPE_Ppc_fp128.
+  Hypothesis METADATA: P (TYPE_Metadata).
+  Hypothesis X86_mmx: P (TYPE_X86_mmx).
+  Hypothesis ARRAY: forall (sz: int) (t: typ),
+      P t -> P (TYPE_Array sz t).
+  Hypothesis  FUNCTION: forall (ret: typ) (ts: list typ),
+      P ret -> List.Forall P ts -> P (TYPE_Function ret ts).
+  Hypothesis STRUCT: forall (ts: list typ),
+      List.Forall P ts -> P (TYPE_Struct ts).
+  Hypothesis PACKED: forall (ts: list typ),
+      List.Forall P ts -> P (TYPE_Packed_struct ts).
+  Hypothesis OPAQUE: P (TYPE_Opaque).
+  Hypothesis VECTOR: forall (sz: int) (t: typ),
+      P t -> P (TYPE_Vector sz t).
+  Hypothesis IDENTIFIED: forall (id: ident), P (TYPE_Identified id).
+
+    Check (Forall_cons).
+    Check (Forall).
+    Fixpoint typ_nested_ind (t: typ) : P t :=
+      match t with
+      | TYPE_I sz => I sz
+      | TYPE_Pointer p => POINTER p (typ_nested_ind p)
+      | TYPE_Void => VOID
+      | TYPE_Half => HALF
+      | TYPE_Float => FLOAT
+      | TYPE_Double => DOUBLE
+      | TYPE_X86_fp80 => X86_fp80
+      | TYPE_Fp128 => FP128
+      | TYPE_Ppc_fp128 => PPC_FP128
+      | TYPE_Metadata => METADATA
+      | TYPE_X86_mmx => X86_mmx
+      | TYPE_Array sz t => ARRAY sz t (typ_nested_ind t)
+      | TYPE_Function ret args =>
+        let H := (fix fold (xs: list typ) : List.Forall P xs :=
+                    match xs with
+                    | nil => Forall_nil _
+                    | cons x xs' =>
+                      Forall_cons _ (typ_nested_ind x) (fold xs')
+                    end) args
+        in FUNCTION ret args (typ_nested_ind ret) H
+      | TYPE_Struct ts =>
+        let H := (fix fold (xs: list typ) : List.Forall P xs :=
+                    match xs with
+                    | nil => Forall_nil _
+                    | cons x xs' =>
+                      Forall_cons _ (typ_nested_ind x) (fold xs')
+                    end) ts
+        in STRUCT ts H
+        
+      | TYPE_Packed_struct ts =>
+        let H := (fix fold (xs: list typ) : List.Forall P xs :=
+                    match xs with
+                    | nil => Forall_nil _
+                    | cons x xs' =>
+                      Forall_cons _ (typ_nested_ind x) (fold xs')
+                    end) ts
+        in PACKED ts H
+        
+      | TYPE_Opaque => OPAQUE
+      | TYPE_Vector sz t =>  VECTOR sz t (typ_nested_ind t)
+      | TYPE_Identified id => IDENTIFIED id
+          
+      end.
+End typ_nested_ind.
 
 
 Inductive icmp : Set := Eq|Ne|Ugt|Uge|Ult|Ule|Sgt|Sge|Slt|Sle.
