@@ -311,21 +311,54 @@ Lemma type_eq_dec: forall (t1 t2: typ), {t1 = t2} + {t1 <> t2}.
 Proof.
   induction t1 using typ_nested_ind;
      auto; destruct t2; auto; try discriminate.
-  - admit.
-  - admit.
-  - admit.
-  - assert ({ts = args} + {ts <> args}).
-    + right.
-      intros CONTRA.
-      inversion CONTRA.
-      contradiction.
-      
-      
-  
-  
+  - assert (SZ_CASES: {sz = sz0} + {sz <> sz0}); auto.
+    destruct SZ_CASES; subst; auto;
+      try (right; intros CONTRA; inversion CONTRA; auto; fail).
+    
+  - destruct (IHt1 t2); subst; auto;
+      try (right; intros CONTRA; inversion CONTRA; auto; fail).
 
-   
+  - assert (SZ_CASES: {sz = sz0} + {sz <> sz0}); auto.
+    destruct (IHt1 t2); destruct SZ_CASES; subst; auto;
+      try (right; intros CONTRA; inversion CONTRA; auto; fail).
 
+    
+  - assert (T1_CASES: {t1 = t2} + {t1 <> t2}).
+    apply IHt1; auto.
+    
+    assert (LIST_EQ_CASES: {ts = args} + {ts <> args}).
+    apply pointwise_decide_list_equality_to_list_equality; auto.
+
+    destruct T1_CASES; destruct LIST_EQ_CASES; subst; auto;
+      try (right; intros CONTRA; inversion CONTRA; auto; fail).
+
+  - assert (LIST_EQ_CASES: {ts = fields} + {ts <> fields}).
+    apply pointwise_decide_list_equality_to_list_equality; auto.
+    destruct LIST_EQ_CASES; subst; auto;
+      try (right; intros CONTRA; inversion CONTRA; auto; fail).
+     
+  - assert (LIST_EQ_CASES: {ts = fields} + {ts <> fields}).
+    apply pointwise_decide_list_equality_to_list_equality; auto.
+    destruct LIST_EQ_CASES; subst; auto;
+      try (right; intros CONTRA; inversion CONTRA; auto; fail).
+
+  - assert (SZ_CASES: {sz = sz0} + {sz <> sz0}); auto.
+    assert (T_CASES: {t1 = t2} + {t1 <> t2}).
+    auto.
+
+    
+    destruct SZ_CASES; destruct T_CASES; subst; auto;
+      try (right; intros CONTRA; inversion CONTRA; auto; fail).
+    
+  - assert (ID_EQ: {id = id0} + {id <> id0}); auto.
+
+    
+    destruct ID_EQ; subst; auto;
+      try (right; intros CONTRA; inversion CONTRA; auto; fail).
+Qed.
+
+Hint Resolve type_eq_dec.
+    
 
 Inductive icmp : Set := Eq|Ne|Ugt|Uge|Ult|Ule|Sgt|Sge|Slt|Sle.
 Inductive fcmp : Set := FFalse|FOeq|FOgt|FOge|FOlt|FOle|FOne|FOrd|FUno|FUeq|FUgt|FUge|FUlt|FUle|FUne|FTrue.
