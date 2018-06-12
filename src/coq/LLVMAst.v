@@ -272,6 +272,14 @@ Section typ_nested_ind.
           
       end.
 End typ_nested_ind.
+Check (typ_nested_ind).
+
+Lemma type_eq_dec: forall (t1 t2: typ), {t1 = t2} + {t1 <> t2}.
+Proof.
+  intros t1.
+  
+  apply typ_nested_ind.
+  induction t1 using typ_nested_ind.
 
 
 Inductive icmp : Set := Eq|Ne|Ugt|Uge|Ult|Ule|Sgt|Sge|Slt|Sle.
@@ -348,6 +356,40 @@ Inductive exp : Set :=
 | OP_InsertValue      (vec:(typ * exp)) (elt:(typ * exp)) (idxs:list int)
 | OP_Select           (cnd:(typ * exp)) (v1:(typ * exp)) (v2:(typ * exp)) (* if * then * else *)
 .
+
+
+
+Section exp_nested_ind.
+  Variable P: exp -> Prop.
+  
+  Hypothesis IDENT: forall (id: ident), P (EXP_Ident id).
+  Hypothesis INTEGER: forall (x: int), P (EXP_Integer x).
+  Hypothesis FLOAT: forall (f: float), P (EXP_Float f).
+  Hypothesis HEX: forall (f: float), P (EXP_Hex f).
+  Hypothesis BOOL: forall (b: bool), P (EXP_Bool b).
+  Hypothesis NULL: P (EXP_Null).
+  Hypothesis ZERO_INITIALIZER: P (EXP_Zero_initializer).
+  Hypothesis CSTRING: forall (s: string), P (EXP_Cstring s).
+  Hypothesis UNDEF: P (EXP_Undef).
+  Hypothesis STRUCT: forall te: list (typ * exp), Forall P (map snd te) ->
+                                             P (EXP_Struct te).
+ EXP_Struct          (fields: list (typ * exp))
+ EXP_Packed_struct   (fields: list (typ * exp))
+ EXP_Array           (elts: list (typ * exp))
+ EXP_Vector          (elts: list (typ * exp))
+ OP_IBinop           (iop:ibinop) (t:typ) (v1:exp) (v2:exp)  
+ OP_ICmp             (cmp:icmp)   (t:typ) (v1:exp) (v2:exp)
+ OP_FBinop           (fop:fbinop) (fm:list fast_math) (t:typ) (v1:exp) (v2:exp)
+ OP_FCmp             (cmp:fcmp)   (t:typ) (v1:exp) (v2:exp)
+ OP_Conversion       (conv:conversion_type) (t_from:typ) (v:exp) (t_to:typ)
+ OP_GetElementPtr    (t:typ) (ptrval:(typ * exp)) (idxs:list (typ * exp))
+ OP_ExtractElement   (vec:(typ * exp)) (idx:(typ * exp))
+ OP_InsertElement    (vec:(typ * exp)) (elt:(typ * exp)) (idx:(typ * exp))
+ OP_ShuffleVector    (vec1:(typ * exp)) (vec2:(typ * exp)) (idxmask:(typ * exp))
+ OP_ExtractValue     (vec:(typ * exp)) (idxs:list int)
+ OP_InsertValue      (vec:(typ * exp)) (elt:(typ * exp)) (idxs:list int)
+ OP_Select           (cnd:(typ * exp)) (v1:(typ * exp)) (v2:(typ * exp)) (* if * then * else *)
+
 
 Lemma exp_eq_dec: forall (e1 e2: exp), {e1 = e2} + {e1 <> e2}.
 Proof.
