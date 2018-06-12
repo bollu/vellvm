@@ -194,11 +194,12 @@ Inductive typ : Set :=
 | TYPE_Identified (id:ident)
 .
 
-Check (list_rect).
+Scheme typ_ind_scheme := Induction for typ Sort Type.
+
 
 Open Scope list_scope.
 Section typ_nested_ind.
-  Variable P: typ -> Prop.
+  Variable P: typ -> Type.
   Hypothesis I: forall sz: int, P (TYPE_I sz).
   Hypothesis POINTER: forall (t: typ), P t ->
                         P (TYPE_Pointer t).
@@ -214,11 +215,11 @@ Section typ_nested_ind.
   Hypothesis ARRAY: forall (sz: int) (t: typ),
       P t -> P (TYPE_Array sz t).
   Hypothesis  FUNCTION: forall (ret: typ) (ts: list typ),
-      P ret -> List.Forall P ts -> P (TYPE_Function ret ts).
+      P ret -> ForallListT P ts -> P (TYPE_Function ret ts).
   Hypothesis STRUCT: forall (ts: list typ),
-      List.Forall P ts -> P (TYPE_Struct ts).
+      ForallListT P ts -> P (TYPE_Struct ts).
   Hypothesis PACKED: forall (ts: list typ),
-      List.Forall P ts -> P (TYPE_Packed_struct ts).
+      ForallListT P ts -> P (TYPE_Packed_struct ts).
   Hypothesis OPAQUE: P (TYPE_Opaque).
   Hypothesis VECTOR: forall (sz: int) (t: typ),
       P t -> P (TYPE_Vector sz t).
@@ -241,28 +242,28 @@ Section typ_nested_ind.
       | TYPE_X86_mmx => X86_mmx
       | TYPE_Array sz t => ARRAY sz t (typ_nested_ind t)
       | TYPE_Function ret args =>
-        let H := (fix fold (xs: list typ) : List.Forall P xs :=
+        let H := (fix fold (xs: list typ) : ForallListT P xs :=
                     match xs with
-                    | nil => Forall_nil _
+                    | nil => ForallListT_nil _
                     | cons x xs' =>
-                      Forall_cons _ (typ_nested_ind x) (fold xs')
+                      ForallListT_cons _ (typ_nested_ind x) (fold xs')
                     end) args
         in FUNCTION ret args (typ_nested_ind ret) H
       | TYPE_Struct ts =>
-        let H := (fix fold (xs: list typ) : List.Forall P xs :=
+        let H := (fix fold (xs: list typ) : ForallListT P xs :=
                     match xs with
-                    | nil => Forall_nil _
+                    | nil => ForallListT_nil _
                     | cons x xs' =>
-                      Forall_cons _ (typ_nested_ind x) (fold xs')
+                      ForallListT_cons _ (typ_nested_ind x) (fold xs')
                     end) ts
         in STRUCT ts H
         
       | TYPE_Packed_struct ts =>
-        let H := (fix fold (xs: list typ) : List.Forall P xs :=
+        let H := (fix fold (xs: list typ) : ForallListT P xs :=
                     match xs with
-                    | nil => Forall_nil _
+                    | nil => ForallListT_nil _
                     | cons x xs' =>
-                      Forall_cons _ (typ_nested_ind x) (fold xs')
+                      ForallListT_cons _ (typ_nested_ind x) (fold xs')
                     end) ts
         in PACKED ts H
         
@@ -274,12 +275,56 @@ Section typ_nested_ind.
 End typ_nested_ind.
 Check (typ_nested_ind).
 
+(* If we can decide equality "pointwise" for every list element, then
+we can decide list equality *)
+Lemma pointwise_decide_list_equality_to_list_equality:
+  forall {A: Type}
+    (l1 l2: list A)
+    (FORALL_DECEQ: ForallListT
+                     (fun t1 : A => forall t2 : A, {t1 = t2} + {t1 <> t2}) l1),
+    {l1 = l2} + {l1 <> l2}.
+Proof.
+  intros.
+  generalize dependent l2.
+  induction l1.
+  - destruct l2; auto.
+  - intros.
+    destruct l2; auto.
+
+    assert (ADEC: {a = a0} + {a <> a0}).
+    inversion FORALL_DECEQ; subst.
+    apply X.
+
+    assert (LDEC: {l1 = l2} + {l1 <> l2}).
+    inversion FORALL_DECEQ; subst.
+    apply IHl1.
+    auto.
+
+    destruct ADEC; destruct LDEC; subst; auto;
+      try (right; intros CONTRA; inversion CONTRA; auto; fail).
+Qed.
+
+    
+    
+
 Lemma type_eq_dec: forall (t1 t2: typ), {t1 = t2} + {t1 <> t2}.
 Proof.
-  intros t1.
+  induction t1 using typ_nested_ind;
+     auto; destruct t2; auto; try discriminate.
+  - admit.
+  - admit.
+  - admit.
+  - assert ({ts = args} + {ts <> args}).
+    + right.
+      intros CONTRA.
+      inversion CONTRA.
+      contradiction.
+      
+      
   
-  apply typ_nested_ind.
-  induction t1 using typ_nested_ind.
+  
+
+   
 
 
 Inductive icmp : Set := Eq|Ne|Ugt|Uge|Ult|Ule|Sgt|Sge|Slt|Sle.

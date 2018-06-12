@@ -19,6 +19,12 @@ Require Import RelationClasses.
 
 Set Implicit Arguments.
 
+(* Forall for predicates into Type for lists *)
+Inductive ForallListT A (T : A -> Type) : list A -> Type :=
+| ForallListT_nil : ForallListT T []
+| ForallListT_cons : forall x l, T x -> ForallListT T l -> ForallListT T (x :: l).
+
+
 (* Arithmetic --------------------------------------------------------------- *)
 
 
