@@ -29,6 +29,8 @@ University of Pennsylvania as part of the DeepSpec project.
  - Jianzhou Zhao
 
 ---
+# Documentation
+[The documentation is available here](docs/html/Classes.html), which is generated from `coq2html`.
 
 # Structure of the repository
 
