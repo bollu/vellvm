@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module Transform</title>
+<meta name="description" content="Documentation of Coq module Transform" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module Transform</h1>
+<div class="coq">
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Ascii</span> <span class="id">Strings.String</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span>.<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">string_scope</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mangle_raw_id</span> (<span class="id">id</span>:<span class="id">raw_id</span>) : <span class="id">raw_id</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">id</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Anon</span> <span class="id">n</span> =&gt; <span class="id">id</span><br/>
+&nbsp;&nbsp;| <span class="id">Name</span> <span class="id">s</span> =&gt; <span class="id">Name</span> (<span class="id">append</span> "<span class="id">_vellvm</span>" <span class="id">s</span>)<br/>
+&nbsp;&nbsp;| <span class="id">Raw</span> <span class="id">n</span> =&gt; <span class="id">id</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mangle_ident</span> (<span class="id">id</span>:<span class="id">ident</span>) : <span class="id">ident</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">id</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">ID_Global</span> <span class="id">i</span> =&gt; <span class="id">ID_Global</span> (<span class="id">mangle_raw_id</span> <span class="id">i</span>)<br/>
+&nbsp;&nbsp;| <span class="id">ID_Local</span> <span class="id">i</span> =&gt; <span class="id">ID_Local</span> (<span class="id">mangle_raw_id</span> <span class="id">i</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mangle_instr</span> (<span class="id">i</span>:<span class="id">instr_id</span> * <span class="id">instr</span>) : (<span class="id">instr_id</span> * <span class="id">instr</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">i</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">i</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mangle_block</span> (<span class="id">blk</span>:<span class="id">block</span>) : <span class="id">block</span> :=<br/>
+&nbsp;&nbsp;<span class="id">blk</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mangle_blocks</span> (<span class="id">blks</span>:<span class="id">list</span> <span class="id">block</span>) : <span class="id">list</span> <span class="id">block</span> :=<br/>
+&nbsp;&nbsp;<span class="id">List.map</span> <span class="id">mangle_block</span> <span class="id">blks</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mangle_definition</span> (<span class="id">d</span>:<span class="id">definition</span> (<span class="id">list</span> <span class="id">block</span>)) : <span class="id">definition</span> (<span class="id">list</span> <span class="id">block</span>) :=<br/>
+&nbsp;&nbsp;<span class="id">mk_definition</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;(<span class="id">df_prototype</span> <span class="id">d</span>)<br/>
+&nbsp;&nbsp;(<span class="id">df_args</span> <span class="id">d</span>)<br/>
+&nbsp;&nbsp;(<span class="id">mangle_blocks</span> (<span class="id">df_instrs</span> <span class="id">d</span>))<br/>
+.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mangle_toplevel_entity</span> (<span class="id">tle</span> : <span class="id">toplevel_entity</span> (<span class="id">list</span> <span class="id">block</span>)) : <span class="id">toplevel_entity</span> (<span class="id">list</span> <span class="id">block</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TLE_Definition</span> <span class="id">d</span> =&gt; <span class="id">TLE_Definition</span> (<span class="id">mangle_definition</span> <span class="id">d</span>)<br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">tle</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">transform</span> (<span class="id">prog</span>: <span class="id">list</span> (<span class="id">toplevel_entity</span> (<span class="id">list</span> <span class="id">block</span>))) : <span class="id">list</span> (<span class="id">toplevel_entity</span> (<span class="id">list</span> <span class="id">block</span>)) :=<br/>
+&nbsp;&nbsp;<span class="id">List.map</span> <span class="id">mangle_toplevel_entity</span> <span class="id">prog</span>.</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>
