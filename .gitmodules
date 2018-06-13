@@ -4,3 +4,6 @@
 [submodule "lib/paco"]
 	path = lib/paco
 	url = https://github.com/vzaliva/paco
+[submodule "lib/polyir"]
+	path = lib/polyir
+	url = https://github.com/bollu/polyir.git
