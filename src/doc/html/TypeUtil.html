@@ -1,0 +1,581 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module TypeUtil</title>
+<meta name="description" content="Documentation of Coq module TypeUtil" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module TypeUtil</h1>
+<div class="coq">
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">List</span> <span class="id">String</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Util</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.AstLib</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMIO</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Classes</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Coqlib</span>.<br/>
+<br/>
+<span class="kwd">Import</span> <span class="id">ListNotations</span>.<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">list_scope</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">eqb_raw_id</span> (<span class="id">a</span> : <span class="id">raw_id</span>) (<span class="id">b</span> : <span class="id">raw_id</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">a</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Name</span> <span class="id">s</span> =&gt; <span class="kwd">match</span> <span class="id">b</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Name</span> <span class="id">s2</span> =&gt; <span class="id">proj_sumbool</span> (<span class="id">string_dec</span> <span class="id">s</span> <span class="id">s2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;| <span class="id">Anon</span> <span class="id">n</span> =&gt; <span class="kwd">match</span> <span class="id">b</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Anon</span> <span class="id">n2</span> =&gt; <span class="id">Z.eqb</span> <span class="id">n</span> <span class="id">n2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;| <span class="id">Raw</span> <span class="id">n</span> =&gt; <span class="kwd">match</span> <span class="id">b</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Raw</span> <span class="id">n2</span> =&gt; <span class="id">Z.eqb</span> <span class="id">n</span> <span class="id">n2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">eqb_ident</span> (<span class="id">a</span> : <span class="id">ident</span>) (<span class="id">b</span> : <span class="id">ident</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">a</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">ID_Global</span> <span class="id">id_l</span> =&gt; <span class="kwd">match</span> <span class="id">b</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">ID_Global</span> <span class="id">id_r</span> =&gt; <span class="id">eqb_raw_id</span> <span class="id">id_l</span> <span class="id">id_r</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;| <span class="id">ID_Local</span> <span class="id">id_l</span> =&gt; <span class="kwd">match</span> <span class="id">b</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">ID_Local</span> <span class="id">id_r</span> =&gt; <span class="id">eqb_raw_id</span> <span class="id">id_l</span> <span class="id">id_r</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.  <br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">eqb_ident_correct</span> :<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">a</span> : <span class="id">ident</span>) (<span class="id">b</span> : <span class="id">ident</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eqb_ident</span> <span class="id">a</span> <span class="id">b</span> = <span class="id">true</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">a</span> = <span class="id">b</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof219')">Proof.</div>
+<div class="proofscript" id="proof219">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">a</span> <span class="id">b</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>, <span class="id">b</span>; <span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">id</span>, <span class="id">id0</span>; <span class="tactic">try</span> (<span class="tactic">inversion</span> <span class="id">H</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">string_dec</span> <span class="id">s</span> <span class="id">s0</span>); <span class="tactic">subst</span>; <span class="tactic">try</span> <span class="tactic">reflexivity</span>; <span class="tactic">try</span> <span class="tactic">inversion</span> <span class="id">H1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">Z.eqb_eq</span> <span class="kwd">in</span> <span class="id">H1</span>. <span class="tactic">subst</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">Z.eqb_eq</span> <span class="kwd">in</span> <span class="id">H1</span>. <span class="tactic">subst</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">id</span>, <span class="id">id0</span>; <span class="tactic">try</span> (<span class="tactic">inversion</span> <span class="id">H</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">string_dec</span> <span class="id">s</span> <span class="id">s0</span>); <span class="tactic">subst</span>; <span class="tactic">try</span> <span class="tactic">reflexivity</span>; <span class="tactic">try</span> <span class="tactic">inversion</span> <span class="id">H1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">Z.eqb_eq</span> <span class="kwd">in</span> <span class="id">H1</span>. <span class="tactic">subst</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">Z.eqb_eq</span> <span class="kwd">in</span> <span class="id">H1</span>. <span class="tactic">subst</span>. <span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">sized_typ</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>) -&gt; <span class="id">typ</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">sized_typ_I</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">sz</span> : <span class="id">int</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> (<span class="id">TYPE_I</span> <span class="id">sz</span>)<br/>
+<br/>
+| <span class="id">sized_typ_Pointer</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Pointer</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">sized_typ_Half</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">TYPE_Half</span><br/>
+<br/>
+| <span class="id">sized_typ_Float</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">TYPE_Float</span><br/>
+<br/>
+| <span class="id">sized_typ_Double</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">TYPE_Double</span><br/>
+<br/>
+| <span class="id">sized_typ_X86_fp80</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">TYPE_X86_fp80</span><br/>
+<br/>
+| <span class="id">sized_typ_Fp128</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">TYPE_Fp128</span><br/>
+<br/>
+| <span class="id">sized_typ_Ppc_fp128</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">TYPE_Ppc_fp128</span><br/>
+<br/>
+| <span class="id">sized_typ_Metadata</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">TYPE_Metadata</span><br/>
+<br/>
+| <span class="id">sized_typ_X86_mmx</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">TYPE_X86_mmx</span><br/>
+<br/>
+| <span class="id">sized_typ_Array</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">t</span> -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Array</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">sized_typ_Struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> (<span class="id">f</span> : <span class="id">typ</span>), <span class="id">In</span> <span class="id">f</span> <span class="id">fields</span> -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">f</span>) -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Struct</span> <span class="id">fields</span>)<br/>
+<br/>
+| <span class="id">sized_typ_Packed_struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> (<span class="id">f</span> : <span class="id">typ</span>), <span class="id">In</span> <span class="id">f</span> <span class="id">fields</span> -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">f</span>) -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Packed_struct</span> <span class="id">fields</span>)<br/>
+<br/>
+| <span class="id">sized_typ_Vector</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">t</span> -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Vector</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">sized_typ_Identified</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">id</span> : <span class="id">ident</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exists</span> (<span class="id">t</span> : <span class="id">typ</span>), <span class="id">In</span> (<span class="id">id</span>, <span class="id">t</span>) <span class="id">defs</span> -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">t</span>) -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Identified</span> <span class="id">id</span>)<br/>
+.<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">element_typ</span> : <span class="id">typ</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">element_typ_Pointer</span> : <span class="kwd">forall</span> (<span class="id">t</span> : <span class="id">typ</span>), <span class="id">element_typ</span> (<span class="id">TYPE_Pointer</span> <span class="id">t</span>)<br/>
+| <span class="id">element_typ_I</span> : <span class="kwd">forall</span> (<span class="id">sz</span> : <span class="id">int</span>), <span class="id">element_typ</span> (<span class="id">TYPE_I</span> <span class="id">sz</span>)<br/>
+| <span class="id">element_typ_Half</span> : <span class="id">element_typ</span> <span class="id">TYPE_Half</span><br/>
+| <span class="id">element_typ_Float</span> : <span class="id">element_typ</span> <span class="id">TYPE_Float</span><br/>
+| <span class="id">element_typ_Double</span> : <span class="id">element_typ</span> <span class="id">TYPE_Double</span><br/>
+| <span class="id">element_typ_X86_fp80</span> : <span class="id">element_typ</span> <span class="id">TYPE_X86_fp80</span><br/>
+| <span class="id">element_typ_Fp128</span> : <span class="id">element_typ</span> <span class="id">TYPE_Fp128</span><br/>
+| <span class="id">element_typ_Ppc_fp128</span> : <span class="id">element_typ</span> <span class="id">TYPE_Ppc_fp128</span><br/>
+.<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">guarded_typ</span> : <span class="id">ident</span> -&gt; <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>) -&gt; <span class="id">typ</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">guarded_typ_I</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">sz</span> : <span class="id">int</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> (<span class="id">TYPE_I</span> <span class="id">sz</span>)<br/>
+<br/>
+| <span class="id">guarded_typ_Pointer</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> (<span class="id">TYPE_Pointer</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">guarded_typ_Void</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_Void</span><br/>
+<br/>
+| <span class="id">guarded_typ_Half</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_Half</span><br/>
+<br/>
+| <span class="id">guarded_typ_Float</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_Float</span><br/>
+<br/>
+| <span class="id">guarded_typ_Double</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_Double</span><br/>
+<br/>
+| <span class="id">guarded_typ_X86_fp80</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_X86_fp80</span><br/>
+<br/>
+| <span class="id">guarded_typ_Fp128</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_Fp128</span><br/>
+<br/>
+| <span class="id">guarded_typ_Ppc_fp128</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_Ppc_fp128</span><br/>
+<br/>
+| <span class="id">guarded_typ_Metadata</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_Metadata</span><br/>
+<br/>
+| <span class="id">guarded_typ_X86_mmx</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_X86_mmx</span><br/>
+<br/>
+| <span class="id">guarded_typ_Array</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">t</span> -&gt; <span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> (<span class="id">TYPE_Array</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">guarded_typ_Struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">t</span> : <span class="id">typ</span>) (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> <span class="id">f</span>, <span class="id">In</span> <span class="id">f</span> <span class="id">fields</span> -&gt; <span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">f</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> (<span class="id">TYPE_Struct</span> <span class="id">fields</span>)<br/>
+<br/>
+| <span class="id">guarded_typ_Packed_struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">t</span> : <span class="id">typ</span>) (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> <span class="id">f</span>, <span class="id">In</span> <span class="id">f</span> <span class="id">fields</span> -&gt; <span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">f</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> (<span class="id">TYPE_Struct</span> <span class="id">fields</span>)<br/>
+<br/>
+| <span class="id">guarded_typ_Opaque</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">TYPE_Opaque</span><br/>
+<br/>
+| <span class="id">guarded_typ_Vector</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> (<span class="id">TYPE_Vector</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">guarded_typ_Identified_Some</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">id</span>' : <span class="id">ident</span>) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">id</span> &lt;&gt; <span class="id">id</span>' -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Some</span> (<span class="id">id</span>', <span class="id">t</span>) = <span class="id">find</span> (<span class="kwd">fun</span> <span class="id">a</span> =&gt; <span class="id">eqb_ident</span> <span class="id">id</span>' (<span class="id">fst</span> <span class="id">a</span>)) <span class="id">env</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> <span class="id">t</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span>' <span class="id">env</span> <span class="id">t</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> (<span class="id">TYPE_Identified</span> <span class="id">id</span>')<br/>
+<br/>
+| <span class="id">guarded_typ_Identified_None</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span> : <span class="id">ident</span>) (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">id</span>' : <span class="id">ident</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">id</span> &lt;&gt; <span class="id">id</span>' -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">None</span> = <span class="id">find</span> (<span class="kwd">fun</span> <span class="id">a</span> =&gt; <span class="id">eqb_ident</span> <span class="id">id</span>' (<span class="id">fst</span> <span class="id">a</span>)) <span class="id">env</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">env</span> (<span class="id">TYPE_Identified</span> <span class="id">id</span>')<br/>
+.<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">wf_typ</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>) -&gt; <span class="id">typ</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">wf_typ_Pointer</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">t</span> -&gt; <span class="id">wf_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Pointer</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">wf_typ_I</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">sz</span> : <span class="id">int</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sz</span> &gt; 0 -&gt; <span class="id">wf_typ</span> <span class="id">defs</span> (<span class="id">TYPE_I</span> <span class="id">sz</span>)<br/>
+<br/>
+| <span class="id">wf_typ_Void</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_Void</span><br/>
+<br/>
+| <span class="id">wf_typ_Half</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_Half</span><br/>
+<br/>
+| <span class="id">wf_typ_Float</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_Float</span><br/>
+<br/>
+| <span class="id">wf_typ_Double</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_Double</span><br/>
+<br/>
+| <span class="id">wf_typ_X86_fp80</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_X86_fp80</span><br/>
+<br/>
+| <span class="id">wf_typ_Fp128</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_Fp128</span><br/>
+<br/>
+| <span class="id">wf_typ_Ppc_fp128</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_Ppc_fp128</span><br/>
+<br/>
+| <span class="id">wf_typ_Metadata</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_Metadata</span><br/>
+<br/>
+| <span class="id">wf_typ_X86_mmx</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_X86_mmx</span><br/>
+<br/>
+| <span class="id">wf_typ_Array</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sz</span> &gt;= 0 -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">t</span> -&gt; <span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">t</span> -&gt; <span class="id">wf_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Array</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">wf_typ_Vector</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sz</span> &gt; 0 -&gt; <span class="id">element_typ</span> <span class="id">t</span> -&gt; <span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">t</span> -&gt; <span class="id">wf_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Vector</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">wf_typ_Identified</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">id</span> : <span class="id">ident</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exists</span> (<span class="id">t</span> : <span class="id">typ</span>), <span class="id">In</span> (<span class="id">id</span>, <span class="id">t</span>) <span class="id">defs</span> -&gt; <span class="id">guarded_typ</span> <span class="id">id</span> <span class="id">defs</span> <span class="id">t</span> -&gt; <span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">t</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Identified</span> <span class="id">id</span>)<br/>
+<br/>
+| <span class="id">wf_typ_Struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> (<span class="id">f</span> : <span class="id">typ</span>), <span class="id">In</span> <span class="id">f</span> <span class="id">fields</span> -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">f</span> -&gt; <span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">f</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Struct</span> <span class="id">fields</span>)<br/>
+<br/>
+| <span class="id">wf_typ_Packed_struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> (<span class="id">f</span> : <span class="id">typ</span>), <span class="id">In</span> <span class="id">f</span> <span class="id">fields</span> -&gt; <span class="id">sized_typ</span> <span class="id">defs</span> <span class="id">f</span> -&gt; <span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">f</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> (<span class="id">TYPE_Packed_struct</span> <span class="id">fields</span>)<br/>
+<br/>
+| <span class="id">wf_typ_Opaque</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">defs</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">wf_typ</span> <span class="id">defs</span> <span class="id">TYPE_Opaque</span><br/>
+.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">wf_env</span> (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id">NoDup</span> (<span class="id">map</span> <span class="id">fst</span> <span class="id">env</span>) -&gt; <span class="id">Forall</span> (<span class="id">wf_typ</span> <span class="id">env</span>) (<span class="id">map</span> <span class="id">snd</span> <span class="id">env</span>).<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">unrolled_typ</span> : <span class="id">typ</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">unrolled_typ_I</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">sz</span> : <span class="id">int</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> (<span class="id">TYPE_I</span> <span class="id">sz</span>)<br/>
+<br/>
+| <span class="id">unrolled_typ_Pointer</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> (<span class="id">TYPE_Pointer</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">unrolled_typ_Void</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_Void</span><br/>
+<br/>
+| <span class="id">unrolled_typ_Half</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_Half</span><br/>
+<br/>
+| <span class="id">unrolled_typ_Float</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_Float</span><br/>
+<br/>
+| <span class="id">unrolled_typ_Double</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_Double</span><br/>
+<br/>
+| <span class="id">unrolled_typ_X86_fp80</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_X86_fp80</span><br/>
+<br/>
+| <span class="id">unrolled_typ_Fp128</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_Fp128</span><br/>
+<br/>
+| <span class="id">unrolled_typ_Ppc_fp128</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_Ppc_fp128</span><br/>
+<br/>
+| <span class="id">unrolled_typ_Metadata</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_Metadata</span><br/>
+<br/>
+| <span class="id">unrolled_typ_X86_mmx</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_X86_mmx</span><br/>
+<br/>
+| <span class="id">unrolled_typ_Array</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">t</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> (<span class="id">TYPE_Array</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+<br/>
+| <span class="id">unrolled_typ_Function</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">ret</span> : <span class="id">typ</span>) (<span class="id">args</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">ret</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Forall</span> <span class="id">unrolled_typ</span> <span class="id">args</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> (<span class="id">TYPE_Function</span> <span class="id">ret</span> <span class="id">args</span>)<br/>
+<br/>
+| <span class="id">unrolled_typ_Struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Forall</span> (<span class="id">unrolled_typ</span>) <span class="id">fields</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> (<span class="id">TYPE_Struct</span> <span class="id">fields</span>)<br/>
+<br/>
+| <span class="id">unrolled_typ_Packed_struct</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Forall</span> (<span class="id">unrolled_typ</span>) <span class="id">fields</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> (<span class="id">TYPE_Packed_struct</span> <span class="id">fields</span>)<br/>
+<br/>
+| <span class="id">unrolled_typ_Opaque</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unrolled_typ</span> <span class="id">TYPE_Opaque</span><br/>
+<br/>
+| <span class="id">unrolled_typ_Vector</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>), <span class="id">unrolled_typ</span> (<span class="id">TYPE_Vector</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+.<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">typ_order</span> : <span class="id">typ</span> -&gt; <span class="id">typ</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">typ_order_Pointer</span> : <span class="kwd">forall</span> (<span class="id">t</span> : <span class="id">typ</span>), <span class="id">typ_order</span> <span class="id">t</span> (<span class="id">TYPE_Pointer</span> <span class="id">t</span>)<br/>
+| <span class="id">typ_order_Array</span> : <span class="kwd">forall</span> (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>), <span class="id">typ_order</span> <span class="id">t</span> (<span class="id">TYPE_Array</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+| <span class="id">typ_order_Vector</span> : <span class="kwd">forall</span> (<span class="id">sz</span> : <span class="id">int</span>) (<span class="id">t</span> : <span class="id">typ</span>), <span class="id">typ_order</span> <span class="id">t</span> (<span class="id">TYPE_Vector</span> <span class="id">sz</span> <span class="id">t</span>)<br/>
+| <span class="id">typ_order_Struct</span> : <span class="kwd">forall</span> (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">f</span>, <span class="id">In</span> <span class="id">f</span> <span class="id">fields</span> -&gt; <span class="id">typ_order</span> <span class="id">f</span> (<span class="id">TYPE_Struct</span> <span class="id">fields</span>)<br/>
+| <span class="id">typ_order_Packed_struct</span> : <span class="kwd">forall</span> (<span class="id">fields</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">f</span>, <span class="id">In</span> <span class="id">f</span> <span class="id">fields</span> -&gt; <span class="id">typ_order</span> <span class="id">f</span> (<span class="id">TYPE_Packed_struct</span> <span class="id">fields</span>)<br/>
+| <span class="id">typ_order_Function_args</span> : <span class="kwd">forall</span> (<span class="id">ret</span> : <span class="id">typ</span>) (<span class="id">args</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">a</span>, <span class="id">In</span> <span class="id">a</span> <span class="id">args</span> -&gt; <span class="id">typ_order</span> <span class="id">a</span> (<span class="id">TYPE_Function</span> <span class="id">ret</span> <span class="id">args</span>)<br/>
+| <span class="id">typ_order_Function_ret</span> : <span class="kwd">forall</span> (<span class="id">ret</span> : <span class="id">typ</span>) (<span class="id">args</span> : <span class="id">list</span> <span class="id">typ</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">typ_order</span> <span class="id">ret</span> (<span class="id">TYPE_Function</span> <span class="id">ret</span> <span class="id">args</span>)<br/>
+.<br/>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Constructors</span> <span class="id">typ_order</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Theorem</span> <span class="id">wf_typ_order</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">well_founded</span> <span class="id">typ_order</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof220')">Proof.</div>
+<div class="proofscript" id="proof220">
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">well_founded</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">a</span> <span class="kwd">using</span> <span class="id">typ_ind</span>'; <span class="id">constructor</span>; <span class="tactic">intros</span> <span class="id">y</span> <span class="id">H</span>'; <span class="tactic">inversion</span> <span class="id">H</span>'; <span class="tactic">subst</span>; <span class="tactic">auto</span>.<br/>
+Defined.</div>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">sum</span> (<span class="id">l</span> : <span class="id">list</span> <span class="id">nat</span>) : <span class="id">nat</span> := <span class="id">fold_left</span> <span class="id">plus</span> <span class="id">l</span> 0%<span class="id">nat</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Theorem</span> <span class="id">wf_lt_typ_order</span> :<br/>
+&nbsp;&nbsp;<span class="id">well_founded</span> (<span class="id">lex_ord</span> <span class="id">lt</span> <span class="id">typ_order</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof221')">Proof.</div>
+<div class="proofscript" id="proof221">
+&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">wf_lex_ord</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">lt_wf</span>. <span class="tactic">apply</span> <span class="id">wf_typ_order</span>.<br/>
+Defined.</div>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">wf_lt_typ_order</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Constructors</span> <span class="id">lex_ord</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">map_In</span> {<span class="id">A</span> <span class="id">B</span> : <span class="kwd">Type</span>} (<span class="id">l</span> : <span class="id">list</span> <span class="id">A</span>) (<span class="id">f</span> : <span class="kwd">forall</span> (<span class="id">x</span> : <span class="id">A</span>), <span class="id">In</span> <span class="id">x</span> <span class="id">l</span> -&gt; <span class="id">B</span>) : <span class="id">list</span> <span class="id">B</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof222')">Proof.</div>
+<div class="proofscript" id="proof222">
+&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">exact</span> [].<br/>
+&nbsp;&nbsp;- <span class="tactic">refine</span> (<span class="id">f</span> <span class="id">a</span> <span class="id">_</span> :: <span class="id">IHl</span> <span class="id">_</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">simpl</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">intros</span> <span class="id">x</span> <span class="id">H</span>. <span class="tactic">apply</span> (<span class="id">f</span> <span class="id">x</span>). <span class="tactic">simpl</span>. <span class="tactic">auto</span>.<br/>
+Defined.</div>
+<br/>
+<br/>
+<span class="kwd">Fixpoint</span> <span class="id">remove_key</span> {<span class="id">A</span> <span class="id">B</span> : <span class="kwd">Type</span>} (<span class="id">eq_dec</span> : (<span class="kwd">forall</span> (<span class="id">x</span> <span class="id">y</span> : <span class="id">A</span>), {<span class="id">x</span> = <span class="id">y</span>} + {<span class="id">x</span> &lt;&gt; <span class="id">y</span>})) (<span class="id">a</span> : <span class="id">A</span>) (<span class="id">l</span> : <span class="id">list</span> (<span class="id">A</span> * <span class="id">B</span>)) : <span class="id">list</span> (<span class="id">A</span> * <span class="id">B</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">l</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">nil</span> =&gt; <span class="id">nil</span><br/>
+&nbsp;&nbsp;| <span class="id">cons</span> (<span class="id">h</span>, <span class="id">b</span>) <span class="id">t</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">eq_dec</span> <span class="id">a</span> <span class="id">h</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">left</span> <span class="id">_</span> =&gt; <span class="id">t</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">right</span> <span class="id">_</span> =&gt; (<span class="id">h</span>, <span class="id">b</span>) :: <span class="id">remove_key</span> <span class="id">eq_dec</span> <span class="id">a</span> <span class="id">t</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">remove_key_in</span> :<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">A</span> <span class="id">B</span> : <span class="kwd">Type</span>) (<span class="id">a</span> : <span class="id">A</span>)  (<span class="id">b</span> : <span class="id">B</span>) <span class="id">eq_dec</span> <span class="id">l</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">In</span> (<span class="id">a</span>, <span class="id">b</span>) <span class="id">l</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">List.length</span> (<span class="id">remove_key</span> <span class="id">eq_dec</span> <span class="id">a</span> <span class="id">l</span>) &lt; <span class="id">List.length</span> <span class="id">l</span>)%<span class="id">nat</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof223')">Proof.</div>
+<div class="proofscript" id="proof223">
+&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">H</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>. <span class="tactic">destruct</span> (<span class="id">eq_dec</span> <span class="id">a</span> <span class="id">a0</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">apply</span> <span class="id">Nat.lt_succ_diag_r</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">simpl</span>. <span class="tactic">apply</span> <span class="id">lt_n_S</span>. <span class="tactic">apply</span> <span class="id">IHl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">inversion</span> <span class="id">H</span>. <span class="tactic">subst</span>. <span class="id">contradiction</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">assumption</span>.<br/>
+Defined.</div>
+<br/>
+<br/>
+<span class="kwd">Program</span> <span class="kwd">Fixpoint</span> <span class="id">normalize_type</span> (<span class="id">env</span> : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>)) (<span class="id">t</span> : <span class="id">typ</span>) {<span class="kwd">measure</span> (<span class="id">List.length</span> <span class="id">env</span>, <span class="id">t</span>) (<span class="id">lex_ord</span> <span class="id">lt</span> <span class="id">typ_order</span>)} : <span class="id">dtyp</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Array</span> <span class="id">sz</span> <span class="id">t</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">nt</span> := <span class="id">normalize_type</span> <span class="id">env</span> <span class="id">t</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Array</span> <span class="id">sz</span> <span class="id">nt</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Function</span> <span class="id">ret</span> <span class="id">args</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Pointer</span> <br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Struct</span> <span class="id">fields</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">nfields</span> := <span class="id">map_In</span> <span class="id">fields</span> (<span class="kwd">fun</span> <span class="id">t</span> <span class="id">_</span> =&gt; <span class="id">normalize_type</span> <span class="id">env</span> <span class="id">t</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Struct</span> <span class="id">nfields</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Packed_struct</span> <span class="id">fields</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">nfields</span> := <span class="id">map_In</span> <span class="id">fields</span> (<span class="kwd">fun</span> <span class="id">t</span> <span class="id">_</span> =&gt; <span class="id">normalize_type</span> <span class="id">env</span> <span class="id">t</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Packed_struct</span> <span class="id">nfields</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Vector</span> <span class="id">sz</span> <span class="id">t</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">nt</span> := <span class="id">normalize_type</span> <span class="id">env</span> <span class="id">t</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Vector</span> <span class="id">sz</span> <span class="id">nt</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Identified</span> <span class="id">id</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">opt</span> := <span class="id">find</span> (<span class="kwd">fun</span> <span class="id">a</span> =&gt; <span class="id">eqb_ident</span> <span class="id">id</span> (<span class="id">fst</span> <span class="id">a</span>)) <span class="id">env</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">opt</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">DTYPE_Void</span>   <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> (<span class="id">_</span>, <span class="id">t</span>) =&gt; <span class="id">normalize_type</span> (<span class="id">remove_key</span> <span class="id">Ident.eq_dec</span> <span class="id">id</span> <span class="id">env</span>) <span class="id">t</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_I</span> <span class="id">sz</span> =&gt; <span class="id">DTYPE_I</span> <span class="id">sz</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Pointer</span> <span class="id">t</span>' =&gt; <span class="id">DTYPE_Pointer</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Void</span> =&gt; <span class="id">DTYPE_Void</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Half</span> =&gt; <span class="id">DTYPE_Half</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Float</span> =&gt; <span class="id">DTYPE_Float</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Double</span> =&gt; <span class="id">DTYPE_Double</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_X86_fp80</span> =&gt; <span class="id">DTYPE_X86_fp80</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Fp128</span> =&gt; <span class="id">DTYPE_Fp128</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Ppc_fp128</span> =&gt; <span class="id">DTYPE_Ppc_fp128</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Metadata</span> =&gt; <span class="id">DTYPE_Metadata</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_X86_mmx</span> =&gt; <span class="id">DTYPE_X86_mmx</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Opaque</span> =&gt; <span class="id">DTYPE_Opaque</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof224')">Next Obligation.</div>
+<div class="proofscript" id="proof224">
+&nbsp;&nbsp;<span class="id">left</span>.<br/>
+&nbsp;&nbsp;<span class="id">remember</span> (<span class="id">find</span> (<span class="kwd">fun</span> <span class="id">a</span> : <span class="id">ident</span> * <span class="id">typ</span> =&gt; <span class="id">eqb_ident</span> <span class="id">id</span> (<span class="id">fst</span> <span class="id">a</span>)) <span class="id">env</span>) <span class="kwd">as</span> <span class="id">o</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">o</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">symmetry</span> <span class="kwd">in</span> <span class="id">Heqo</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">find_some</span> <span class="kwd">in</span> <span class="id">Heqo</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">Heqo</span> <span class="kwd">as</span> [<span class="id">Hin</span> <span class="id">Heqb_ident</span>].<br/>
+&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eqb_ident_correct</span> <span class="kwd">in</span> <span class="id">Heqb_ident</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">Heq_opt</span>. <span class="tactic">destruct</span> <span class="id">p</span>. <span class="tactic">inversion</span> <span class="id">H0</span>. <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">remove_key_in</span>. <span class="tactic">simpl</span>. <span class="tactic">apply</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">Heq_opt</span>.<br/>
+Defined.</div>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">normalize_type_equation</span> : <span class="kwd">forall</span> <span class="id">env</span> <span class="id">t</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">normalize_type</span> <span class="id">env</span> <span class="id">t</span> =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Array</span> <span class="id">sz</span> <span class="id">t</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">nt</span> := <span class="id">normalize_type</span> <span class="id">env</span> <span class="id">t</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Array</span> <span class="id">sz</span> <span class="id">nt</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Function</span> <span class="id">ret</span> <span class="id">args</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Pointer</span> <br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Struct</span> <span class="id">fields</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">nfields</span> := <span class="id">map_In</span> <span class="id">fields</span> (<span class="kwd">fun</span> <span class="id">t</span> <span class="id">_</span> =&gt; <span class="id">normalize_type</span> <span class="id">env</span> <span class="id">t</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Struct</span> <span class="id">nfields</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Packed_struct</span> <span class="id">fields</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">nfields</span> := <span class="id">map_In</span> <span class="id">fields</span> (<span class="kwd">fun</span> <span class="id">t</span> <span class="id">_</span> =&gt; <span class="id">normalize_type</span> <span class="id">env</span> <span class="id">t</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Packed_struct</span> <span class="id">nfields</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Vector</span> <span class="id">sz</span> <span class="id">t</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">nt</span> := <span class="id">normalize_type</span> <span class="id">env</span> <span class="id">t</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Vector</span> <span class="id">sz</span> <span class="id">nt</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Identified</span> <span class="id">id</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">opt</span> := <span class="id">find</span> (<span class="kwd">fun</span> <span class="id">a</span> =&gt; <span class="id">eqb_ident</span> <span class="id">id</span> (<span class="id">fst</span> <span class="id">a</span>)) <span class="id">env</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">opt</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">DTYPE_Void</span>   <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> (<span class="id">_</span>, <span class="id">t</span>) =&gt; <span class="id">normalize_type</span> (<span class="id">remove_key</span> <span class="id">Ident.eq_dec</span> <span class="id">id</span> <span class="id">env</span>) <span class="id">t</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_I</span> <span class="id">sz</span> =&gt; <span class="id">DTYPE_I</span> <span class="id">sz</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Pointer</span> <span class="id">t</span>' =&gt; <span class="id">DTYPE_Pointer</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Void</span> =&gt; <span class="id">DTYPE_Void</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Half</span> =&gt; <span class="id">DTYPE_Half</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Float</span> =&gt; <span class="id">DTYPE_Float</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Double</span> =&gt; <span class="id">DTYPE_Double</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_X86_fp80</span> =&gt; <span class="id">DTYPE_X86_fp80</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Fp128</span> =&gt; <span class="id">DTYPE_Fp128</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Ppc_fp128</span> =&gt; <span class="id">DTYPE_Ppc_fp128</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Metadata</span> =&gt; <span class="id">DTYPE_Metadata</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_X86_mmx</span> =&gt; <span class="id">DTYPE_X86_mmx</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Opaque</span> =&gt; <span class="id">DTYPE_Opaque</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof225')">Proof.</div>
+<div class="proofscript" id="proof225">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">env</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">normalize_type</span>. <br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">normalize_type_func</span> <span class="tactic">at</span> 1.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Wf.WfExtensionality.fix_sub_eq_ext</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">t</span>; <span class="tactic">try</span> <span class="tactic">reflexivity</span>. <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">find</span> (<span class="kwd">fun</span> <span class="id">a</span> : <span class="id">ident</span> * <span class="id">typ</span> =&gt; <span class="id">eqb_ident</span> <span class="id">id</span> (<span class="id">fst</span> <span class="id">a</span>)) <span class="id">env</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>; <span class="tactic">simpl</span>; <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Defined.</div>
+<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">example</span>: <span class="id">normalize_type</span> [] <span class="id">TYPE_Void</span> = <span class="id">DTYPE_Void</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof226')">Proof.</div>
+<div class="proofscript" id="proof226">
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>. <span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>

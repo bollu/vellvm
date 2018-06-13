@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module MulAdd</title>
+<meta name="description" content="Documentation of Coq module MulAdd" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module MulAdd</h1>
+<div class="coq">
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">ZArith</span> <span class="id">List</span> <span class="id">String</span> <span class="id">Omega</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="kwd">Program</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span>  <span class="id">Vellvm.Classes</span> <span class="id">Vellvm.Util</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.CFG</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Pass</span>.<br/>
+<br/>
+<span class="kwd">Import</span> <span class="id">ListNotations</span>.<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">Z_scope</span>.<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">string_scope</span>.<br/>
+<br/>
+<span class="kwd">Set</span> <span class="kwd">Implicit</span> <span class="id">Arguments</span>.<br/>
+<span class="kwd">Set</span> <span class="id">Contextual</span> <span class="kwd">Implicit</span>.<br/>
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Memory</span>.<br/>
+<br/>
+<span class="kwd">Check</span> (<span class="id">OP_IBinop</span>).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">two</span> : <span class="id">exp</span> := <span class="id">EXP_Integer</span> 2.<br/>
+<span class="kwd">Definition</span> <span class="id">three_HACK</span> : <span class="id">exp</span> := <span class="id">EXP_Integer</span> 3.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">is_exp_equal_ints</span> (<span class="id">e</span> <span class="id">e</span>': <span class="id">exp</span>): <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">e</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Integer</span> <span class="id">x</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">e</span>' <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EXP_Integer</span> <span class="id">y</span> =&gt; <span class="id">x</span> =? <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;|  <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<span class="kwd">Fixpoint</span> <span class="id">rewrite_exp</span>  (<span class="id">e</span>:<span class="id">exp</span>) : <span class="id">exp</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">e</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">OP_IBinop</span> (<span class="kwd">Add</span> <span class="id">false</span> <span class="id">false</span>) <span class="id">p</span> <span class="id">v1</span> <span class="id">v2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">p</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">TYPE_I</span> 64 =&gt; <span class="kwd">if</span> <span class="id">is_exp_equal_ints</span> <span class="id">v1</span> <span class="id">v2</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">OP_IBinop</span> (<span class="id">Mul</span> <span class="id">false</span> <span class="id">false</span>) (<span class="id">TYPE_I</span> 64) <span class="id">v1</span> <span class="id">two</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">e</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">rewrite_instr</span>(<span class="id">i</span>: <span class="id">instr</span>): <span class="id">instr</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">i</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Op</span> <span class="id">e</span> =&gt; <span class="id">INSTR_Op</span> (<span class="id">rewrite_exp</span> <span class="id">e</span>)<br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">i</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">rewrite_block</span>: <span class="id">block</span> -&gt; <span class="id">block</span> := <span class="id">liftInstrPassToBlockPass</span> <span class="id">rewrite_instr</span>.<br/>
+<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<span class="kwd">Definition</span> <span class="id">rewrite_cfg</span>: <span class="id">cfg</span> -&gt; <span class="id">cfg</span> := <span class="id">liftBlockPassToCFGPass</span> <span class="id">rewrite_block</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">rewrite_cfg_definition</span>: <span class="id">definition</span> <span class="id">cfg</span> -&gt; <span class="id">definition</span> <span class="id">cfg</span> :=<br/>
+&nbsp;&nbsp;<span class="id">liftCFGPassToCFGDefinitionPass</span> <span class="id">rewrite_cfg</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">rewrite_mcfg</span>: <span class="id">mcfg</span> -&gt; <span class="id">mcfg</span> :=<br/>
+&nbsp;&nbsp;<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">rewrite_cfg_definition</span>.<br/>
+</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>

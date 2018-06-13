@@ -1,0 +1,665 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module Renaming</title>
+<meta name="description" content="Documentation of Coq module Renaming" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module Renaming</h1>
+<div class="coq">
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">ZArith</span> <span class="id">Ascii</span> <span class="id">Strings.String</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Classes</span> <span class="id">Vellvm.Util</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span> <span class="id">Vellvm.AstLib</span> <span class="id">Vellvm.CFG</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.DynamicValues</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.StepSemantics</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Memory</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMIO</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Setoid</span>.<br/>
+<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">Z_scope</span>.<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">string_scope</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">RENAMING</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">A</span>:<span class="id">MemoryAddress.ADDRESS</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">LLVMIO</span>:<span class="id">LLVM_INTERACTIONS</span>(<span class="id">A</span>)).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Module</span> <span class="id">SS</span> := <span class="id">StepSemantics</span> <span class="id">A</span> <span class="id">LLVMIO</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Import</span> <span class="id">SS</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Import</span> <span class="id">LLVMIO</span>.<br/>
+&nbsp;&nbsp;<br/>
+<span class="kwd">Class</span> <span class="id">Swap</span> (<span class="id">A</span>:<span class="kwd">Type</span>) := <span class="id">swap</span> : <span class="id">raw_id</span> -&gt; <span class="id">raw_id</span> -&gt; <span class="id">A</span> -&gt; <span class="id">A</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">swap_raw_id</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">id</span>:<span class="id">raw_id</span>) : <span class="id">raw_id</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">id</span> == <span class="id">id1</span> <span class="kwd">then</span> <span class="id">id2</span> <span class="kwd">else</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">id</span> == <span class="id">id2</span> <span class="kwd">then</span> <span class="id">id1</span> <span class="kwd">else</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">id</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_raw_id</span> : <span class="id">Swap</span> <span class="id">raw_id</span> := <span class="id">swap_raw_id</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_raw_id</span>.<br/>
+<br/>
+<span class="kwd">Class</span> <span class="id">SwapLaws</span> (<span class="id">A</span>:<span class="kwd">Type</span>) `{<span class="id">Swap</span> <span class="id">A</span>} := {<br/>
+&nbsp;&nbsp;<span class="id">swap_same_id</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">id</span>:<span class="id">raw_id</span>) (<span class="id">x</span>:<span class="id">A</span>), <span class="id">swap</span> <span class="id">id</span> <span class="id">id</span> <span class="id">x</span> = <span class="id">x</span>;<br/>
+<br/>
+&nbsp;&nbsp;<span class="id">swap_comm</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">x</span>:<span class="id">A</span>), <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span> = <span class="id">swap</span> <span class="id">id2</span> <span class="id">id1</span> <span class="id">x</span>;<br/>
+}.<br/>
+<br/>
+<span class="kwd">Ltac</span> <span class="id">unfold_swaps</span> :=<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [<span class="id">H</span> : <span class="id">context</span> [<span class="id">swap</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span>] |- <span class="id">_</span>] =&gt; <span class="tactic">unfold</span> <span class="id">swap</span> <span class="kwd">in</span> <span class="id">H</span>; <span class="id">autounfold</span> <span class="kwd">in</span> <span class="id">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [<span class="id">H</span> : <span class="id">_</span> |- <span class="id">context</span>[<span class="id">swap</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span>] ] =&gt; <span class="tactic">unfold</span> <span class="id">swap</span>; <span class="id">autounfold</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Ltac</span> <span class="id">simpl_ifs</span> :=<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [<span class="id">_</span> : <span class="id">context</span> [<span class="kwd">if</span> ?<span class="id">X</span> <span class="kwd">then</span> <span class="id">_</span> <span class="kwd">else</span> <span class="id">_</span>] |- <span class="id">_</span>] =&gt; <span class="tactic">destruct</span> (<span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [<span class="id">_</span> : <span class="id">_</span> |- <span class="id">context</span> [<span class="kwd">if</span> ?<span class="id">X</span> <span class="kwd">then</span> <span class="id">_</span> <span class="kwd">else</span> <span class="id">_</span> ]] =&gt; <span class="tactic">destruct</span> (<span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">raw_id_swaplaws</span> : <span class="id">SwapLaws</span> <span class="id">raw_id</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof242')">Next Obligation.</div>
+<div class="proofscript" id="proof242">
+&nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">unfold</span> <span class="id">swap_raw_id</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">x</span> == <span class="id">id</span>); <span class="tactic">auto</span>.<br/>
+Qed.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof243')">Next Obligation.</div>
+<div class="proofscript" id="proof243">
+&nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">unfold</span> <span class="id">swap_raw_id</span>. <span class="id">simpl_ifs</span>; <span class="tactic">subst</span>; <span class="tactic">auto</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_ident</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">id</span>:<span class="id">ident</span>) : <span class="id">ident</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">id</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">ID_Global</span> <span class="id">i</span> =&gt; <span class="id">ID_Global</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">i</span>)<br/>
+&nbsp;&nbsp;| <span class="id">ID_Local</span> <span class="id">i</span> =&gt; <span class="id">ID_Local</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">i</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_ident</span> : <span class="id">Swap</span> <span class="id">ident</span> := <span class="id">swap_ident</span>.<br/>
+<span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">ident_swaplaws</span> : <span class="id">SwapLaws</span> <span class="id">ident</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof244')">Next Obligation.</div>
+<div class="proofscript" id="proof244">
+&nbsp;&nbsp;<span class="id">unfold_swaps</span>; <span class="tactic">unfold</span> <span class="id">swap_of_ident</span>; <span class="tactic">destruct</span> <span class="id">x</span>; <span class="tactic">simpl</span>; <span class="tactic">rewrite</span> <span class="id">swap_same_id</span>; <span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_pair</span> {<span class="id">A</span> <span class="id">B</span>} `(<span class="id">SA</span>:<span class="id">Swap</span> <span class="id">A</span>) `(<span class="id">SB</span>:<span class="id">Swap</span> <span class="id">B</span>) : <span class="id">Swap</span> (<span class="id">A</span> * <span class="id">B</span>)%<span class="id">type</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">p</span> =&gt; (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">p</span>), <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">p</span>)).<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_pair</span>.<br/>
+<br/>
+<span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">swap_laws_pair</span> {<span class="id">A</span> <span class="id">B</span>} `(<span class="id">SA</span>:<span class="id">Swap</span> <span class="id">A</span>) `(<span class="id">SB</span>:<span class="id">Swap</span> <span class="id">B</span>) `(<span class="id">SLA</span>:<span class="id">SwapLaws</span> <span class="id">A</span>) `(<span class="id">SLB</span>:<span class="id">SwapLaws</span> <span class="id">B</span>) : <span class="id">SwapLaws</span> (<span class="id">A</span>*<span class="id">B</span>)%<span class="id">type</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof245')">Next Obligation.</div>
+<div class="proofscript" id="proof245">
+&nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">destruct</span> <span class="id">x</span>;  <span class="tactic">simpl</span>; <span class="tactic">rewrite</span> <span class="id">swap_comm</span>; <span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof246')">Next Obligation.</div>
+<div class="proofscript" id="proof246">
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">swap</span>. <span class="tactic">unfold</span> <span class="id">swap_of_pair</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">swap_same_id</span>. <span class="tactic">rewrite</span> <span class="id">swap_same_id</span>. <span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof247')">Next Obligation.</div>
+<div class="proofscript" id="proof247">
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">swap</span>. <span class="tactic">unfold</span> <span class="id">swap_of_pair</span>. <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">swap_comm</span>. <span class="tactic">rewrite</span> (@<span class="id">swap_comm</span> <span class="id">B</span>) <span class="tactic">at</span> 1. <span class="tactic">reflexivity</span>. <span class="tactic">assumption</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_option</span> {<span class="id">A</span>} `(<span class="id">SA</span>:<span class="id">Swap</span> <span class="id">A</span>) : <span class="id">Swap</span> (<span class="id">option</span> <span class="id">A</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">opt</span> =&gt; <span class="kwd">match</span> <span class="id">opt</span> <span class="kwd">with</span> <span class="id">None</span> =&gt; <span class="id">None</span> | <span class="id">Some</span> <span class="id">x</span> =&gt; <span class="id">Some</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>) <span class="kwd">end</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_option</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_list</span> {<span class="id">A</span>} `(<span class="id">SA</span>:<span class="id">Swap</span> <span class="id">A</span>) : <span class="id">Swap</span> (<span class="id">list</span> <span class="id">A</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">l</span> =&gt; <span class="id">List.map</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span>) <span class="id">l</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_list</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_err</span> {<span class="id">A</span>} `(<span class="id">SA</span>:<span class="id">Swap</span> <span class="id">A</span>) : <span class="id">Swap</span> (<span class="id">err</span> <span class="id">A</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">e</span> <span class="kwd">with</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">inl</span> <span class="id">s</span> =&gt; <span class="id">inl</span> <span class="id">s</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">inr</span> <span class="id">a</span> =&gt; <span class="id">inr</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">a</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_err</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_bool</span> : <span class="id">Swap</span> <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">b</span> =&gt; <span class="id">b</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_nat</span> : <span class="id">Swap</span> <span class="id">nat</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">n</span> =&gt; <span class="id">n</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_int</span> : <span class="id">Swap</span> <span class="id">int</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">n</span> =&gt; <span class="id">n</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_string</span> : <span class="id">Swap</span> <span class="id">string</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">s</span> =&gt; <span class="id">s</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_ibinop</span> : <span class="id">Swap</span> <span class="id">ibinop</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">n</span> =&gt; <span class="id">n</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_fbinop</span> : <span class="id">Swap</span> <span class="id">fbinop</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">n</span> =&gt; <span class="id">n</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_icmp</span> : <span class="id">Swap</span> <span class="id">icmp</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">n</span> =&gt; <span class="id">n</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_fcmp</span> : <span class="id">Swap</span> <span class="id">fcmp</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">n</span> =&gt; <span class="id">n</span>.<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_bool</span> <span class="id">swap_of_nat</span> <span class="id">swap_of_string</span> <span class="id">swap_of_int</span> <span class="id">swap_of_ibinop</span> <span class="id">swap_of_fbinop</span> <span class="id">swap_of_icmp</span> <span class="id">swap_of_fcmp</span>.<br/>
+<br/>
+<span class="kwd">Fixpoint</span> <span class="id">swap_typ</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">t</span>:<span class="id">typ</span>) : <span class="id">typ</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Pointer</span> <span class="id">t</span>' =&gt; <span class="id">TYPE_Pointer</span> (<span class="id">swap_typ</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>')<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Array</span> <span class="id">sz</span> <span class="id">t</span>' =&gt; <span class="id">TYPE_Array</span> <span class="id">sz</span> (<span class="id">swap_typ</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>')<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Function</span> <span class="id">ret</span> <span class="id">args</span> =&gt; <span class="id">TYPE_Function</span> (<span class="id">swap_typ</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">ret</span>) (<span class="id">List.map</span> (<span class="id">swap_typ</span> <span class="id">id1</span> <span class="id">id2</span>) <span class="id">args</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Struct</span> <span class="id">fields</span> =&gt; <span class="id">TYPE_Struct</span> (<span class="id">List.map</span> (<span class="id">swap_typ</span> <span class="id">id1</span> <span class="id">id2</span>) <span class="id">fields</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Packed_struct</span> <span class="id">fields</span> =&gt; <span class="id">TYPE_Packed_struct</span> (<span class="id">List.map</span> (<span class="id">swap_typ</span> <span class="id">id1</span> <span class="id">id2</span>) <span class="id">fields</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Vector</span> <span class="id">sz</span> <span class="id">t</span>' =&gt; <span class="id">TYPE_Vector</span> <span class="id">sz</span> (<span class="id">swap_typ</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>')<br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Identified</span> <span class="id">id</span> =&gt; <span class="id">TYPE_Identified</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>)<br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">t</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+ <br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_typ</span> : <span class="id">Swap</span> <span class="id">typ</span> := <span class="id">swap_typ</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_typ</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_dtyp</span> : <span class="id">Swap</span> <span class="id">dtyp</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">d</span> =&gt; <span class="id">d</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_tident</span> : <span class="id">Swap</span> <span class="id">tident</span> := <span class="id">swap</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_tident</span>.<br/>
+<br/>
+<span class="kwd">Fixpoint</span> <span class="id">swap_exp</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">e</span>:<span class="id">exp</span>) : <span class="id">exp</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">e</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Ident</span> <span class="id">id</span> =&gt; <span class="id">EXP_Ident</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>)<br/>
+&nbsp;&nbsp;| <span class="id">EXP_Integer</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Float</span>   <span class="id">_</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Hex</span>     <span class="id">_</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Bool</span>    <span class="id">_</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Null</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Zero_initializer</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Cstring</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Undef</span> =&gt; <span class="id">e</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Struct</span> <span class="id">fields</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EXP_Struct</span> (<span class="id">List.map</span> (<span class="kwd">fun</span> '(<span class="id">t</span>,<span class="id">e</span>) =&gt; (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>, <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>)) <span class="id">fields</span>)<br/>
+&nbsp;&nbsp;| <span class="id">EXP_Packed_struct</span> <span class="id">fields</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EXP_Packed_struct</span> (<span class="id">List.map</span> (<span class="kwd">fun</span> '(<span class="id">t</span>,<span class="id">e</span>) =&gt; (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>, <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>)) <span class="id">fields</span>)    <br/>
+&nbsp;&nbsp;| <span class="id">EXP_Array</span> <span class="id">elts</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EXP_Array</span> (<span class="id">List.map</span> (<span class="kwd">fun</span> '(<span class="id">t</span>,<span class="id">e</span>) =&gt; (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>, <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>)) <span class="id">elts</span>)<br/>
+&nbsp;&nbsp;| <span class="id">EXP_Vector</span> <span class="id">elts</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EXP_Vector</span> (<span class="id">List.map</span> (<span class="kwd">fun</span> '(<span class="id">t</span>,<span class="id">e</span>) =&gt; (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>, <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>)) <span class="id">elts</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_IBinop</span> <span class="id">iop</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_IBinop</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>) (<span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v1</span>) (<span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v2</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_ICmp</span> <span class="id">cmp</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_ICmp</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">cmp</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>) (<span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v1</span>) (<span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v2</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_FBinop</span> <span class="id">fop</span> <span class="id">fm</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_FBinop</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">fop</span>) <span class="id">fm</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>) (<span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v1</span>) (<span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v2</span>)    <br/>
+&nbsp;&nbsp;| <span class="id">OP_FCmp</span> <span class="id">cmp</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_FCmp</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">cmp</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>) (<span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v1</span>) (<span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v2</span>)    <br/>
+&nbsp;&nbsp;| <span class="id">OP_Conversion</span> <span class="id">conv</span> <span class="id">t_from</span> <span class="id">v</span> <span class="id">t_to</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_Conversion</span> <span class="id">conv</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t_from</span>) (<span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t_to</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_GetElementPtr</span> <span class="id">t</span> <span class="id">ptrval</span> <span class="id">idxs</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_GetElementPtr</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">ptrval</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">ptrval</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">List.map</span> (<span class="kwd">fun</span> '(<span class="id">t</span>,<span class="id">e</span>) =&gt; (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>, <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>)) <span class="id">idxs</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_ExtractElement</span> <span class="id">vec</span> <span class="id">idx</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_ExtractElement</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">vec</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">vec</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">idx</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">idx</span>))<br/>
+&nbsp;&nbsp;| <span class="id">OP_InsertElement</span>  <span class="id">vec</span> <span class="id">elt</span> <span class="id">idx</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_InsertElement</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">vec</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">vec</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">elt</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">elt</span>))                     <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">idx</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">idx</span>))<br/>
+&nbsp;&nbsp;| <span class="id">OP_ShuffleVector</span> <span class="id">vec1</span> <span class="id">vec2</span> <span class="id">idxmask</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_ShuffleVector</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">vec1</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">vec1</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">vec2</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">vec2</span>))                     <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">idxmask</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">idxmask</span>))<br/>
+&nbsp;&nbsp;| <span class="id">OP_ExtractValue</span>  <span class="id">vec</span> <span class="id">idxs</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_ExtractValue</span>  (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">vec</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">vec</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">idxs</span><br/>
+&nbsp;&nbsp;| <span class="id">OP_InsertValue</span> <span class="id">vec</span> <span class="id">elt</span> <span class="id">idxs</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_InsertValue</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">vec</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">vec</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">elt</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">elt</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">idxs</span><br/>
+&nbsp;&nbsp;| <span class="id">OP_Select</span> <span class="id">cnd</span> <span class="id">v1</span> <span class="id">v2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">OP_Select</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">cnd</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">cnd</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">v1</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">v1</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fst</span> <span class="id">v2</span>), <span class="id">swap_exp</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">snd</span> <span class="id">v2</span>))<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_exp</span> : <span class="id">Swap</span> <span class="id">exp</span> := <span class="id">swap_exp</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_exp</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_texp</span> : <span class="id">Swap</span> <span class="id">texp</span> := <span class="id">swap</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_texp</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_instr_id</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">i</span>:<span class="id">instr_id</span>) : <span class="id">instr_id</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">i</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">IId</span> <span class="id">id</span> =&gt; <span class="id">IId</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>)<br/>
+&nbsp;&nbsp;| <span class="id">IVoid</span> <span class="id">n</span> =&gt; <span class="id">IVoid</span> <span class="id">n</span>  <br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_instr_id</span> : <span class="id">Swap</span> <span class="id">instr_id</span> := <span class="id">swap_instr_id</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_instr_id</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_phi</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">p</span>:<span class="id">phi</span>) : <span class="id">phi</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">p</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Phi</span> <span class="id">t</span> <span class="id">args</span> =&gt; <span class="id">Phi</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">args</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_phi</span> : <span class="id">Swap</span> <span class="id">phi</span> := <span class="id">swap_phi</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_phi</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_instr</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">ins</span>:<span class="id">instr</span>) : <span class="id">instr</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">ins</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Op</span> <span class="id">op</span> =&gt; <span class="id">INSTR_Op</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">op</span>)<br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Call</span> <span class="id">fn</span> <span class="id">args</span> =&gt; <span class="id">INSTR_Call</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">fn</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">args</span>)<br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Alloca</span> <span class="id">t</span> <span class="id">nb</span> <span class="id">align</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">INSTR_Alloca</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">nb</span>) <span class="id">align</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Load</span> <span class="id">volatile</span> <span class="id">t</span> <span class="id">ptr</span> <span class="id">align</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">INSTR_Load</span> <span class="id">volatile</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">ptr</span>) <span class="id">align</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Store</span> <span class="id">volatile</span> <span class="id">val</span> <span class="id">ptr</span> <span class="id">align</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">INSTR_Store</span> <span class="id">volatile</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">val</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">ptr</span>) <span class="id">align</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Fence</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_AtomicCmpXchg</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_AtomicRMW</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Unreachable</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_VAArg</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_LandingPad</span> =&gt; <span class="id">ins</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_instr</span> : <span class="id">Swap</span> <span class="id">instr</span> := <span class="id">swap_instr</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_instr</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_terminator</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">trm</span>:<span class="id">terminator</span>) : <span class="id">terminator</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">trm</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TERM_Ret</span>  <span class="id">v</span> =&gt; <span class="id">TERM_Ret</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TERM_Ret_void</span> =&gt; <span class="id">TERM_Ret_void</span><br/>
+&nbsp;&nbsp;| <span class="id">TERM_Br</span> <span class="id">v</span> <span class="id">br1</span> <span class="id">br2</span> =&gt; <span class="id">TERM_Br</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">br1</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">br2</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TERM_Br_1</span> <span class="id">br</span> =&gt; <span class="id">TERM_Br_1</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">br</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TERM_Switch</span>  <span class="id">v</span> <span class="id">default_dest</span> <span class="id">brs</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">TERM_Switch</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">default_dest</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">brs</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TERM_IndirectBr</span> <span class="id">v</span> <span class="id">brs</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">TERM_IndirectBr</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">brs</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TERM_Resume</span> <span class="id">v</span> =&gt; <span class="id">TERM_Resume</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TERM_Invoke</span> <span class="id">fnptrval</span> <span class="id">args</span> <span class="id">to_label</span> <span class="id">unwind_label</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">TERM_Invoke</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">fnptrval</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">args</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">to_label</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">unwind_label</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_terminator</span> : <span class="id">Swap</span> <span class="id">terminator</span> := <span class="id">swap_terminator</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_terminator</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_param_attr</span> : <span class="id">Swap</span> <span class="id">param_attr</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">l</span> =&gt; <span class="id">l</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_fn_attr</span> : <span class="id">Swap</span> <span class="id">fn_attr</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">l</span> =&gt; <span class="id">l</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_cconv</span> : <span class="id">Swap</span> <span class="id">cconv</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">l</span> =&gt; <span class="id">l</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_linkage</span> : <span class="id">Swap</span> <span class="id">linkage</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">l</span> =&gt; <span class="id">l</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_visibility</span> : <span class="id">Swap</span> <span class="id">visibility</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">l</span> =&gt; <span class="id">l</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_dll_storage</span> : <span class="id">Swap</span> <span class="id">dll_storage</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">l</span> =&gt; <span class="id">l</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_thread_local_storage</span> : <span class="id">Swap</span> <span class="id">thread_local_storage</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">l</span> =&gt; <span class="id">l</span>.<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_param_attr</span> <span class="id">swap_of_fn_attr</span> <span class="id">swap_of_cconv</span> <span class="id">swap_of_linkage</span> <span class="id">swap_of_visibility</span> <span class="id">swap_of_dll_storage</span> <span class="id">swap_of_thread_local_storage</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_global</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">g</span>:<span class="id">global</span>) : <span class="id">global</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mk_global</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_ident</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_typ</span> <span class="id">g</span>))     <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_constant</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_exp</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_linkage</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_visibility</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_dll_storage</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_thread_local</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_unnamed_addr</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_addrspace</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_externally_initialized</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_section</span> <span class="id">g</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">g_align</span> <span class="id">g</span>)).<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_global</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_global</span> : <span class="id">Swap</span> <span class="id">global</span> := <span class="id">swap_global</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_global</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_declaration</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">d</span>:<span class="id">declaration</span>) : <span class="id">declaration</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mk_declaration</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_name</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_type</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_param_attrs</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_linkage</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_visibility</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_dll_storage</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_cconv</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_attrs</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_section</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_align</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">dc_gc</span> <span class="id">d</span>)).<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_declaration</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_declaration</span> : <span class="id">Swap</span> <span class="id">declaration</span> := <span class="id">swap_declaration</span>.    <br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_declaration</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_block</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">b</span>:<span class="id">block</span>) : <span class="id">block</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mk_block</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">blk_id</span> <span class="id">b</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">blk_phis</span> <span class="id">b</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">blk_code</span> <span class="id">b</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">blk_term</span> <span class="id">b</span>)).<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_block</span>.  <br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_block</span> : <span class="id">Swap</span> <span class="id">block</span> := <span class="id">swap_block</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_block</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_definition</span> {<span class="id">FnBody</span>:<span class="kwd">Set</span>} `{<span class="id">SF</span>: <span class="id">Swap</span> <span class="id">FnBody</span>} (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">d</span>:<span class="id">definition</span> <span class="id">FnBody</span>) : <span class="id">definition</span> <span class="id">FnBody</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mk_definition</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">df_prototype</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">df_args</span> <span class="id">d</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">df_instrs</span> <span class="id">d</span>)).<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_definition</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_definition</span> {<span class="id">FnBody</span>:<span class="kwd">Set</span>} `{<span class="id">SF</span>:<span class="id">Swap</span> <span class="id">FnBody</span>} : <span class="id">Swap</span> (<span class="id">definition</span> <span class="id">FnBody</span>) :=<br/>
+&nbsp;&nbsp;<span class="id">swap_definition</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_definition</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Fixpoint</span> <span class="id">swap_metadata</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">m</span>:<span class="id">metadata</span>) : <span class="id">metadata</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">m</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">METADATA_Const</span>  <span class="id">tv</span> =&gt; <span class="id">METADATA_Const</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">tv</span>)<br/>
+&nbsp;&nbsp;| <span class="id">METADATA_Null</span> =&gt; <span class="id">METADATA_Null</span><br/>
+&nbsp;&nbsp;| <span class="id">METADATA_Id</span> <span class="id">id</span> =&gt; <span class="id">METADATA_Id</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>)<br/>
+&nbsp;&nbsp;| <span class="id">METADATA_String</span> <span class="id">str</span> =&gt; <span class="id">METADATA_String</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">str</span>)<br/>
+&nbsp;&nbsp;| <span class="id">METADATA_Named</span> <span class="id">strs</span> =&gt; <span class="id">METADATA_Named</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">strs</span>)<br/>
+&nbsp;&nbsp;| <span class="id">METADATA_Node</span> <span class="id">mds</span> =&gt; <span class="id">METADATA_Node</span> (<span class="id">List.map</span> (<span class="id">swap_metadata</span> <span class="id">id1</span> <span class="id">id2</span>) <span class="id">mds</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_metadata</span> : <span class="id">Swap</span> <span class="id">metadata</span> := <span class="id">swap_metadata</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_metadata</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_toplevel_entity</span> {<span class="id">FnBody</span>:<span class="kwd">Set</span>} `{<span class="id">SF</span>:<span class="id">Swap</span> <span class="id">FnBody</span>} (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">tle</span>:<span class="id">toplevel_entity</span> <span class="id">FnBody</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TLE_Target</span> <span class="id">tgt</span> =&gt; <span class="id">TLE_Target</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">tgt</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TLE_Datalayout</span> <span class="id">layout</span> =&gt; <span class="id">TLE_Datalayout</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">layout</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TLE_Declaration</span> <span class="id">decl</span> =&gt; <span class="id">TLE_Declaration</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">decl</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TLE_Definition</span> <span class="id">defn</span> =&gt; <span class="id">TLE_Definition</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">defn</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TLE_Type_decl</span> <span class="id">id</span> <span class="id">t</span> =&gt; <span class="id">TLE_Type_decl</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TLE_Source_filename</span> <span class="id">s</span> =&gt; <span class="id">TLE_Source_filename</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">s</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TLE_Global</span> <span class="id">g</span> =&gt; <span class="id">TLE_Global</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">g</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TLE_Metadata</span> <span class="id">id</span> <span class="id">md</span> =&gt; <span class="id">TLE_Metadata</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">md</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TLE_Attribute_group</span> <span class="id">i</span> <span class="id">attrs</span> =&gt; <span class="id">TLE_Attribute_group</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">i</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">attrs</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_toplevel_entity</span> {<span class="id">FnBody</span>:<span class="kwd">Set</span>} `{<span class="id">SF</span>:<span class="id">Swap</span> <span class="id">FnBody</span>} : <span class="id">Swap</span> (<span class="id">toplevel_entity</span> <span class="id">FnBody</span>) :=<br/>
+&nbsp;&nbsp;<span class="id">swap_toplevel_entity</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_toplevel_entity</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_modul</span> {<span class="id">FnBody</span>:<span class="kwd">Set</span>} `{<span class="id">SF</span>:<span class="id">Swap</span> <span class="id">FnBody</span>} (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">m</span>:<span class="id">modul</span> <span class="id">FnBody</span>) : <span class="id">modul</span> <span class="id">FnBody</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mk_modul</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">m_name</span> <span class="id">m</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">m_target</span> <span class="id">m</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">m_datalayout</span> <span class="id">m</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">m_type_defs</span> <span class="id">m</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">m_globals</span> <span class="id">m</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">m_declarations</span> <span class="id">m</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">m_definitions</span> <span class="id">m</span>)).<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_modul</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_modul</span> {<span class="id">FnBody</span>:<span class="kwd">Set</span>} `{<span class="id">SF</span>:<span class="id">Swap</span> <span class="id">FnBody</span>} : <span class="id">Swap</span> (<span class="id">modul</span> <span class="id">FnBody</span>) :=<br/>
+&nbsp;&nbsp;<span class="id">swap_modul</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_modul</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_pc</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">p</span>:<span class="id">pc</span>) : <span class="id">pc</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mk_pc</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">fn</span> <span class="id">p</span>)) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">bk</span> <span class="id">p</span>)) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">pt</span> <span class="id">p</span>)).<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_pc</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_pc</span> : <span class="id">Swap</span> <span class="id">pc</span> := <span class="id">swap_pc</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_pc</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_cmd</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">c</span>:<span class="id">cmd</span>) : <span class="id">cmd</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">c</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Inst</span> <span class="id">i</span> =&gt; <span class="id">Inst</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">i</span>)<br/>
+&nbsp;&nbsp;| <span class="id">Term</span> <span class="id">t</span> =&gt; <span class="id">Term</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">t</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.                    <br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_cmd</span> : <span class="id">Swap</span> <span class="id">cmd</span> := <span class="id">swap_cmd</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_cmd</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_cfg</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">CFG</span>:<span class="id">cfg</span>) : <span class="id">cfg</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mkCFG</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">init</span> <span class="id">CFG</span>)) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">blks</span> <span class="id">CFG</span>)) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">args</span> <span class="id">CFG</span>)).<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_cfg</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_cfg</span> : <span class="id">Swap</span> <span class="id">cfg</span> := <span class="id">swap_cfg</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_cfg</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_mcfg</span> : <span class="id">Swap</span> <span class="id">mcfg</span> := <span class="id">swap</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_mcfg</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_inttyp</span> : <span class="kwd">forall</span> {<span class="id">x</span>:<span class="id">Z</span>}, <span class="id">Swap</span> (<span class="id">inttyp</span> <span class="id">x</span>) := <span class="kwd">fun</span> <span class="id">_</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">a</span> =&gt; <span class="id">a</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_int1</span> : <span class="id">Swap</span> <span class="id">int1</span> := <span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">a</span> =&gt; <span class="id">a</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_int32</span> : <span class="id">Swap</span> <span class="id">int32</span> := <span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">a</span> =&gt; <span class="id">a</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_int64</span> : <span class="id">Swap</span> <span class="id">int64</span> := <span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">a</span> =&gt; <span class="id">a</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_ll_double</span> : <span class="id">Swap</span> <span class="id">ll_double</span> := <span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">a</span> =&gt; <span class="id">a</span>.<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_ll_float</span> : <span class="id">Swap</span> <span class="id">ll_float</span> := <span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">a</span> =&gt; <span class="id">a</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_inttyp</span> <span class="id">swap_of_int1</span> <span class="id">swap_of_int32</span> <span class="id">swap_of_int64</span> <span class="id">swap_of_ll_double</span> <span class="id">swap_of_ll_float</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_dvalue</span> : <span class="id">Swap</span> <span class="id">dvalue</span> := <span class="kwd">fun</span> (<span class="id">id1</span> <span class="id">id2</span> : <span class="id">raw_id</span>) <span class="id">dv</span> =&gt; <span class="id">dv</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_dvalue</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_IO</span> {<span class="id">X</span>} : <span class="id">Swap</span> (<span class="id">IO</span> <span class="id">X</span>) := <span class="kwd">fun</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span> =&gt; <span class="id">x</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_IO</span>.<br/>
+<br/>
+<span class="kwd">CoFixpoint</span> <span class="id">swap_Trace</span> <span class="id">X</span> `{<span class="id">Swap</span> <span class="id">X</span>} (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">t</span>:<span class="id">Trace</span> <span class="id">X</span>) : <span class="id">Trace</span> <span class="id">X</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Trace.Ret</span> <span class="id">x</span> =&gt; <span class="id">Trace.Ret</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;| <span class="id">Trace.Vis</span> <span class="id">_</span> <span class="id">e</span> <span class="id">k</span> =&gt; <span class="id">Trace.Vis</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>) (<span class="kwd">fun</span> <span class="id">y</span> =&gt; <span class="id">swap_Trace</span> <span class="id">X</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">k</span> <span class="id">y</span>))<br/>
+&nbsp;&nbsp;| <span class="id">Trace.Tau</span> <span class="id">k</span> =&gt; <span class="id">Trace.Tau</span> (<span class="id">swap_Trace</span> <span class="id">X</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">k</span>)<br/>
+&nbsp;&nbsp;| <span class="id">Trace.Err</span> <span class="id">s</span> =&gt; <span class="id">Trace.Err</span> <span class="id">s</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_Trace</span> {<span class="id">X</span>} `{<span class="id">SX</span> : <span class="id">Swap</span> <span class="id">X</span>} : <span class="id">Swap</span> (<span class="id">Trace</span> <span class="id">X</span>) := <span class="id">swap_Trace</span> <span class="id">X</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_Trace</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_ENV</span> {<span class="id">X</span>} `{<span class="id">SX</span> : <span class="id">Swap</span> <span class="id">X</span>} (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">m</span>:<span class="id">ENV.t</span> <span class="id">X</span>) : <span class="id">ENV.t</span> <span class="id">X</span> :=<br/>
+&nbsp;&nbsp;<span class="id">ENV.fold</span> (<span class="kwd">fun</span> <span class="id">k</span> <span class="id">v</span> <span class="id">n</span> =&gt; <span class="id">ENV.add</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">k</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v</span>) <span class="id">n</span>) <span class="id">m</span> (<span class="id">ENV.empty</span> <span class="id">X</span>).<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_ENV</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_ENV</span> {<span class="id">X</span>} `{<span class="id">SX</span> : <span class="id">Swap</span> <span class="id">X</span>} : <span class="id">Swap</span> (<span class="id">ENV.t</span> <span class="id">X</span>) := <span class="id">swap_ENV</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_ENV</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_frame</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">f</span>:<span class="id">frame</span>) : <span class="id">frame</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">f</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">KRet</span> <span class="id">e</span> <span class="id">id</span> <span class="id">q</span> =&gt; <span class="id">KRet</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">q</span>)<br/>
+&nbsp;&nbsp;| <span class="id">KRet_void</span> <span class="id">e</span> <span class="id">q</span> =&gt; <span class="id">KRet_void</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">q</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_frame</span> : <span class="id">Swap</span> <span class="id">frame</span> := <span class="id">swap_frame</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_frame</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">swap_result</span> (<span class="id">id1</span> <span class="id">id2</span>:<span class="id">raw_id</span>) (<span class="id">r</span>:<span class="id">result</span>) : <span class="id">result</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">r</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Done</span> <span class="id">v</span> =&gt; <span class="id">Done</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v</span>)<br/>
+&nbsp;&nbsp;| <span class="id">Step</span> <span class="id">s</span> =&gt; <span class="id">Step</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">s</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.       <br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">swap_of_result</span> : <span class="id">Swap</span> <span class="id">result</span> := <span class="id">swap_result</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_result</span>.<br/>
+<br/>
+<span class="kwd">Section</span> <span class="id">PROOFS</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">Empty_Equals</span> : <span class="kwd">forall</span> {<span class="id">X</span>} (<span class="id">e</span>:<span class="id">ENV.t</span> <span class="id">X</span>), <span class="id">ENV.Empty</span> <span class="id">e</span> -&gt; <span class="id">ENV.Equal</span> (<span class="id">ENV.empty</span> <span class="id">X</span>) <span class="id">e</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof248')">Proof.</div>
+<div class="proofscript" id="proof248">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENVFacts.Equal_mapsto_iff</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">k</span> <span class="id">x</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">pose</span> (<span class="id">H1</span> := <span class="id">H</span> <span class="id">k</span> <span class="id">x</span>). <span class="id">clearbody</span> <span class="id">H1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">split</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">H2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENVFacts.empty_mapsto_iff</span> <span class="kwd">in</span> <span class="id">H2</span>. <span class="id">contradiction</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>. <span class="id">contradiction</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">find_Empty_none</span> : <span class="kwd">forall</span> {<span class="id">X</span>} (<span class="id">e</span>:<span class="id">ENV.t</span> <span class="id">X</span>) (<span class="id">id</span>:<span class="id">raw_id</span>), <span class="id">ENV.Empty</span> <span class="id">e</span> -&gt; <span class="id">ENV.find</span> <span class="id">id</span> <span class="id">e</span> = <span class="id">None</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof249')">Proof.</div>
+<div class="proofscript" id="proof249">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENVFacts.not_find_in_iff</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span> <span class="id">H1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> (@<span class="id">ENVFacts.empty_in_iff</span> <span class="id">X</span> <span class="id">id</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">Empty_Equals</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">H</span>. <span class="tactic">assumption</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">id1</span> <span class="id">id2</span> : <span class="id">raw_id</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_raw_id_inj</span> : <span class="kwd">forall</span> (<span class="id">k</span> <span class="id">j</span>:<span class="id">raw_id</span>), <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">k</span> = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">j</span> -&gt; <span class="id">k</span> = <span class="id">j</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof250')">Proof.</div>
+<div class="proofscript" id="proof250">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">unfold</span> <span class="id">swap_raw_id</span> <span class="kwd">in</span> *.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">simpl_ifs</span>; <span class="tactic">subst</span>; <span class="tactic">try</span> <span class="tactic">reflexivity</span>; <span class="tactic">try</span> <span class="id">contradiction</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_ENV_find</span> : <span class="kwd">forall</span> {<span class="id">X</span>} `{<span class="id">SX</span> : <span class="id">Swap</span> <span class="id">X</span>} (<span class="id">e</span>:<span class="id">ENV.t</span> <span class="id">X</span>) (<span class="id">id</span>:<span class="id">raw_id</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ENV.find</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>)) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">ENV.find</span> <span class="id">id</span> <span class="id">e</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof251')">Proof.</div>
+<div class="proofscript" id="proof251">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">X</span> <span class="id">SX</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">e</span> <span class="id">id</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENVProps.fold_rec</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">m</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">find_Empty_none</span>. <span class="tactic">rewrite</span> <span class="id">find_Empty_none</span>. <span class="tactic">reflexivity</span>. <span class="tactic">assumption</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENV.empty_1</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">k</span> <span class="id">e0</span> <span class="id">a</span> <span class="id">m</span>' <span class="id">m</span>'' <span class="id">H</span> <span class="id">H0</span> <span class="id">H1</span> <span class="id">H2</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">H1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">rewrite</span> <span class="id">ENVFacts.add_o</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">ENVProps.F.eq_dec</span> <span class="id">k</span> <span class="id">id</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
+&nbsp;Set&nbsp;Printing&nbsp;All.&nbsp;<span class="comment">(*&nbsp;The&nbsp;ENV.key&nbsp;vs.&nbsp;raw_id&nbsp;types&nbsp;in&nbsp;swap&nbsp;make&nbsp;destruction&nbsp;with&nbsp;the&nbsp;displayed&nbsp;syntax&nbsp;not&nbsp;work.&nbsp;*)</span>&nbsp;*)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">RawIDOrd.eq_dec</span> (<span class="id">swap_raw_id</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>) (<span class="id">swap_raw_id</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>)).<br/>
+&nbsp;Unset&nbsp;Printing&nbsp;All.&nbsp;*)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>. <span class="tactic">reflexivity</span>. <span class="id">contradiction</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">RawIDOrd.eq_dec</span> (<span class="id">swap_raw_id</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">k</span>) (<span class="id">swap_raw_id</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">swap_raw_id_inj</span> <span class="kwd">in</span> <span class="id">e1</span>. <span class="id">contradiction</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">H2</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_lookup_env</span> : <span class="kwd">forall</span> {<span class="id">X</span>} `{<span class="id">SX</span> : <span class="id">Swap</span> <span class="id">X</span>} (<span class="id">e</span>:<span class="id">ENV.t</span> <span class="id">X</span>) (<span class="id">id</span>:<span class="id">raw_id</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">lookup_env</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>) ≡ <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">lookup_env</span> <span class="id">e</span> <span class="id">id</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof252')">Proof.</div>
+<div class="proofscript" id="proof252">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">lookup_env</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">swap_ENV_find</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">ENV.find</span> <span class="id">id</span> <span class="id">e</span>); <span class="id">unfold_swaps</span>; <span class="tactic">simpl</span>; <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_lookup_id</span> : <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">genv</span>) (<span class="id">e</span>:<span class="id">env</span>) (<span class="id">i</span>:<span class="id">ident</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">lookup_id</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">g</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">i</span>) ≡ <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">lookup_id</span> <span class="id">g</span> <span class="id">e</span> <span class="id">i</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof253')">Proof.</div>
+<div class="proofscript" id="proof253">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">e</span> <span class="id">i</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">lookup_id</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">i</span>; <span class="tactic">simpl</span>; <span class="tactic">apply</span> <span class="id">swap_lookup_env</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_i1_op</span> : <span class="kwd">forall</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 1),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_i1_op</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">y</span>) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_i1_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof254')">Proof.</div>
+<div class="proofscript" id="proof254">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_i32_op</span> : <span class="kwd">forall</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 32),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_i32_op</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">y</span>) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_i32_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof255')">Proof.</div>
+<div class="proofscript" id="proof255">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_i64_op</span> : <span class="kwd">forall</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 64),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_i64_op</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">y</span>) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_i64_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof256')">Proof.</div>
+<div class="proofscript" id="proof256">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_integer_op</span> : <span class="kwd">forall</span> (<span class="id">bits</span>:<span class="id">Z</span>) (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> <span class="id">bits</span>),<br/>
+&nbsp;&nbsp;&nbsp;<span class="id">integer_op</span> <span class="id">bits</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">y</span>) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">integer_op</span> <span class="id">bits</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof257')">Proof.</div>
+<div class="proofscript" id="proof257">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">bits</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">integer_op</span> <span class="id">bits</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>); <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_iop</span> : <span class="kwd">forall</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_iop</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v1</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v2</span>) =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_iop</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof258')">Proof.</div>
+<div class="proofscript" id="proof258">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">eval_iop</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span>); <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_icmp</span> : <span class="kwd">forall</span> <span class="id">icmp</span> <span class="id">v1</span> <span class="id">v2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_icmp</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">icmp</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v1</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v2</span>) =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_icmp</span> <span class="id">icmp</span> <span class="id">v1</span> <span class="id">v2</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof259')">Proof.</div>
+<div class="proofscript" id="proof259">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">icmp</span> <span class="id">v1</span> <span class="id">v2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">eval_icmp</span> <span class="id">icmp</span> <span class="id">v1</span> <span class="id">v2</span>); <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_exp</span> : <span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">top</span> <span class="id">o</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_exp</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">CFG</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">g</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">top</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">o</span>) =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_exp</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">top</span> <span class="id">o</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof260')">Proof.</div>
+<div class="proofscript" id="proof260">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">top</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">o</span>; <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;Admitted.</div>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_step</span> : <span class="kwd">forall</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">s</span>:<span class="id">state</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">step</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">CFG</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">s</span>)) ≡ (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">step</span> <span class="id">CFG</span> <span class="id">s</span>)).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof261')">Proof.</div>
+<div class="proofscript" id="proof261">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">s</span> <span class="kwd">as</span> [[[<span class="id">g</span> <span class="id">pc</span>] <span class="id">e</span>] <span class="id">k</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;Admitted.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_step_sem</span> : <span class="kwd">forall</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">r</span>:<span class="id">result</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">step_sem</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">CFG</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">r</span>)) ≡ (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">step_sem</span> <span class="id">CFG</span> <span class="id">r</span>)).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof262')">Proof.</div>
+<div class="proofscript" id="proof262">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">cofix</span> <span class="id">swap_step_sem</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">r</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">rewrite</span> <span class="id">Trace.matchM</span>. <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">step_sem</span> <span class="id">CFG</span> (<span class="id">Done</span> <span class="id">v</span>)) = <span class="id">Trace.idM</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">step_sem</span> <span class="id">CFG</span> (<span class="id">Done</span> <span class="id">v</span>)))).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Trace.matchM</span> <span class="tactic">at</span> 1. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">H</span>. <span class="tactic">simpl</span>. <span class="id">constructor</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">unfold</span> <span class="id">swap</span> <span class="tactic">at</span> 2. <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Trace.matchM</span>. <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;Admitted.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<span class="kwd">End</span> <span class="id">PROOFS</span>.  <br/>
+<span class="kwd">End</span> <span class="id">RENAMING</span>.</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>

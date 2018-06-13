@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module CFGProp</title>
+<meta name="description" content="Documentation of Coq module CFGProp" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module CFGProp</h1>
+<div class="coq">
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">ZArith</span> <span class="id">List</span> <span class="id">String</span> <span class="id">Omega</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span> <span class="id">Vellvm.CFG</span> <span class="id">Vellvm.Dom</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Classes</span>.<br/>
+<span class="kwd">Require</span> <span class="id">Vellvm.AstLib</span>.<br/>
+<span class="kwd">Import</span> <span class="id">ListNotations</span>.<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">list_scope</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">incr_pc_in_block</span>: <span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">p1</span> <span class="id">p2</span>, <span class="id">incr_pc</span> <span class="id">CFG</span> <span class="id">p1</span> = <span class="id">Some</span> <span class="id">p2</span> -&gt; (<span class="id">fn</span> <span class="id">p1</span> = <span class="id">fn</span> <span class="id">p2</span>) /\ (<span class="id">bk</span> <span class="id">p1</span> = <span class="id">bk</span> <span class="id">p2</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof166')">Proof.</div>
+<div class="proofscript" id="proof166">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">p1</span> <span class="id">p2</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">incr_pc</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p1</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fn</span>); <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>; <span class="tactic">try</span> <span class="id">solve</span> [<span class="tactic">inversion</span> <span class="id">H</span>].<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">find_block</span> (<span class="id">blks</span> (<span class="id">df_instrs</span> <span class="id">d</span>)) <span class="id">bk</span>); <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>; <span class="tactic">try</span> <span class="id">solve</span> [<span class="tactic">inversion</span> <span class="id">H</span>].<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">block_to_cmd</span> <span class="id">b</span> <span class="id">pt</span>); <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>; <span class="tactic">try</span> <span class="id">solve</span> [<span class="tactic">inversion</span> <span class="id">H</span>].<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>. <span class="tactic">destruct</span> <span class="id">o</span>; <span class="tactic">try</span> <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>. <span class="tactic">split</span>; <span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">find_block_same_fid</span> : <span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">br</span> <span class="id">phis</span> <span class="id">p</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_block_entry</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">br</span> = <span class="id">Some</span> (<span class="id">BlockEntry</span> <span class="id">phis</span> <span class="id">p</span>) -&gt; (<span class="id">fn</span> <span class="id">p</span>) = <span class="id">fid</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof167')">Proof.</div>
+<div class="proofscript" id="proof167">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">br</span> <span class="id">phis</span> <span class="id">p</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">find_block_entry</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fid</span>); <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>; <span class="tactic">try</span> <span class="id">solve</span> [<span class="tactic">inversion</span> <span class="id">H</span>].<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">find_block</span> (<span class="id">blks</span> (<span class="id">df_instrs</span> <span class="id">d</span>)) <span class="id">br</span>); <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>; <span class="tactic">try</span> <span class="id">solve</span> [<span class="tactic">inversion</span> <span class="id">H</span>].<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">b</span>. <span class="tactic">unfold</span> <span class="id">block_to_entry</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>. <span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">CFG_has_code_at</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">P</span>:<span class="id">pc</span> -&gt; <span class="kwd">Prop</span>) : <span class="id">pc</span> -&gt; <span class="id">code</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">has_code_nil</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">p</span>, <span class="id">P</span> <span class="id">p</span> -&gt; <span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">p</span> []<br/>
+| <span class="id">has_code_cons</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">p</span> <span class="id">iid</span> <span class="id">instr</span> <span class="id">pc_next</span> <span class="id">cd</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">HF</span>: <span class="id">fetch</span> <span class="id">CFG</span> <span class="id">p</span> = <span class="id">Some</span> (<span class="id">Inst</span> <span class="id">instr</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hiid</span>: (<span class="id">pt</span> <span class="id">p</span>) = <span class="id">iid</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hincr</span>: <span class="id">incr_pc</span> <span class="id">CFG</span> <span class="id">p</span> = <span class="id">Some</span> <span class="id">pc_next</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hcd</span>: <span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc_next</span> <span class="id">cd</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">p</span> ((<span class="id">iid</span>,<span class="id">instr</span>)::<span class="id">cd</span>).<br/>
+<span class="kwd">Hint</span> <span class="id">Constructors</span> <span class="id">CFG_has_code_at</span>.<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">CFG_has_code_app</span> :<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">P</span> (<span class="id">cd1</span> <span class="id">cd2</span>:<span class="id">code</span>) (<span class="id">pc1</span> <span class="id">pc2</span>:<span class="id">pc</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">H1</span>: <span class="id">CFG_has_code_at</span> <span class="id">CFG</span> (<span class="kwd">fun</span> <span class="id">p</span> =&gt; <span class="id">p</span> = <span class="id">pc2</span>) <span class="id">pc1</span> <span class="id">cd1</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">H2</span>: <span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc2</span> <span class="id">cd2</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc1</span> (<span class="id">cd1</span> ++ <span class="id">cd2</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof168')">Proof.</div>
+<div class="proofscript" id="proof168">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">cd1</span> <span class="id">cd2</span> <span class="id">pc1</span> <span class="id">pc2</span> <span class="id">H1</span>.<br/>
+&nbsp;&nbsp;<span class="id">remember</span> (<span class="kwd">fun</span> <span class="id">p</span> =&gt; <span class="id">p</span> = <span class="id">pc2</span>) <span class="kwd">as</span> <span class="id">Q</span>.<br/>
+&nbsp;&nbsp;<span class="id">revert</span> <span class="id">cd2</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">H1</span>; <span class="tactic">intros</span> <span class="id">cd2</span> <span class="id">H2</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">subst</span>. <span class="tactic">subst</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">eapply</span> <span class="id">has_code_cons</span>; <span class="tactic">eauto</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">CFG_has_code_app_inv</span> :<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc1</span> (<span class="id">cd1</span> <span class="id">cd2</span>:<span class="id">code</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">H</span>:<span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc1</span> (<span class="id">cd1</span> ++ <span class="id">cd2</span>)),<br/>
+&nbsp;&nbsp;<span class="id">exists</span> <span class="id">pc2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_has_code_at</span> <span class="id">CFG</span> (<span class="kwd">fun</span> <span class="id">p</span> =&gt; <span class="id">p</span> = <span class="id">pc2</span>) <span class="id">pc1</span> <span class="id">cd1</span> /\<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc2</span> <span class="id">cd2</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof169')">Proof.</div>
+<div class="proofscript" id="proof169">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc1</span> <span class="id">cd1</span>.<br/>
+&nbsp;&nbsp;<span class="id">revert</span> <span class="id">pc1</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">cd1</span>; <span class="tactic">intros</span> <span class="id">pc1</span> <span class="id">cd2</span> <span class="id">H</span>; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">subst</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;- <span class="id">exists</span> <span class="id">pc1</span>. <span class="tactic">split</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;- <span class="id">exists</span> <span class="id">pc1</span>. <span class="tactic">subst</span>. <span class="tactic">split</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IHcd1</span> <span class="kwd">in</span> <span class="id">Hcd</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">Hcd</span> <span class="kwd">as</span> [<span class="id">pc2</span> [<span class="id">HA</span> <span class="id">HB</span>]].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> <span class="id">pc2</span>. <span class="tactic">split</span>; <span class="tactic">eauto</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">CFG_has_pc</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">p</span>:<span class="id">pc</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id">exists</span> <span class="id">cmd</span>, <span class="id">fetch</span> <span class="id">CFG</span> <span class="id">p</span> = <span class="id">Some</span> <span class="id">cmd</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">CFG_fun_has_block_id</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">fid</span>:<span class="id">function_id</span>) (<span class="id">bid</span>:<span class="id">block_id</span>) <span class="id">phis</span> (<span class="id">p</span>:<span class="id">pc</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id">find_block_entry</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">bid</span> = <span class="id">Some</span> (<span class="id">BlockEntry</span> <span class="id">phis</span> <span class="id">p</span>) /\ <span class="id">CFG_has_pc</span> <span class="id">CFG</span> <span class="id">p</span>. <br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">CFG_fun_has_terminator_lbls</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">fid</span>:<span class="id">function_id</span>) : <span class="id">terminator</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">lbls_Ret</span> : <span class="kwd">forall</span> <span class="id">v</span>, <span class="id">CFG_fun_has_terminator_lbls</span> <span class="id">CFG</span> <span class="id">fid</span> (<span class="id">TERM_Ret</span> <span class="id">v</span>)<br/>
+| <span class="id">lbls_Ret_void</span> : <span class="id">CFG_fun_has_terminator_lbls</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">TERM_Ret_void</span><br/>
+| <span class="id">lbls_TERM_Br</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">v</span> <span class="id">br1</span> <span class="id">phis1</span> <span class="id">p1</span> <span class="id">br2</span> <span class="id">phis2</span> <span class="id">p2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hbr1</span> : <span class="id">CFG_fun_has_block_id</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">br1</span> <span class="id">phis1</span> <span class="id">p1</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hbr2</span> : <span class="id">CFG_fun_has_block_id</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">br2</span> <span class="id">phis2</span> <span class="id">p2</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_fun_has_terminator_lbls</span> <span class="id">CFG</span> <span class="id">fid</span> (<span class="id">TERM_Br</span> <span class="id">v</span> <span class="id">br1</span> <span class="id">br2</span>)<br/>
+| <span class="id">lbls_TERM_Br_1</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">br</span> <span class="id">phis</span> <span class="id">p</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hbr</span> : <span class="id">CFG_fun_has_block_id</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">br</span> <span class="id">phis</span> <span class="id">p</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_fun_has_terminator_lbls</span> <span class="id">CFG</span> <span class="id">fid</span> (<span class="id">TERM_Br_1</span> <span class="id">br</span>)<br/>
+| <span class="id">lbls_Resume</span> : <span class="kwd">forall</span> <span class="id">v</span>, <span class="id">CFG_fun_has_terminator_lbls</span> <span class="id">CFG</span> <span class="id">fid</span> (<span class="id">TERM_Resume</span> <span class="id">v</span>)<br/>
+.<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">CFG_has_terminator_at</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) : <span class="id">pc</span> -&gt; <span class="id">instr_id</span> -&gt; <span class="id">terminator</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">CFG_has_termintator_intro</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">p</span> <span class="id">iid</span> <span class="id">t</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">HF</span>: <span class="id">fetch</span> <span class="id">CFG</span> <span class="id">p</span> = <span class="id">Some</span> (<span class="id">Term</span> <span class="id">t</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hiid</span>: (<span class="id">pt</span> <span class="id">p</span>) = <span class="id">iid</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hbrs</span>: <span class="id">CFG_fun_has_terminator_lbls</span> <span class="id">CFG</span> (<span class="id">fn</span> <span class="id">p</span>) <span class="id">t</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_has_terminator_at</span> <span class="id">CFG</span> <span class="id">p</span> <span class="id">iid</span> <span class="id">t</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">CFG_fun_has_block</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">fid</span>:<span class="id">function_id</span>) (<span class="id">b</span>:<span class="id">block</span>) <span class="id">phis</span> : <span class="kwd">Prop</span> :=<br/>
+| <span class="id">CFG_fun_has_block_intro</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">HFind</span>: <span class="id">find_block_entry</span> <span class="id">CFG</span> <span class="id">fid</span> (<span class="id">blk_id</span> <span class="id">b</span>) = <span class="id">Some</span> (<span class="id">BlockEntry</span> <span class="id">phis</span> (<span class="id">blk_entry_pc</span> <span class="id">fid</span> <span class="id">b</span>)))      <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hcode</span>: <span class="id">CFG_has_code_at</span> <span class="id">CFG</span> (<span class="kwd">fun</span> <span class="id">q</span> =&gt; <span class="id">q</span> = <span class="id">blk_term_pc</span> <span class="id">fid</span> <span class="id">b</span>) (<span class="id">blk_entry_pc</span> <span class="id">fid</span> <span class="id">b</span>) (<span class="id">blk_code</span> <span class="id">b</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hterm</span>: <span class="id">CFG_has_terminator_at</span> <span class="id">CFG</span> (<span class="id">blk_term_pc</span> <span class="id">fid</span> <span class="id">b</span>) (<span class="id">blk_term_id</span> <span class="id">b</span>) (<span class="id">blk_terminator</span> <span class="id">b</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_fun_has_block</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">b</span> <span class="id">phis</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">CFG_fun_has_blocks</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">fid</span>:<span class="id">function_id</span>) (<span class="id">bs</span>:<span class="id">list</span> <span class="id">block</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="id">Forall</span> (<span class="kwd">fun</span> <span class="id">b</span> =&gt; <span class="id">exists</span> <span class="id">phis</span>, <span class="id">CFG_fun_has_block</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">b</span> <span class="id">phis</span> /\ <span class="id">CFG_fun_has_terminator_lbls</span> <span class="id">CFG</span> <span class="id">fid</span> (<span class="id">snd</span> (<span class="id">blk_term</span> <span class="id">b</span>))) <span class="id">bs</span>.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Fixpoint</span> <span class="id">exp_uses</span> (<span class="id">v</span>:<span class="id">exp</span>) : <span class="id">list</span> <span class="id">ident</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">v</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Ident</span> <span class="id">id</span> =&gt; [<span class="id">id</span>]<br/>
+&nbsp;&nbsp;| <span class="id">EXP_Integer</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Float</span> <span class="id">_</span> <br/>
+&nbsp;&nbsp;| <span class="id">EXP_Hex</span> <span class="id">_</span>        <br/>
+&nbsp;&nbsp;| <span class="id">EXP_Bool</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Null</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Zero_initializer</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Cstring</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Undef</span> =&gt; []<br/>
+<br/>
+&nbsp;&nbsp;| <span class="id">EXP_Struct</span> <span class="id">l</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Packed_struct</span> <span class="id">l</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Array</span> <span class="id">l</span><br/>
+&nbsp;&nbsp;| <span class="id">EXP_Vector</span> <span class="id">l</span> =&gt; <span class="id">List.flat_map</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">exp_uses</span> (<span class="id">snd</span> <span class="id">x</span>)) <span class="id">l</span><br/>
+&nbsp;&nbsp;| <span class="id">OP_IBinop</span> <span class="id">_</span> <span class="id">_</span> <span class="id">v1</span> <span class="id">v2</span><br/>
+&nbsp;&nbsp;| <span class="id">OP_ICmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">v1</span> <span class="id">v2</span><br/>
+&nbsp;&nbsp;| <span class="id">OP_FBinop</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">v1</span> <span class="id">v2</span><br/>
+&nbsp;&nbsp;| <span class="id">OP_FCmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">v1</span> <span class="id">v2</span> =&gt; (<span class="id">exp_uses</span> <span class="id">v1</span>) ++ (<span class="id">exp_uses</span> <span class="id">v2</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_Conversion</span> <span class="id">_</span> <span class="id">_</span> <span class="id">v</span> <span class="id">_</span> =&gt; <span class="id">exp_uses</span> <span class="id">v</span><br/>
+&nbsp;&nbsp;| <span class="id">OP_GetElementPtr</span> <span class="id">_</span> (<span class="id">_</span>,<span class="id">ptr</span>) <span class="id">idxs</span> =&gt; (<span class="id">exp_uses</span> <span class="id">ptr</span>) ++ (<span class="id">List.flat_map</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">exp_uses</span> (<span class="id">snd</span> <span class="id">x</span>)) <span class="id">idxs</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_ExtractElement</span>  (<span class="id">_</span>,<span class="id">vec</span>) (<span class="id">_</span>,<span class="id">idx</span>) =&gt; (<span class="id">exp_uses</span> <span class="id">vec</span>) ++ (<span class="id">exp_uses</span> <span class="id">idx</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_InsertElement</span> (<span class="id">_</span>,<span class="id">vec</span>) (<span class="id">_</span>,<span class="id">elt</span>) (<span class="id">_</span>,<span class="id">idx</span>) =&gt; (<span class="id">exp_uses</span> <span class="id">vec</span>) ++ (<span class="id">exp_uses</span> <span class="id">elt</span>) ++ (<span class="id">exp_uses</span> <span class="id">idx</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_ShuffleVector</span> (<span class="id">_</span>, <span class="id">vec1</span>) (<span class="id">_</span>,<span class="id">vec2</span>) (<span class="id">_</span>,<span class="id">idxmask</span>) =&gt; (<span class="id">exp_uses</span> <span class="id">vec1</span>) ++ (<span class="id">exp_uses</span> <span class="id">vec2</span>) ++ (<span class="id">exp_uses</span> <span class="id">idxmask</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_ExtractValue</span> (<span class="id">_</span>,<span class="id">vec</span>) <span class="id">_</span> =&gt; <span class="id">exp_uses</span> <span class="id">vec</span><br/>
+&nbsp;&nbsp;| <span class="id">OP_InsertValue</span> (<span class="id">_</span>,<span class="id">vec</span>) (<span class="id">_</span>,<span class="id">elt</span>) <span class="id">_</span> =&gt; (<span class="id">exp_uses</span> <span class="id">vec</span>) ++ (<span class="id">exp_uses</span> <span class="id">elt</span>)<br/>
+&nbsp;&nbsp;| <span class="id">OP_Select</span> (<span class="id">_</span>,<span class="id">cnd</span>) (<span class="id">_</span>,<span class="id">v1</span>) (<span class="id">_</span>,<span class="id">v2</span>) =&gt; (<span class="id">exp_uses</span> <span class="id">cnd</span>) ++ (<span class="id">exp_uses</span> <span class="id">v1</span>) ++ (<span class="id">exp_uses</span> <span class="id">v2</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">texp_uses</span> (<span class="id">tv</span>:<span class="id">texp</span>) : <span class="id">list</span> <span class="id">ident</span> := <span class="id">exp_uses</span> (<span class="id">snd</span> <span class="id">tv</span>).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">phi_uses</span> (<span class="id">i</span>:<span class="id">phi</span>) : (<span class="id">list</span> <span class="id">ident</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">i</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Phi</span>  <span class="id">t</span> <span class="id">args</span> =&gt; <span class="id">List.flat_map</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">exp_uses</span> (<span class="id">snd</span> <span class="id">x</span>)) <span class="id">args</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">instr_uses</span> (<span class="id">i</span>:<span class="id">instr</span>) : (<span class="id">list</span> <span class="id">ident</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">i</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Op</span> <span class="id">op</span> =&gt; <span class="id">exp_uses</span> <span class="id">op</span>                         <br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Call</span> (<span class="id">_</span>, <span class="id">op</span>) <span class="id">args</span> =&gt; (<span class="id">exp_uses</span> <span class="id">op</span>) ++ (<span class="id">List.flat_map</span> <span class="id">texp_uses</span> <span class="id">args</span>)<br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Alloca</span> <span class="id">t</span> <span class="id">None</span> <span class="id">align</span> =&gt; []<br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Alloca</span> <span class="id">t</span> (<span class="id">Some</span> <span class="id">tv</span>) <span class="id">align</span> =&gt; <span class="id">texp_uses</span> <span class="id">tv</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Load</span>  <span class="id">volatile</span> <span class="id">t</span> <span class="id">ptr</span> <span class="id">align</span> =&gt; <span class="id">texp_uses</span> <span class="id">ptr</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Store</span> <span class="id">volatile</span> <span class="id">val</span> <span class="id">ptr</span> <span class="id">align</span> =&gt; (<span class="id">texp_uses</span> <span class="id">val</span>) ++ (<span class="id">texp_uses</span> <span class="id">ptr</span>)<br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Fence</span> <br/>
+&nbsp;&nbsp;| <span class="id">INSTR_AtomicCmpXchg</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_AtomicRMW</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_Unreachable</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_VAArg</span><br/>
+&nbsp;&nbsp;| <span class="id">INSTR_LandingPad</span> =&gt; []<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">terminator_uses</span> (<span class="id">t</span>:<span class="id">terminator</span>) : <span class="id">list</span> <span class="id">ident</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TERM_Ret</span> <span class="id">tv</span> =&gt; <span class="id">texp_uses</span> <span class="id">tv</span><br/>
+&nbsp;&nbsp;| <span class="id">TERM_Ret_void</span> =&gt; []<br/>
+&nbsp;&nbsp;| <span class="id">TERM_Br</span> <span class="id">tv</span> <span class="id">_</span> <span class="id">_</span> =&gt; <span class="id">texp_uses</span> <span class="id">tv</span><br/>
+&nbsp;&nbsp;| <span class="id">TERM_Br_1</span>  <span class="id">_</span> =&gt; []<br/>
+&nbsp;&nbsp;| <span class="id">TERM_Switch</span>  <span class="id">tv</span> <span class="id">_</span> <span class="id">brs</span> =&gt; (<span class="id">texp_uses</span> <span class="id">tv</span>) ++ (<span class="id">List.flat_map</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">texp_uses</span> (<span class="id">fst</span> <span class="id">x</span>)) <span class="id">brs</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TERM_IndirectBr</span> <span class="id">tv</span> <span class="id">_</span> =&gt; <span class="id">texp_uses</span> <span class="id">tv</span><br/>
+&nbsp;&nbsp;| <span class="id">TERM_Resume</span> <span class="id">tv</span> =&gt; <span class="id">texp_uses</span> <span class="id">tv</span><br/>
+&nbsp;&nbsp;| <span class="id">TERM_Invoke</span> (<span class="id">_</span>,<span class="id">fid</span>) <span class="id">args</span> <span class="id">_</span> <span class="id">_</span> =&gt; [<span class="id">fid</span>] ++ (<span class="id">List.flat_map</span> <span class="id">texp_uses</span> <span class="id">args</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">lbls</span> (<span class="id">t</span>:<span class="id">terminator</span>) : <span class="id">list</span> <span class="id">block_id</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TERM_Ret</span> <span class="id">_</span>        <br/>
+&nbsp;&nbsp;| <span class="id">TERM_Ret_void</span>   =&gt; []<br/>
+&nbsp;&nbsp;| <span class="id">TERM_Br</span> <span class="id">_</span> <span class="id">l1</span> <span class="id">l2</span> =&gt; [<span class="id">l1</span>; <span class="id">l2</span>] <br/>
+&nbsp;&nbsp;| <span class="id">TERM_Br_1</span> <span class="id">l</span> =&gt; [<span class="id">l</span>] <br/>
+&nbsp;&nbsp;| <span class="id">TERM_Switch</span> <span class="id">_</span> <span class="id">l</span> <span class="id">brs</span> =&gt; <span class="id">l</span>::(<span class="id">List.map</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">snd</span> <span class="id">x</span>) <span class="id">brs</span>)<br/>
+&nbsp;&nbsp;| <span class="id">TERM_IndirectBr</span> <span class="id">_</span> <span class="id">brs</span> =&gt; <span class="id">brs</span><br/>
+&nbsp;&nbsp;| <span class="id">TERM_Resume</span> <span class="id">_</span>    =&gt; []<br/>
+&nbsp;&nbsp;| <span class="id">TERM_Invoke</span>  <span class="id">_</span> <span class="id">_</span> <span class="id">l1</span> <span class="id">l2</span> =&gt; [<span class="id">l1</span>; <span class="id">l2</span>] <br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>
