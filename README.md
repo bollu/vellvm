@@ -30,7 +30,7 @@ University of Pennsylvania as part of the DeepSpec project.
 
 ---
 # Documentation
-[The documentation is available here(Updated)](src/doc//html/Classes.html), which is generated from `coq2html`.
+[The documentation is available here(Updated #2)](src/doc//html/Classes.html), which is generated from `coq2html`.
 
 # Structure of the repository
 
