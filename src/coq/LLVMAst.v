@@ -142,6 +142,7 @@ Inductive raw_id : Set :=
 Hint Resolve string_dec.
 Hint Resolve Integers.Int.eq_dec.
 Hint Resolve Z.eq_dec.
+Hint Resolve Bool.bool_dec.
 
 Lemma eq_dec_raw_id: forall (r1 r2: raw_id), {r1 = r2} + {r1 <> r2}.
 Proof.
@@ -376,15 +377,46 @@ Inductive ibinop : Set :=
 | URem | SRem | And | Or | Xor
 .
 
+Lemma ibinop_eq_dec: forall (ib1 ib2: ibinop), {ib1 = ib2} + {ib1 <> ib2}.
+Proof.
+  intros.
+  decide equality; auto.
+Qed.
+Hint Resolve ibinop_eq_dec.
+
 Inductive fbinop : Set :=
   FAdd | FSub | FMul | FDiv | FRem.
+
+
+Lemma fbinop_eq_dec: forall (fb1 fb2: fbinop), {fb1 = fb2} + {fb1 <> fb2}.
+Proof.
+  intros.
+  decide equality; auto.
+Qed.
+Hint Resolve fbinop_eq_dec.
 
 Inductive fast_math : Set :=
   Nnan | Ninf | Nsz | Arcp | Fast.
 
+Lemma fast_math_eq_dec: forall (fm1 fm2: fast_math), {fm1 = fm2} + {fm1 <> fm2}.
+Proof.
+  intros.
+  decide equality; auto.
+Qed.
+Hint Resolve fast_math_eq_dec.
+
 Inductive conversion_type : Set :=
   Trunc | Zext | Sext | Fptrunc | Fpext | Uitofp | Sitofp | Fptoui |
   Fptosi | Inttoptr | Ptrtoint | Bitcast.
+
+
+Lemma conversion_type_eq_dec:
+  forall (c1 c2: conversion_type), {c1 = c2} + {c1 <> c2}.
+Proof.
+  intros.
+  decide equality; auto.
+Qed.
+Hint Resolve conversion_type_eq_dec.
 
 Definition tident : Set := (typ * ident)%type.
 
@@ -436,7 +468,6 @@ Inductive exp : Set :=
 .
 
 
-
 Section exp_nested_ind.
   Variable P: exp -> Prop.
   
@@ -451,6 +482,7 @@ Section exp_nested_ind.
   Hypothesis UNDEF: P (EXP_Undef).
   Hypothesis STRUCT: forall te: list (typ * exp), Forall P (map snd te) ->
                                              P (EXP_Struct te).
+  (* 
  EXP_Struct          (fields: list (typ * exp))
  EXP_Packed_struct   (fields: list (typ * exp))
  EXP_Array           (elts: list (typ * exp))
@@ -467,15 +499,22 @@ Section exp_nested_ind.
  OP_ExtractValue     (vec:(typ * exp)) (idxs:list int)
  OP_InsertValue      (vec:(typ * exp)) (elt:(typ * exp)) (idxs:list int)
  OP_Select           (cnd:(typ * exp)) (v1:(typ * exp)) (v2:(typ * exp)) (* if * then * else *)
+*)
+End exp_nested_ind.
 
 
 Lemma exp_eq_dec: forall (e1 e2: exp), {e1 = e2} + {e1 <> e2}.
 Proof.
 Admitted.
 Hint Resolve exp_eq_dec.
-  
 
 Definition texp : Set := typ * exp.
+Lemma texp_eq_dec: forall (te1 te2: texp), {te1 = te2} + {te1 <> te2}.
+Proof.
+  intros.
+  decide equality; auto.
+  Qed.
+  
 
 Inductive instr_id : Set :=
 | IId   (id:raw_id)    (* "Anonymous" or explicitly named instructions *)
@@ -486,8 +525,6 @@ Inductive instr_id : Set :=
 Lemma instr_id_eq_dec: forall (iid1 iid2: instr_id), {iid1 = iid2} + {iid1 <> iid2}.
 Proof.
   decide equality.
-  unfold int in *.
-  apply Z.eq_dec.
 Qed.
 
 Hint Resolve instr_id_eq_dec.
@@ -513,7 +550,9 @@ Inductive instr : Set :=
 Lemma instr_eq_dec: forall (i1 i2: instr), {i1 = i2} + {i1 <> i2}.
 Proof.
   intros.
-Admitted.
+  repeat (decide equality; auto).
+Qed.
+
 Hint Resolve instr_eq_dec.
 
 Inductive terminator : Set :=
@@ -531,8 +570,9 @@ Inductive terminator : Set :=
 
 Lemma terminator_eq_dec: forall (t1 t2: terminator), {t1 = t2} + {t1 <> t2}.
 Proof.
-  intros.
-Admitted.
+  repeat (decide equality).
+Qed.
+Hint Resolve terminator_eq_dec.
 
 Inductive thread_local_storage : Set :=
 | TLS_Localdynamic
@@ -587,8 +627,7 @@ Record block : Set :=
 
 Lemma code_eq_dec: forall (c1 c2: code), {c1 = c2} +  {c1 <> c2}.
 Proof.
-  decide equality.
-  decide equality.
+  repeat (decide equality).
 Qed.
 
 Hint Resolve code_eq_dec.

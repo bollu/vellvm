@@ -884,5 +884,3 @@ Proof.
     simpl in *.
     euttnorm.
 Qed.
-
-End STORESWITCHPROOF.

@@ -356,8 +356,7 @@ Proof.
       destruct (blk_id (g a) == blkid); try contradiction; auto.
 
     + assert (BLKID_GA: blk_id (g a ) <> blkid).
-      assert (BLK_ID_DEC: {blk_id (g a) = blkid} + {blk_id (g a) <> blkid}).
-      apply raw_id_eq_dec.
+      assert (BLK_ID_DEC: {blk_id (g a) = blkid} + {blk_id (g a) <> blkid}); auto.
       destruct BLK_ID_DEC; subst; try contradiction; auto.
 
       destruct (blk_id (g a) == blkid); subst; try contradiction.
