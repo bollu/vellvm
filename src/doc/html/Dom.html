@@ -1,0 +1,398 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module Dom</title>
+<meta name="description" content="Documentation of Coq module Dom" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module Dom</h1>
+<div class="coq">
+<br/>
+<div class="doc">Reasoning about dominators in a graph. </div>
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">List</span> <span class="id">Equalities</span> <span class="id">Orders</span> <span class="id">RelationClasses</span> <span class="id">Omega</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">FSets</span> <span class="id">FMaps</span>.<br/>
+<span class="kwd">Import</span> <span class="id">ListNotations</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Util</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Module</span> <span class="kwd">Type</span> <span class="id">LATTICE</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Include</span> <span class="id">EqLe</span>'.<br/>
+<br/>
+&nbsp;&nbsp;<span class="id">Declare</span> <span class="kwd">Instance</span> <span class="id">eq_equiv</span> : <span class="id">Equivalence</span> <span class="id">eq</span>.<br/>
+&nbsp;&nbsp;<span class="id">Declare</span> <span class="kwd">Instance</span> <span class="id">le_preorder</span> : <span class="id">PreOrder</span> <span class="id">le</span>.<br/>
+&nbsp;&nbsp;<span class="id">Declare</span> <span class="kwd">Instance</span> <span class="id">le_poset</span> : <span class="id">PartialOrder</span> <span class="id">eq</span> <span class="id">le</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">eq_dec</span> : <span class="kwd">forall</span> <span class="id">x</span> <span class="id">y</span>, {<span class="id">x</span> == <span class="id">y</span>} + {<span class="id">x</span> ~= <span class="id">y</span>}.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">bot</span> : <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Axiom</span> <span class="id">le_bot</span> : <span class="kwd">forall</span> <span class="id">x</span>, <span class="id">bot</span> &lt;= <span class="id">x</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">top</span> : <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Axiom</span> <span class="id">le_top</span> : <span class="kwd">forall</span> <span class="id">x</span>, <span class="id">x</span> &lt;= <span class="id">top</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">join</span> : <span class="id">t</span> -&gt; <span class="id">t</span> -&gt; <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Axiom</span> <span class="id">le_join_l</span> : <span class="kwd">forall</span> <span class="id">x</span> <span class="id">y</span>, <span class="id">x</span> &lt;= <span class="id">join</span> <span class="id">x</span> <span class="id">y</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Axiom</span> <span class="id">le_join_r</span> : <span class="kwd">forall</span> <span class="id">x</span> <span class="id">y</span>, <span class="id">y</span> &lt;= <span class="id">join</span> <span class="id">x</span> <span class="id">y</span>.<br/>
+<span class="kwd">End</span> <span class="id">LATTICE</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">BoundedSet</span>(<span class="kwd">Import</span> <span class="id">S</span>:<span class="id">FSetInterface.WS</span>) &lt;: <span class="id">LATTICE</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Module</span> <span class="kwd">Import</span> <span class="id">SFacts</span> := <span class="id">FSetFacts.WFacts</span> <span class="id">S</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">t</span> : <span class="kwd">Type</span> := <span class="id">option</span> <span class="id">S.t</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq</span> (<span class="id">t1</span> <span class="id">t2</span>: <span class="id">t</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t1</span>, <span class="id">t2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">s1</span>, <span class="id">Some</span> <span class="id">s2</span> =&gt; <span class="id">s1</span> [=] <span class="id">s2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span>, <span class="id">None</span> =&gt; <span class="id">True</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">False</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">le</span> (<span class="id">t1</span> <span class="id">t2</span>: <span class="id">t</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t1</span>, <span class="id">t2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">s1</span>, <span class="id">Some</span> <span class="id">s2</span> =&gt; <span class="id">s2</span> [&lt;=] <span class="id">s1</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span>, <span class="id">Some</span> <span class="id">_</span> | <span class="id">None</span>, <span class="id">None</span> =&gt; <span class="id">True</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">_</span>, <span class="id">None</span> =&gt; <span class="id">False</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Include</span> <span class="id">EqLeNotation</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Instance</span> <span class="id">eq_equiv</span> : <span class="id">Equivalence</span> <span class="id">eq</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof126')">Proof.</div>
+<div class="proofscript" id="proof126">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">constructor</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">red</span>. <span class="tactic">destruct</span> <span class="id">x</span>; <span class="tactic">simpl</span>; <span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">red</span>. <span class="tactic">destruct</span> <span class="id">x</span>, <span class="id">y</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">red</span>. <span class="tactic">destruct</span> <span class="id">x</span>, <span class="id">y</span>, <span class="id">z</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">transitivity</span> <span class="id">t1</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Instance</span> <span class="id">le_preorder</span> : <span class="id">PreOrder</span> <span class="id">le</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof127')">Proof.</div>
+<div class="proofscript" id="proof127">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">constructor</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">red</span>. <span class="tactic">destruct</span> <span class="id">x</span>; <span class="tactic">simpl</span>; <span class="tactic">intuition</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">red</span>. <span class="tactic">destruct</span> <span class="id">x</span>, <span class="id">y</span>, <span class="id">z</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">transitivity</span> <span class="id">t1</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Instance</span> <span class="id">le_poset</span> : <span class="id">PartialOrder</span> <span class="id">eq</span> <span class="id">le</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof128')">Proof.</div>
+<div class="proofscript" id="proof128">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">constructor</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intro</span>. <span class="tactic">repeat</span> <span class="tactic">red</span>. <span class="tactic">split</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">x</span>, <span class="id">x0</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">intuition</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Subset</span>. <span class="tactic">intros</span>. <span class="tactic">rewrite</span> <span class="id">H</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">red</span>. <span class="tactic">destruct</span> <span class="id">x</span>, <span class="id">x0</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Subset</span>. <span class="tactic">intros</span>. <span class="tactic">rewrite</span> &lt;- <span class="id">H</span>. <span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">x</span>, <span class="id">x0</span>; <span class="tactic">simpl</span>; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">H</span>; <span class="tactic">repeat</span> <span class="tactic">red</span> <span class="kwd">in</span> <span class="id">H</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">red</span> <span class="kwd">in</span> <span class="id">H1</span>. <span class="tactic">repeat</span> <span class="tactic">red</span> <span class="kwd">in</span> <span class="id">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">red</span>; <span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_dec</span> : <span class="kwd">forall</span> <span class="id">x</span> <span class="id">y</span>, {<span class="id">x</span> == <span class="id">y</span>} + {<span class="id">x</span> ~= <span class="id">y</span>}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">refine</span> (<span class="kwd">fun</span> <span class="id">t1</span> <span class="id">t2</span> =&gt; <span class="kwd">match</span> <span class="id">t1</span>, <span class="id">t2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">s1</span>, <span class="id">Some</span> <span class="id">s2</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span>, <span class="id">None</span> =&gt; <span class="id">left</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">right</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>); <span class="tactic">auto</span> <span class="kwd">using</span> <span class="id">S.eq_dec</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">bot</span> : <span class="id">t</span> := <span class="id">None</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">le_bot</span> : <span class="kwd">forall</span> <span class="id">x</span>, <span class="id">bot</span> &lt;= <span class="id">x</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof129')">Proof.</div>
+<div class="proofscript" id="proof129">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>; <span class="tactic">destruct</span> <span class="id">x</span>; <span class="tactic">trivial</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">top</span> : <span class="id">t</span> := <span class="id">Some</span> <span class="id">S.empty</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">le_top</span> : <span class="kwd">forall</span> <span class="id">x</span>, <span class="id">x</span> &lt;= <span class="id">top</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof130')">Proof.</div>
+<div class="proofscript" id="proof130">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>. <span class="tactic">destruct</span> <span class="id">x</span>; <span class="tactic">trivial</span>. <span class="tactic">red</span>. <span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exfalso</span>. <span class="tactic">eapply</span> <span class="id">empty_iff</span>; <span class="tactic">eauto</span>. <br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">join</span> (<span class="id">t1</span> <span class="id">t2</span>: <span class="id">t</span>) : <span class="id">t</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t1</span>, <span class="id">t2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">s1</span>, <span class="id">Some</span> <span class="id">s2</span> =&gt; <span class="id">Some</span> (<span class="id">S.inter</span> <span class="id">s1</span> <span class="id">s2</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span>, <span class="id">Some</span> <span class="id">s</span> | <span class="id">Some</span> <span class="id">s</span>, <span class="id">None</span> =&gt; <span class="id">Some</span> <span class="id">s</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span>, <span class="id">None</span> =&gt; <span class="id">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">le_join_l</span> : <span class="kwd">forall</span> <span class="id">x</span> <span class="id">y</span>, <span class="id">x</span> &lt;= <span class="id">join</span> <span class="id">x</span> <span class="id">y</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof131')">Proof.</div>
+<div class="proofscript" id="proof131">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">destruct</span> <span class="id">x</span>, <span class="id">y</span>; <span class="tactic">repeat</span> <span class="tactic">red</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">eapply</span> <span class="id">inter_1</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">le_join_r</span> : <span class="kwd">forall</span> <span class="id">x</span> <span class="id">y</span>, <span class="id">y</span> &lt;= <span class="id">join</span> <span class="id">x</span> <span class="id">y</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof132')">Proof.</div>
+<div class="proofscript" id="proof132">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">destruct</span> <span class="id">x</span>, <span class="id">y</span>; <span class="tactic">repeat</span> <span class="tactic">red</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">eapply</span> <span class="id">inter_2</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">union</span> (<span class="id">t1</span> <span class="id">t2</span>: <span class="id">t</span>) : <span class="id">t</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t1</span>, <span class="id">t2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">s1</span>, <span class="id">Some</span> <span class="id">s2</span> =&gt; <span class="id">Some</span> (<span class="id">S.union</span> <span class="id">s1</span> <span class="id">s2</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span>, <span class="id">Some</span> <span class="id">s</span> | <span class="id">Some</span> <span class="id">s</span>, <span class="id">None</span> =&gt; <span class="id">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span>, <span class="id">None</span> =&gt; <span class="id">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">singleton</span> (<span class="id">e</span>:<span class="id">S.elt</span>) : <span class="id">t</span> := <span class="id">Some</span> (<span class="id">S.singleton</span> <span class="id">e</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">In</span> (<span class="id">e</span>:<span class="id">S.elt</span>) (<span class="id">t</span>:<span class="id">t</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">s</span> =&gt; <span class="id">S.In</span> <span class="id">e</span> <span class="id">s</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">True</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">End</span> <span class="id">BoundedSet</span>.<br/>
+<br/>
+<br/>
+<br/>
+<h2> GRAPH </h2>
+<div class="doc">Interface for a nonempty graph <span class="bracket"><span class="id">t</span></span> with: 
+     - a set of _vertices_ of type <span class="bracket"><span class="id">V</span></span>
+     - a distinguished _entry vertex_
+     - an _edge relation_ <span class="bracket"><span class="id">edge</span></span>
+</div>
+<br/>
+<span class="kwd">Module</span> <span class="kwd">Type</span> <span class="id">GRAPH</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="kwd">Inline</span> <span class="id">t</span> <span class="id">V</span> : <span class="kwd">Type</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="kwd">Inline</span> <span class="id">eq_dec_V</span> : <span class="kwd">forall</span> (<span class="id">v1</span> <span class="id">v2</span>:<span class="id">V</span>), {<span class="id">v1</span> = <span class="id">v2</span>} + {<span class="id">v1</span> &lt;&gt; <span class="id">v2</span>}.  <br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="kwd">Inline</span> <span class="id">entry</span> : <span class="id">t</span> -&gt; <span class="id">V</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="kwd">Inline</span> <span class="id">edge</span> : <span class="id">t</span> -&gt; <span class="id">V</span> -&gt; <span class="id">V</span> -&gt; <span class="kwd">Prop</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="kwd">Inline</span> <span class="id">mem</span> : <span class="id">t</span> -&gt; <span class="id">V</span> -&gt; <span class="kwd">Prop</span>.<br/>
+<span class="kwd">End</span> <span class="id">GRAPH</span>.<br/>
+<br/>
+<h2> Specification of Dominators </h2>
+<br/>
+<span class="kwd">Module</span> <span class="id">Spec</span> (<span class="kwd">Import</span> <span class="id">G</span>:<span class="id">GRAPH</span>).<br/>
+<br/>
+<div class="doc">Defines a path in the graph. </div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Inductive</span> <span class="id">Path</span> (<span class="id">g</span>:<span class="id">G.t</span>) : <span class="id">V</span> -&gt; <span class="id">V</span> -&gt; <span class="id">list</span> <span class="id">V</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;| <span class="id">path_nil</span> : <span class="kwd">forall</span> <span class="id">v</span>, <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mem</span> <span class="id">g</span> <span class="id">v</span> -&gt; <span class="id">Path</span> <span class="id">g</span> <span class="id">v</span> <span class="id">v</span> [<span class="id">v</span>]<br/>
+&nbsp;&nbsp;| <span class="id">path_cons</span> : <span class="kwd">forall</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">v3</span> <span class="id">vs</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Path</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">vs</span> -&gt; <span class="id">mem</span> <span class="id">g</span> <span class="id">v3</span> -&gt; <span class="id">edge</span> <span class="id">g</span> <span class="id">v2</span> <span class="id">v3</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">Path</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v3</span> (<span class="id">v3</span>::<span class="id">vs</span>).<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Constructors</span> <span class="id">Path</span>.<br/>
+&nbsp;&nbsp;<br/>
+<h3> Definition of domination </h3>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">Dom</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span>: <span class="id">V</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">vs</span>, <span class="id">Path</span> <span class="id">g</span> (<span class="id">entry</span> <span class="id">g</span>) <span class="id">v2</span> <span class="id">vs</span> -&gt; <span class="id">In</span> <span class="id">v1</span> <span class="id">vs</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">SDom</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span> : <span class="id">V</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">v1</span> &lt;&gt; <span class="id">v2</span> /\ <span class="id">Dom</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">IDom</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span> : <span class="id">V</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SDom</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> /\ <span class="kwd">forall</span> <span class="id">v3</span>, <span class="id">SDom</span> <span class="id">g</span> <span class="id">v3</span> <span class="id">v2</span> -&gt; <span class="id">Dom</span> <span class="id">g</span> <span class="id">v3</span> <span class="id">v1</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">reachable</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v</span> : <span class="id">V</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> <span class="id">p</span>, <span class="id">Path</span> <span class="id">g</span> (<span class="id">entry</span> <span class="id">g</span>) <span class="id">v</span> <span class="id">p</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">start_in_path</span>: <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span> : <span class="id">V</span>) <span class="id">p</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Path</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">p</span> -&gt; <span class="id">In</span> <span class="id">v1</span> <span class="id">p</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof133')">Proof.</div>
+<div class="proofscript" id="proof133">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">p</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">simpl</span>. <span class="id">left</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">simpl</span>. <span class="id">right</span>. <span class="tactic">exact</span> <span class="id">IHPath</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">end_in_path</span>: <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span> : <span class="id">V</span>) <span class="id">p</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Path</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">p</span> -&gt; <span class="id">In</span> <span class="id">v2</span> <span class="id">p</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof134')">Proof.</div>
+<div class="proofscript" id="proof134">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">p</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">H</span>; <span class="id">left</span>; <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">acyclic_path_exists</span>: <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span> <span class="id">v3</span> : <span class="id">V</span>) <span class="id">p</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Path</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">p</span> -&gt; <span class="id">In</span> <span class="id">v3</span> <span class="id">p</span> -&gt; <span class="id">exists</span> <span class="id">q</span>, <span class="id">Path</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v3</span> (<span class="id">v3</span>::<span class="id">q</span>) /\ ~ <span class="id">In</span> <span class="id">v3</span> <span class="id">q</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof135')">Proof.</div>
+<div class="proofscript" id="proof135">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">v3</span> <span class="id">p</span> <span class="id">Hp</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">v3</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">Hp</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span> <span class="id">u</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">Hin</span>. <span class="tactic">subst</span>. <span class="id">exists</span> []. <span class="tactic">split</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">apply</span> <span class="id">path_nil</span>. <span class="tactic">exact</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">simpl</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">inversion</span> <span class="id">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">Hin</span>. <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">destruct</span> (<span class="id">in_dec</span> <span class="id">eq_dec_V</span> <span class="id">u</span> <span class="id">vs</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">apply</span> <span class="id">IHHp</span> <span class="kwd">in</span> <span class="id">i</span>. <span class="tactic">exact</span> <span class="id">i</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id">exists</span> <span class="id">vs</span>. <span class="tactic">split</span>. <span class="tactic">eapply</span> <span class="id">path_cons</span>; <span class="tactic">eauto</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">apply</span> <span class="id">IHHp</span> <span class="kwd">in</span> <span class="id">H1</span>. <span class="tactic">exact</span> <span class="id">H1</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">path_splits</span>: <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span> <span class="id">v3</span> : <span class="id">V</span>) <span class="id">p</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Path</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">p</span> -&gt; <span class="id">In</span> <span class="id">v3</span> <span class="id">p</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> <span class="id">p1</span>, <span class="id">exists</span> <span class="id">p2</span>, <span class="id">Path</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v3</span> (<span class="id">v3</span>::<span class="id">p1</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/\ <span class="id">Path</span> <span class="id">g</span> <span class="id">v3</span> <span class="id">v2</span> (<span class="id">v2</span>::<span class="id">p2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/\ <span class="id">p</span> = (<span class="id">v2</span>::<span class="id">p2</span> ++ <span class="id">p1</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof136')">Proof.</div>
+<div class="proofscript" id="proof136">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">v3</span> <span class="id">p</span> <span class="id">Hp</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">v3</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">Hp</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span> <span class="id">u</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">Hin</span>. <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id">exists</span> []. <span class="id">exists</span> []. <span class="tactic">repeat</span> <span class="tactic">split</span>;<span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">destruct</span> <span class="id">H0</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">Hin</span>. <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id">exists</span> <span class="id">vs</span>. <span class="id">exists</span> []. <span class="tactic">split</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">path_cons</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">split</span>. <span class="tactic">apply</span> <span class="id">path_nil</span>; <span class="tactic">eauto</span>. <span class="tactic">simpl</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">eapply</span> <span class="id">IHHp</span> <span class="kwd">in</span> <span class="id">H1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">H1</span> <span class="kwd">as</span> [<span class="id">p1</span> [<span class="id">p2</span> [<span class="id">Hp1</span> [<span class="id">Hp2</span> <span class="id">Heq</span>]]]].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> <span class="id">p1</span>. <span class="id">exists</span> (<span class="id">v2</span>::<span class="id">p2</span>). <span class="tactic">split</span>; <span class="tactic">auto</span>. <span class="tactic">split</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">path_cons</span>; <span class="tactic">eauto</span>. <span class="tactic">subst</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">Dom_reflexive</span> : <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v</span> : <span class="id">V</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Dom</span> <span class="id">g</span> <span class="id">v</span> <span class="id">v</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof137')">Proof.</div>
+<div class="proofscript" id="proof137">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">v</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Dom</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">vs</span> <span class="id">Hp</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">end_in_path</span>. <span class="tactic">apply</span> <span class="id">Hp</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">Dom_antisymmetric</span> : <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span> : <span class="id">V</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">reachable</span> <span class="id">g</span> <span class="id">v1</span> -&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Dom</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> -&gt; <span class="id">Dom</span> <span class="id">g</span> <span class="id">v2</span> <span class="id">v1</span> -&gt; <span class="id">v1</span> = <span class="id">v2</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof138')">Proof.</div>
+<div class="proofscript" id="proof138">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">H1</span> <span class="id">D1</span> <span class="id">D2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Dom</span> <span class="kwd">in</span> *.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">H1</span> <span class="kwd">as</span> [<span class="id">p</span> <span class="id">Hp</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">In</span> <span class="id">v1</span> <span class="id">p</span>). <span class="tactic">eapply</span> <span class="id">end_in_path</span>. <span class="tactic">apply</span> <span class="id">Hp</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">acyclic_path_exists</span> <span class="id">g</span> (<span class="id">entry</span> <span class="id">g</span>) <span class="id">v1</span> <span class="id">v1</span> <span class="id">p</span> <span class="id">Hp</span> <span class="id">H</span>) <span class="kwd">as</span> [<span class="id">p</span>' [<span class="id">Hp</span>' <span class="id">Hin</span>]].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">In</span> <span class="id">v2</span> (<span class="id">v1</span> :: <span class="id">p</span>')) <span class="kwd">as</span> <span class="id">Hin</span>'. <span class="tactic">eapply</span> <span class="id">D2</span>. <span class="tactic">apply</span> <span class="id">Hp</span>'.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">path_splits</span> <span class="id">g</span> (<span class="id">entry</span> <span class="id">g</span>) <span class="id">v1</span> <span class="id">v2</span> (<span class="id">v1</span>::<span class="id">p</span>') <span class="id">Hp</span>' <span class="id">Hin</span>') <span class="kwd">as</span> [<span class="id">q1</span> [<span class="id">q2</span> [<span class="id">HQ1</span> [<span class="id">HQ2</span> <span class="id">Heq</span>]]]].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">Heq</span>. <span class="tactic">subst</span>. <span class="tactic">clear</span> <span class="id">Heq</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">D1</span> <span class="kwd">in</span> <span class="id">HQ1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">in_inv</span> <span class="id">HQ1</span>). <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">contradiction</span> <span class="id">Hin</span>. <span class="tactic">eapply</span> <span class="id">in_or_app</span>. <span class="id">right</span>. <span class="tactic">apply</span> <span class="id">H0</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">Dom_transitive</span> : <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span> <span class="id">v3</span> : <span class="id">V</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Dom</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> -&gt; <span class="id">Dom</span> <span class="id">g</span> <span class="id">v2</span> <span class="id">v3</span> -&gt; <span class="id">Dom</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v3</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof139')">Proof.</div>
+<div class="proofscript" id="proof139">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">v3</span> <span class="id">D1</span> <span class="id">D2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Dom</span> <span class="kwd">in</span> *.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">vs</span> <span class="id">Hp</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">path_splits</span> <span class="id">g</span> (<span class="id">entry</span> <span class="id">g</span>) <span class="id">v3</span> <span class="id">v2</span> <span class="id">vs</span>) <span class="kwd">as</span> [<span class="id">q1</span> [<span class="id">q2</span> [<span class="id">HQ1</span> [<span class="id">HQ2</span> <span class="id">Heq</span>]]]]; <span class="tactic">auto</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">D1</span> <span class="kwd">in</span> <span class="id">HQ1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">HQ1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">subst</span>. <span class="tactic">rewrite</span> <span class="id">app_comm_cons</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">in_or_app</span>. <span class="id">left</span>. <span class="tactic">eapply</span> <span class="id">start_in_path</span>. <span class="tactic">apply</span> <span class="id">HQ2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">subst</span>. <span class="tactic">simpl</span>. <span class="id">right</span>. <span class="tactic">apply</span> <span class="id">in_or_app</span>. <span class="id">right</span>. <span class="tactic">exact</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">IDom_unique</span> : <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">G.t</span>) (<span class="id">v1</span> <span class="id">v2</span> <span class="id">v</span> : <span class="id">V</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">reachable</span> <span class="id">g</span> <span class="id">v1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">IDom</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v</span> -&gt; <span class="id">IDom</span> <span class="id">g</span> <span class="id">v2</span> <span class="id">v</span> -&gt; <span class="id">v1</span> = <span class="id">v2</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof140')">Proof.</div>
+<div class="proofscript" id="proof140">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">v</span> <span class="id">H</span> <span class="id">H1</span> <span class="id">H2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">H1</span> <span class="kwd">as</span> [<span class="id">S1</span> <span class="id">H1</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">H2</span> <span class="kwd">as</span> [<span class="id">S2</span> <span class="id">H2</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">H1</span> <span class="kwd">in</span> <span class="id">S2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">H2</span> <span class="kwd">in</span> <span class="id">S1</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">Dom_antisymmetric</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">dom_step</span> : <span class="kwd">forall</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mem</span> <span class="id">g</span> <span class="id">v2</span> -&gt; <span class="id">edge</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> -&gt; <span class="kwd">forall</span> <span class="id">v</span>', <span class="id">SDom</span> <span class="id">g</span> <span class="id">v</span>' <span class="id">v2</span> -&gt; <span class="id">Dom</span> <span class="id">g</span> <span class="id">v</span>' <span class="id">v1</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof141')">Proof.</div>
+<div class="proofscript" id="proof141">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SDom</span>, <span class="id">Dom</span>. <span class="tactic">intros</span> <span class="id">g</span> <span class="id">v1</span> <span class="id">v2</span> <span class="id">Hmem</span> <span class="id">Hsucc</span> <span class="id">v</span>' [<span class="id">Hneq</span> <span class="id">Hdom</span>] <span class="id">p</span> <span class="id">Hp</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">cut</span> (<span class="id">In</span> <span class="id">v</span>' (<span class="id">v2</span>::<span class="id">p</span>)). <span class="tactic">inversion</span> 1; <span class="tactic">subst</span>; <span class="tactic">intuition</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">Hdom</span>. <span class="tactic">eapply</span> <span class="id">path_cons</span>; <span class="tactic">eauto</span>. <br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+<span class="kwd">End</span> <span class="id">Spec</span>.<br/>
+<br/>
+<h3> Relate an algorithm to the specification </h3>
+<span class="kwd">Module</span> <span class="kwd">Type</span> <span class="id">Algdom</span> (<span class="kwd">Import</span> <span class="id">G</span>:<span class="id">GRAPH</span>).<br/>
+&nbsp;&nbsp;<span class="kwd">Module</span> <span class="kwd">Import</span> <span class="id">GS</span> := <span class="id">Spec</span> <span class="id">G</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="id">Declare</span> <span class="kwd">Module</span> <span class="id">E</span> : <span class="id">UsualDecidableType</span> <span class="kwd">with</span> <span class="kwd">Definition</span> <span class="id">t</span> := <span class="id">V</span>.<br/>
+&nbsp;&nbsp;<span class="id">Declare</span> <span class="kwd">Module</span> <span class="id">NS</span> : <span class="id">FSetInterface.WS</span> <span class="kwd">with</span> <span class="kwd">Module</span> <span class="id">E</span>:=<span class="id">E</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Module</span> <span class="id">L</span> := <span class="id">BoundedSet</span> <span class="id">NS</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Include</span> <span class="id">EqLeNotation</span> <span class="id">L</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">calc_sdom</span> : <span class="id">G.t</span> -&gt; <span class="id">option</span> (<span class="id">V</span> -&gt; <span class="id">L.t</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Axiom</span> <span class="id">entry_sound</span> : <span class="kwd">forall</span> <span class="id">g</span> <span class="id">sdom</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">calc_sdom</span> <span class="id">g</span> = <span class="id">Some</span> <span class="id">sdom</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sdom</span> (<span class="id">entry</span> <span class="id">g</span>) == <span class="id">L.top</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Axiom</span> <span class="id">successors_sound</span> : <span class="kwd">forall</span> <span class="id">g</span> <span class="id">sdom</span> <span class="id">n1</span> <span class="id">n2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">calc_sdom</span> <span class="id">g</span> = <span class="id">Some</span> <span class="id">sdom</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mem</span> <span class="id">g</span> <span class="id">n1</span> -&gt; <span class="id">mem</span> <span class="id">g</span> <span class="id">n2</span> -&gt; <span class="id">edge</span> <span class="id">g</span> <span class="id">n1</span> <span class="id">n2</span> -&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">L.union</span> (<span class="id">L.singleton</span> <span class="id">n1</span>) (<span class="id">sdom</span> <span class="id">n1</span>) &lt;= <span class="id">sdom</span> <span class="id">n2</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Axiom</span> <span class="id">complete</span> : <span class="kwd">forall</span> <span class="id">g</span> <span class="id">sdom</span> <span class="id">n1</span> <span class="id">n2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">calc_sdom</span> <span class="id">g</span> = <span class="id">Some</span> <span class="id">sdom</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SDom</span> <span class="id">g</span> <span class="id">n1</span> <span class="id">n2</span> -&gt; <span class="id">L.In</span> <span class="id">n1</span> (<span class="id">sdom</span> <span class="id">n2</span>).<br/>
+<br/>
+<span class="kwd">End</span> <span class="id">Algdom</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">AlgdomProperties</span> (<span class="kwd">Import</span> <span class="id">G</span>:<span class="id">GRAPH</span>) (<span class="kwd">Import</span> <span class="id">A</span> : <span class="id">Algdom</span> <span class="id">G</span>).<br/>
+&nbsp;&nbsp;<span class="kwd">Module</span> <span class="kwd">Import</span> <span class="id">GS</span> := <span class="id">Spec</span> <span class="id">G</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">sound</span> : <span class="kwd">forall</span> <span class="id">g</span> <span class="id">sdom</span> <span class="id">n1</span> <span class="id">n2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">calc_sdom</span> <span class="id">g</span> = <span class="id">Some</span> <span class="id">sdom</span> -&gt;              <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">L.In</span> <span class="id">n1</span> (<span class="id">sdom</span> <span class="id">n2</span>) -&gt; <span class="id">Dom</span> <span class="id">g</span> <span class="id">n1</span> <span class="id">n2</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof142')">Proof.</div>
+<div class="proofscript" id="proof142">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">red</span>; <span class="tactic">intros</span>. <span class="id">remember</span> (<span class="id">entry</span> <span class="id">g</span>). <span class="tactic">induction</span> <span class="id">H1</span>. <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">pose</span> <span class="id">proof</span> <span class="id">entry_sound</span> <span class="id">g</span> <span class="id">sdom</span> <span class="id">H</span>. <br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">sdom</span> (<span class="id">entry</span> <span class="id">g</span>)); <span class="tactic">try</span> <span class="id">contradiction</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exfalso</span>. <span class="tactic">rewrite</span> <span class="id">H2</span> <span class="kwd">in</span> <span class="id">H0</span>. <span class="tactic">eapply</span> <span class="id">L.SFacts.empty_iff</span>. <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">right</span>. <span class="tactic">destruct</span> (<span class="id">E.eq_dec</span> <span class="id">v2</span> <span class="id">n1</span>). <span class="tactic">subst</span>. <span class="tactic">inversion</span> <span class="id">H1</span>; <span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">IHPath</span>; <span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">sdom</span> <span class="id">v2</span>) <span class="id">eqn</span>:<span class="id">Heqv2</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">cut</span> (<span class="id">NS.In</span> <span class="id">n1</span> (<span class="id">NS.union</span> (<span class="id">NS.singleton</span> <span class="id">v2</span>) <span class="id">t0</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intro</span> <span class="id">Hin</span>. <span class="tactic">apply</span> <span class="id">NS.union_1</span> <span class="kwd">in</span> <span class="id">Hin</span> <span class="kwd">as</span> [<span class="id">Hin</span> | <span class="id">Hin</span>]; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">contradict</span> <span class="id">n</span>. <span class="tactic">apply</span> <span class="id">NS.singleton_1</span>. <span class="tactic">assumption</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">pose</span> <span class="id">proof</span> <span class="id">successors_sound</span> <span class="id">g</span> <span class="id">sdom</span> <span class="id">v2</span> <span class="id">v3</span> <span class="kwd">as</span> <span class="id">Hss</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">Hss</span>. <span class="tactic">rewrite</span> <span class="id">Heqv2</span> <span class="kwd">in</span> <span class="id">Hss</span>. <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">Hss</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">sdom</span> <span class="id">v3</span>). <span class="tactic">apply</span> <span class="id">Hss</span>; <span class="tactic">inversion</span> <span class="id">H1</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exfalso</span>. <span class="tactic">apply</span> <span class="id">Hss</span>; <span class="tactic">inversion</span> <span class="id">H1</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+<span class="kwd">End</span> <span class="id">AlgdomProperties</span>.<br/>
+<br/>
+</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>

@@ -1,0 +1,657 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module AstLib</title>
+<meta name="description" content="Documentation of Coq module AstLib" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module AstLib</h1>
+<div class="coq">
+<br/>
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">ZArith.ZArith</span> <span class="id">List</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">String</span> <span class="id">Omega</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span> <span class="id">Vellvm.Classes</span> <span class="id">Vellvm.Util</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Equalities</span> <span class="id">OrderedType</span> <span class="id">OrderedTypeEx</span> <span class="id">Compare_dec</span>.<br/>
+<span class="kwd">Import</span> <span class="id">ListNotations</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">eq_dec_int</span> : <span class="id">eq_dec</span> <span class="id">int</span> := <span class="id">Z.eq_dec</span>.<br/>
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Ascii</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">AsciiOrd</span> &lt;: <span class="id">UsualOrderedType</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">t</span> := <span class="id">ascii</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq</span> := @<span class="id">eq</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_refl</span> := @<span class="id">eq_refl</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_sym</span> := @<span class="id">eq_sym</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_trans</span> := @<span class="id">eq_trans</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">lt</span> (<span class="id">a</span> <span class="id">b</span>:<span class="id">ascii</span>) := <span class="id">N.lt</span> (<span class="id">N_of_ascii</span> <span class="id">a</span>) (<span class="id">N_of_ascii</span> <span class="id">b</span>).<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_trans</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span>:<span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; <span class="id">lt</span> <span class="id">b</span> <span class="id">c</span> -&gt; <span class="id">lt</span> <span class="id">a</span> <span class="id">c</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof103')">Proof.</div>
+<div class="proofscript" id="proof103">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">lt</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">N.lt_trans</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_not_eq</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span>:<span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; ~<span class="id">eq</span> <span class="id">a</span> <span class="id">b</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof104')">Proof.</div>
+<div class="proofscript" id="proof104">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">a</span> <span class="id">b</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span> <span class="id">He</span>. <span class="tactic">rewrite</span> <span class="id">He</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">N.lt_neq</span>. <span class="tactic">unfold</span> <span class="id">lt</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">apply</span> <span class="id">H</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">N_of_ascii_inj</span> : <span class="kwd">forall</span> <span class="id">x</span> <span class="id">y</span>, <span class="id">N_of_ascii</span> <span class="id">x</span> = <span class="id">N_of_ascii</span> <span class="id">y</span> -&gt; <span class="id">x</span> = <span class="id">y</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof105')">Proof.</div>
+<div class="proofscript" id="proof105">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x</span> <span class="id">y</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- <span class="id">ascii_N_embedding</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- (@<span class="id">ascii_N_embedding</span> <span class="id">x</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">H</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Program</span> <span class="kwd">Definition</span> <span class="id">compare</span> (<span class="id">x</span> <span class="id">y</span>: <span class="id">t</span>) : <span class="id">Compare</span> <span class="id">lt</span> <span class="id">eq</span> <span class="id">x</span> <span class="id">y</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">N_as_OT.compare</span> (<span class="id">N_of_ascii</span> <span class="id">x</span>) (<span class="id">N_of_ascii</span> <span class="id">y</span>) <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LT</span> <span class="id">p</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EQ</span> <span class="id">p</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">GT</span> <span class="id">p</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof106')">Next Obligation.</div>
+<div class="proofscript" id="proof106">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">LT</span>. <span class="tactic">unfold</span> <span class="id">lt</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof107')">Next Obligation.</div>
+<div class="proofscript" id="proof107">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">EQ</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">apply</span> <span class="id">N_of_ascii_inj</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof108')">Next Obligation.</div>
+<div class="proofscript" id="proof108">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">GT</span>. <span class="tactic">unfold</span> <span class="id">lt</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_dec</span> := <span class="id">ascii_dec</span>.<br/>
+<span class="kwd">End</span> <span class="id">AsciiOrd</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">AsciiOrdFacts</span> := <span class="id">OrderedTypeFacts</span>(<span class="id">AsciiOrd</span>).<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">StringOrd</span> &lt;: <span class="id">UsualOrderedType</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">t</span> := <span class="id">string</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq</span> := @<span class="id">eq</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_refl</span> := @<span class="id">eq_refl</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_sym</span> := @<span class="id">eq_sym</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_trans</span> := @<span class="id">eq_trans</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Fixpoint</span> <span class="id">lt</span> (<span class="id">s1</span> <span class="id">s2</span>:<span class="id">string</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">s1</span>, <span class="id">s2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EmptyString</span>, <span class="id">EmptyString</span> =&gt; <span class="id">False</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EmptyString</span>, <span class="id">String</span> <span class="id">_</span> <span class="id">_</span> =&gt; <span class="id">True</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">String</span> <span class="id">a</span> <span class="id">s1</span>', <span class="id">String</span> <span class="id">b</span> <span class="id">s2</span>' =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">AsciiOrd.compare</span> <span class="id">a</span> <span class="id">b</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LT</span> <span class="id">_</span> =&gt; <span class="id">True</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EQ</span> <span class="id">_</span> =&gt; <span class="id">lt</span> <span class="id">s1</span>' <span class="id">s2</span>'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">GT</span> <span class="id">_</span> =&gt; <span class="id">False</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">String</span> <span class="id">_</span> <span class="id">_</span>, <span class="id">EmptyString</span> =&gt; <span class="id">False</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_trans</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span> : <span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; <span class="id">lt</span> <span class="id">b</span> <span class="id">c</span> -&gt; <span class="id">lt</span> <span class="id">a</span> <span class="id">c</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof109')">Proof.</div>
+<div class="proofscript" id="proof109">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">a</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">b</span>; <span class="tactic">destruct</span> <span class="id">c</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">try</span> <span class="tactic">tauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">b</span>; <span class="tactic">destruct</span> <span class="id">c</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">try</span> <span class="tactic">tauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">AsciiOrd.compare</span> <span class="id">a</span> <span class="id">a1</span>); <span class="tactic">try</span> <span class="tactic">tauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">destruct</span> (<span class="id">AsciiOrd.compare</span> <span class="id">a1</span> <span class="id">a2</span>); <span class="tactic">try</span> <span class="tactic">tauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id">AsciiOrdFacts.elim_comp</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id">AsciiOrdFacts.elim_comp</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">destruct</span> (<span class="id">AsciiOrd.compare</span> <span class="id">a1</span> <span class="id">a2</span>); <span class="tactic">try</span> <span class="tactic">tauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id">AsciiOrdFacts.elim_comp</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id">AsciiOrdFacts.elim_comp</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">IHa</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_not_eq</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span>:<span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; ~<span class="id">eq</span> <span class="id">a</span> <span class="id">b</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof110')">Proof.</div>
+<div class="proofscript" id="proof110">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">a</span>; <span class="tactic">intros</span> <span class="id">b</span> <span class="id">H</span> <span class="id">He</span>; <span class="tactic">unfold</span> <span class="id">eq</span> <span class="kwd">in</span> <span class="id">He</span>; <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">unfold</span> <span class="id">lt</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">destruct</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">AsciiOrd.compare</span> <span class="id">a</span> <span class="id">a</span>); <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">AsciiOrd.lt_not_eq</span> <span class="kwd">in</span> <span class="id">l</span>. <span class="tactic">apply</span> <span class="id">l</span>. <span class="id">AsciiOrdFacts.order</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">IHa</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">apply</span> <span class="id">H</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Program</span> <span class="kwd">Fixpoint</span> <span class="id">compare</span> (<span class="id">s1</span> <span class="id">s2</span> : <span class="id">t</span>) : <span class="id">Compare</span> <span class="id">lt</span> <span class="id">eq</span> <span class="id">s1</span> <span class="id">s2</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">s1</span>, <span class="id">s2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EmptyString</span>, <span class="id">EmptyString</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EmptyString</span>, <span class="id">String</span> <span class="id">b</span> <span class="id">s2</span>' =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">String</span> <span class="id">a</span> <span class="id">s1</span>', <span class="id">String</span> <span class="id">b</span> <span class="id">s2</span>' =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">AsciiOrd.compare</span> <span class="id">a</span> <span class="id">b</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LT</span> <span class="id">_</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EQ</span> <span class="id">_</span> =&gt; <span class="kwd">match</span> <span class="id">compare</span> <span class="id">s1</span>' <span class="id">s2</span>' <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LT</span> <span class="id">_</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EQ</span> <span class="id">_</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">GT</span> <span class="id">_</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">GT</span> <span class="id">_</span> =&gt; <span class="id">_</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">String</span> <span class="id">a</span> <span class="id">s1</span>', <span class="id">EmptyString</span> =&gt; <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof111')">Next Obligation.</div>
+<div class="proofscript" id="proof111">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">EQ</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof112')">Next Obligation.</div>
+<div class="proofscript" id="proof112">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">LT</span>. <span class="tactic">simpl</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof113')">Next Obligation.</div>
+<div class="proofscript" id="proof113">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">LT</span>. <span class="tactic">simpl</span>. <span class="tactic">rewrite</span> &lt;- <span class="id">Heq_anonymous</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof114')">Next Obligation.</div>
+<div class="proofscript" id="proof114">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">LT</span>. <span class="tactic">simpl</span>. <span class="tactic">rewrite</span> &lt;- <span class="id">Heq_anonymous0</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof115')">Next Obligation.</div>
+<div class="proofscript" id="proof115">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">EQ</span>. <span class="tactic">simpl</span>. <span class="tactic">unfold</span> <span class="id">AsciiOrd.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'0. <span class="tactic">subst</span>. <span class="tactic">unfold</span> <span class="id">eq</span> <span class="kwd">in</span> <span class="id">e</span>. <span class="tactic">subst</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof116')">Next Obligation.</div>
+<div class="proofscript" id="proof116">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">GT</span>. <span class="tactic">simpl</span>. <span class="tactic">unfold</span> <span class="id">AsciiOrd.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'0. <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- <span class="id">Heq_anonymous0</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof117')">Next Obligation.</div>
+<div class="proofscript" id="proof117">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">GT</span>. <span class="tactic">simpl</span>. <span class="id">AsciiOrdFacts.elim_comp_lt</span> <span class="id">b</span> <span class="id">a</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof118')">Next Obligation.</div>
+<div class="proofscript" id="proof118">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">GT</span>. <span class="tactic">simpl</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_dec</span> := <span class="id">string_dec</span>.<br/>
+<span class="kwd">End</span> <span class="id">StringOrd</span>.<br/>
+<span class="kwd">Module</span> <span class="id">StringOrdFacts</span> := <span class="id">OrderedTypeFacts</span>(<span class="id">StringOrd</span>).<br/>
+<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">RawIDOrd</span> &lt;: <span class="id">UsualOrderedType</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">t</span> := <span class="id">raw_id</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq</span> := @<span class="id">eq</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_refl</span> := @<span class="id">eq_refl</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_sym</span> := @<span class="id">eq_sym</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_trans</span> := @<span class="id">eq_trans</span> <span class="id">t</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">lt</span> (<span class="id">x</span>:<span class="id">t</span>) (<span class="id">y</span>:<span class="id">t</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">x</span>,<span class="id">y</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Anon</span> <span class="id">n1</span>, <span class="id">Anon</span> <span class="id">n2</span> =&gt; (<span class="id">n1</span> &lt; <span class="id">n2</span>)%<span class="id">Z</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Name</span> <span class="id">s1</span>, <span class="id">Name</span> <span class="id">s2</span> =&gt; <span class="id">StringOrd.lt</span> <span class="id">s1</span> <span class="id">s2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Raw</span> <span class="id">n1</span>, <span class="id">Raw</span> <span class="id">n2</span> =&gt; (<span class="id">n1</span> &lt; <span class="id">n2</span>)%<span class="id">Z</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Anon</span> <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">True</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Name</span> <span class="id">_</span>, <span class="id">Raw</span> <span class="id">_</span> =&gt; <span class="id">True</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">False</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_trans</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span> : <span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; <span class="id">lt</span> <span class="id">b</span> <span class="id">c</span> -&gt; <span class="id">lt</span> <span class="id">a</span> <span class="id">c</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof119')">Proof.</div>
+<div class="proofscript" id="proof119">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>; <span class="tactic">destruct</span> <span class="id">b</span>; <span class="tactic">destruct</span> <span class="id">c</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span> <span class="id">H1</span> <span class="id">H2</span>; <span class="tactic">intuition</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">eapply</span> <span class="id">StringOrd.lt_trans</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_not_eq</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span>:<span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; ~<span class="id">eq</span> <span class="id">a</span> <span class="id">b</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof120')">Proof.</div>
+<div class="proofscript" id="proof120">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>; <span class="tactic">destruct</span> <span class="id">b</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span> <span class="id">H</span> <span class="id">He</span>; <span class="tactic">inversion</span> <span class="id">He</span>; <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">StringOrd.lt_not_eq</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">apply</span> <span class="id">H</span>. <span class="tactic">unfold</span> <span class="id">StringOrd.eq</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">Z_as_OT.lt_not_eq</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">tauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">Z_as_OT.lt_not_eq</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">tauto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Program</span> <span class="kwd">Definition</span> <span class="id">compare</span> (<span class="id">x</span>:<span class="id">t</span>) (<span class="id">y</span>:<span class="id">t</span>) : <span class="id">Compare</span> <span class="id">lt</span> <span class="id">eq</span> <span class="id">x</span> <span class="id">y</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">x</span>,<span class="id">y</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Anon</span> <span class="id">n1</span>, <span class="id">Anon</span> <span class="id">n2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">Z_as_OT.compare</span> <span class="id">n1</span> <span class="id">n2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LT</span> <span class="id">_</span> =&gt; <span class="id">LT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EQ</span> <span class="id">_</span> =&gt; <span class="id">EQ</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">GT</span> <span class="id">_</span> =&gt; <span class="id">GT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Anon</span> <span class="id">_</span>, <span class="id">Name</span> <span class="id">_</span> =&gt; <span class="id">LT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Anon</span> <span class="id">_</span>, <span class="id">Raw</span> <span class="id">_</span> =&gt; <span class="id">LT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Name</span> <span class="id">_</span>, <span class="id">Anon</span> <span class="id">_</span> =&gt; <span class="id">GT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Name</span> <span class="id">s1</span>, <span class="id">Name</span> <span class="id">s2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">StringOrd.compare</span> <span class="id">s1</span> <span class="id">s2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LT</span> <span class="id">_</span> =&gt; <span class="id">LT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EQ</span> <span class="id">_</span> =&gt; <span class="id">EQ</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">GT</span> <span class="id">_</span> =&gt; <span class="id">GT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Name</span> <span class="id">_</span>, <span class="id">Raw</span> <span class="id">_</span> =&gt; <span class="id">LT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Raw</span> <span class="id">_</span>, <span class="id">Anon</span> <span class="id">_</span> =&gt; <span class="id">GT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Raw</span> <span class="id">_</span>, <span class="id">Name</span> <span class="id">_</span> =&gt; <span class="id">GT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Raw</span> <span class="id">n1</span>, <span class="id">Raw</span> <span class="id">n2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">Z_as_OT.compare</span> <span class="id">n1</span> <span class="id">n2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LT</span> <span class="id">_</span> =&gt; <span class="id">LT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EQ</span> <span class="id">_</span> =&gt; <span class="id">EQ</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">GT</span> <span class="id">_</span> =&gt; <span class="id">GT</span> <span class="id">_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof121')">Next Obligation.</div>
+<div class="proofscript" id="proof121">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Z_as_OT.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'. <span class="tactic">subst</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof122')">Next Obligation.</div>
+<div class="proofscript" id="proof122">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">StringOrd.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'. <span class="tactic">subst</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<div class="toggleproof" onclick="toggleDisplay('proof123')">Next Obligation.</div>
+<div class="proofscript" id="proof123">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Z_as_OT.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'. <span class="tactic">subst</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_dec</span> : <span class="kwd">forall</span> (<span class="id">x</span> <span class="id">y</span> : <span class="id">t</span>), {<span class="id">x</span> = <span class="id">y</span>} + {<span class="id">x</span> &lt;&gt; <span class="id">y</span>}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">string_dec</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">eq_dec_int</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">eq_dec_int</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<br/>
+<span class="kwd">End</span> <span class="id">RawIDOrd</span>.  <br/>
+<br/>
+&nbsp;&nbsp;<br/>
+<span class="kwd">Instance</span> <span class="id">eq_dec_raw_id</span> : <span class="id">eq_dec</span> <span class="id">raw_id</span> := <span class="id">RawIDOrd.eq_dec</span>.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">InstrIDDec</span> &lt;: <span class="id">MiniDecidableType</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">t</span> := <span class="id">instr_id</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">eq_dec</span> : <span class="kwd">forall</span> (<span class="id">x</span> <span class="id">y</span> : <span class="id">instr_id</span>), {<span class="id">x</span> = <span class="id">y</span>} + {<span class="id">x</span> &lt;&gt; <span class="id">y</span>}.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof124')">Proof.</div>
+<div class="proofscript" id="proof124">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x</span> <span class="id">y</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">x</span> <span class="kwd">as</span> [<span class="id">xn</span> | <span class="id">xn</span>]; <span class="tactic">destruct</span> <span class="id">y</span> <span class="kwd">as</span> [<span class="id">yn</span> | <span class="id">yn</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> (<span class="id">xn</span> == <span class="id">yn</span>). <span class="tactic">subst</span>. <span class="id">left</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">right</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span>. <span class="tactic">apply</span> <span class="id">n</span>. <span class="tactic">inversion</span> <span class="id">H</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id">right</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id">right</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> (<span class="id">xn</span> == <span class="id">yn</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">left</span>. <span class="tactic">subst</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">right</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span>. <span class="tactic">apply</span> <span class="id">n</span>. <span class="tactic">inversion</span> <span class="id">H</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<span class="kwd">End</span> <span class="id">InstrIDDec</span>.<br/>
+<span class="kwd">Module</span> <span class="id">InstrID</span> := <span class="id">Make_UDT</span>(<span class="id">InstrIDDec</span>).<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">eq_dec_instr_id</span> : <span class="id">eq_dec</span> <span class="id">instr_id</span> := <span class="id">InstrID.eq_dec</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">IdentDec</span> &lt;: <span class="id">MiniDecidableType</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">t</span> := <span class="id">ident</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">eq_dec</span> : <span class="kwd">forall</span> (<span class="id">x</span> <span class="id">y</span> : <span class="id">ident</span>), {<span class="id">x</span> = <span class="id">y</span>} + {<span class="id">x</span> &lt;&gt; <span class="id">y</span>}.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof125')">Proof.</div>
+<div class="proofscript" id="proof125">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x</span> <span class="id">y</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">x</span> <span class="kwd">as</span> [<span class="id">xn</span> | <span class="id">xn</span>]; <span class="tactic">destruct</span> <span class="id">y</span> <span class="kwd">as</span> [<span class="id">yn</span> | <span class="id">yn</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> (<span class="id">xn</span> == <span class="id">yn</span>). <span class="tactic">subst</span>. <span class="id">left</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">right</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span>. <span class="tactic">apply</span> <span class="id">n</span>. <span class="tactic">inversion</span> <span class="id">H</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id">right</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="id">right</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> (<span class="id">xn</span> == <span class="id">yn</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">left</span>. <span class="tactic">subst</span>. <span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">right</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span>. <span class="tactic">apply</span> <span class="id">n</span>. <span class="tactic">inversion</span> <span class="id">H</span>. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Defined.</div>
+<span class="kwd">End</span> <span class="id">IdentDec</span>.<br/>
+<span class="kwd">Module</span> <span class="id">Ident</span> := <span class="id">Make_UDT</span>(<span class="id">IdentDec</span>).<br/>
+<span class="kwd">Instance</span> <span class="id">eq_dec_ident</span> : <span class="id">eq_dec</span> <span class="id">ident</span> := <span class="id">Ident.eq_dec</span>.  <br/>
+<br/>
+<br/>
+<span class="kwd">Section</span> <span class="id">TypInd</span>.<br/>
+<br/>
+<span class="kwd">Variable</span> <span class="id">P</span> : <span class="id">typ</span> -&gt; <span class="kwd">Prop</span>.<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_I</span>          : <span class="kwd">forall</span> <span class="id">sz</span>, <span class="id">P</span> (<span class="id">TYPE_I</span> <span class="id">sz</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Pointer</span>    : <span class="kwd">forall</span> <span class="id">t</span>, <span class="id">P</span> <span class="id">t</span> -&gt; <span class="id">P</span>(<span class="id">TYPE_Pointer</span> <span class="id">t</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Void</span>       : <span class="id">P</span>(<span class="id">TYPE_Void</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Half</span>       : <span class="id">P</span>(<span class="id">TYPE_Half</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Float</span>      : <span class="id">P</span>(<span class="id">TYPE_Float</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Double</span>     : <span class="id">P</span>(<span class="id">TYPE_Double</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_X86_fp80</span>   : <span class="id">P</span>(<span class="id">TYPE_X86_fp80</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Fp128</span>      : <span class="id">P</span>(<span class="id">TYPE_Fp128</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Ppc_fp128</span>  : <span class="id">P</span>(<span class="id">TYPE_Ppc_fp128</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Metadata</span>   : <span class="id">P</span>(<span class="id">TYPE_Metadata</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_X86_mmx</span>    : <span class="id">P</span>(<span class="id">TYPE_X86_mmx</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Array</span>      : <span class="kwd">forall</span> <span class="id">sz</span> <span class="id">t</span>, <span class="id">P</span> <span class="id">t</span> -&gt; <span class="id">P</span>(<span class="id">TYPE_Array</span> <span class="id">sz</span> <span class="id">t</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Function</span>   : <span class="kwd">forall</span> <span class="id">ret</span> <span class="id">args</span>, <span class="id">P</span> <span class="id">ret</span> -&gt; (<span class="kwd">forall</span> <span class="id">u</span>, <span class="id">In</span> <span class="id">u</span> <span class="id">args</span> -&gt; <span class="id">P</span> <span class="id">u</span>) -&gt; <span class="id">P</span>(<span class="id">TYPE_Function</span> <span class="id">ret</span> <span class="id">args</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Struct</span>     : <span class="kwd">forall</span> <span class="id">fields</span>, (<span class="kwd">forall</span> <span class="id">u</span>, <span class="id">In</span> <span class="id">u</span> <span class="id">fields</span> -&gt; <span class="id">P</span> <span class="id">u</span>) -&gt; <span class="id">P</span>(<span class="id">TYPE_Struct</span> <span class="id">fields</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Packed_struct</span> : <span class="kwd">forall</span> <span class="id">fields</span>, (<span class="kwd">forall</span> <span class="id">u</span>, <span class="id">In</span> <span class="id">u</span> <span class="id">fields</span> -&gt; <span class="id">P</span> <span class="id">u</span>) -&gt; <span class="id">P</span>(<span class="id">TYPE_Packed_struct</span> <span class="id">fields</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Opaque</span>     : <span class="id">P</span>(<span class="id">TYPE_Opaque</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Vector</span>     : <span class="kwd">forall</span> <span class="id">sz</span> <span class="id">t</span>, <span class="id">P</span> <span class="id">t</span> -&gt; <span class="id">P</span>(<span class="id">TYPE_Vector</span> <span class="id">sz</span> <span class="id">t</span>).<br/>
+<span class="kwd">Hypothesis</span> <span class="id">IH_Identified</span> : <span class="kwd">forall</span> <span class="id">id</span>, <span class="id">P</span>(<span class="id">TYPE_Identified</span> <span class="id">id</span>).<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">typ_ind</span>' : <span class="kwd">forall</span> (<span class="id">t</span>:<span class="id">typ</span>), <span class="id">P</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IH</span> 1.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">t</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_I</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Pointer</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Void</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Half</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Float</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Double</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_X86_fp80</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Fp128</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Ppc_fp128</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Metadata</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_X86_mmx</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Array</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Function</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id">revert</span> <span class="id">args</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IHargs</span> 1. <span class="tactic">intros</span> [|<span class="id">u</span> <span class="id">args</span>']. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">u</span>' [&lt;-|<span class="id">Hin</span>]. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">eapply</span> <span class="id">IHargs</span>. <span class="tactic">apply</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Struct</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id">revert</span> <span class="id">fields</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IHfields</span> 1. <span class="tactic">intros</span> [|<span class="id">u</span> <span class="id">fields</span>']. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">u</span>' [&lt;-|<span class="id">Hin</span>]. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">eapply</span> <span class="id">IHfields</span>. <span class="tactic">apply</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Packed_struct</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id">revert</span> <span class="id">fields</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IHfields</span> 1. <span class="tactic">intros</span> [|<span class="id">u</span> <span class="id">fields</span>']. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">u</span>' [&lt;-|<span class="id">Hin</span>]. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">eapply</span> <span class="id">IHfields</span>. <span class="tactic">apply</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Opaque</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Vector</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Identified</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">End</span> <span class="id">TypInd</span>.<br/>
+<br/>
+<span class="kwd">Section</span> <span class="id">ExpInd</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">P</span> : <span class="id">exp</span> -&gt; <span class="kwd">Prop</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Ident</span>   : <span class="kwd">forall</span> (<span class="id">id</span>:<span class="id">ident</span>), <span class="id">P</span> ((<span class="id">EXP_Ident</span> <span class="id">id</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Integer</span> : <span class="kwd">forall</span> (<span class="id">x</span>:<span class="id">int</span>), <span class="id">P</span> ((<span class="id">EXP_Integer</span> <span class="id">x</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Float</span>   : <span class="kwd">forall</span> (<span class="id">f</span>:<span class="id">float</span>), <span class="id">P</span> ((<span class="id">EXP_Float</span> <span class="id">f</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Hex</span>     : <span class="kwd">forall</span> (<span class="id">h</span>:<span class="id">float</span>), <span class="id">P</span> ((<span class="id">EXP_Hex</span> <span class="id">h</span>)).  <br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Bool</span>    : <span class="kwd">forall</span> (<span class="id">b</span>:<span class="id">bool</span>), <span class="id">P</span> ((<span class="id">EXP_Bool</span> <span class="id">b</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Null</span>    : <span class="id">P</span> ((<span class="id">EXP_Null</span> )).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Zero_initializer</span> : <span class="id">P</span> ((<span class="id">EXP_Zero_initializer</span> )).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Cstring</span> : <span class="kwd">forall</span> (<span class="id">s</span>:<span class="id">string</span>), <span class="id">P</span> ((<span class="id">EXP_Cstring</span> <span class="id">s</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Undef</span>   : <span class="id">P</span> ((<span class="id">EXP_Undef</span> )).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Struct</span>  : <span class="kwd">forall</span> (<span class="id">fields</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)), (<span class="kwd">forall</span> <span class="id">p</span>, <span class="id">In</span> <span class="id">p</span> <span class="id">fields</span> -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">p</span>)) -&gt; <span class="id">P</span> ((<span class="id">EXP_Struct</span> <span class="id">fields</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Packed_struct</span> : <span class="kwd">forall</span> (<span class="id">fields</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)), (<span class="kwd">forall</span> <span class="id">p</span>, <span class="id">In</span> <span class="id">p</span> <span class="id">fields</span> -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">p</span>)) -&gt; <span class="id">P</span> ((<span class="id">EXP_Packed_struct</span> <span class="id">fields</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Array</span>   : <span class="kwd">forall</span> (<span class="id">elts</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)), (<span class="kwd">forall</span> <span class="id">p</span>, <span class="id">In</span> <span class="id">p</span> <span class="id">elts</span> -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">p</span>)) -&gt; <span class="id">P</span> ((<span class="id">EXP_Array</span> <span class="id">elts</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Vector</span>  : <span class="kwd">forall</span> (<span class="id">elts</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)), (<span class="kwd">forall</span> <span class="id">p</span>, <span class="id">In</span> <span class="id">p</span> <span class="id">elts</span> -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">p</span>)) -&gt; <span class="id">P</span> ((<span class="id">EXP_Vector</span> <span class="id">elts</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_IBinop</span>  : <span class="kwd">forall</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">t</span>:<span class="id">typ</span>) (<span class="id">v1</span>:<span class="id">exp</span>) (<span class="id">v2</span>:<span class="id">exp</span>), <span class="id">P</span> <span class="id">v1</span> -&gt; <span class="id">P</span> <span class="id">v2</span> -&gt; <span class="id">P</span> ((<span class="id">OP_IBinop</span> <span class="id">iop</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_ICmp</span>    : <span class="kwd">forall</span> (<span class="id">cmp</span>:<span class="id">icmp</span>)   (<span class="id">t</span>:<span class="id">typ</span>) (<span class="id">v1</span>:<span class="id">exp</span>) (<span class="id">v2</span>:<span class="id">exp</span>), <span class="id">P</span> <span class="id">v1</span> -&gt; <span class="id">P</span> <span class="id">v2</span> -&gt; <span class="id">P</span> ((<span class="id">OP_ICmp</span> <span class="id">cmp</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_FBinop</span>  : <span class="kwd">forall</span> (<span class="id">fop</span>:<span class="id">fbinop</span>) (<span class="id">fm</span>:<span class="id">list</span> <span class="id">fast_math</span>) (<span class="id">t</span>:<span class="id">typ</span>) (<span class="id">v1</span>:<span class="id">exp</span>) (<span class="id">v2</span>:<span class="id">exp</span>), <span class="id">P</span> <span class="id">v1</span> -&gt; <span class="id">P</span> <span class="id">v2</span> -&gt; <span class="id">P</span> ((<span class="id">OP_FBinop</span> <span class="id">fop</span> <span class="id">fm</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_FCmp</span>    : <span class="kwd">forall</span> (<span class="id">cmp</span>:<span class="id">fcmp</span>)   (<span class="id">t</span>:<span class="id">typ</span>) (<span class="id">v1</span>:<span class="id">exp</span>) (<span class="id">v2</span>:<span class="id">exp</span>), <span class="id">P</span> <span class="id">v1</span> -&gt; <span class="id">P</span> <span class="id">v2</span> -&gt; <span class="id">P</span> ((<span class="id">OP_FCmp</span> <span class="id">cmp</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Conversion</span> : <span class="kwd">forall</span> (<span class="id">conv</span>:<span class="id">conversion_type</span>) (<span class="id">t_from</span>:<span class="id">typ</span>) (<span class="id">v</span>:<span class="id">exp</span>) (<span class="id">t_to</span>:<span class="id">typ</span>), <span class="id">P</span> <span class="id">v</span> -&gt; <span class="id">P</span> ((<span class="id">OP_Conversion</span> <span class="id">conv</span> <span class="id">t_from</span> <span class="id">v</span> <span class="id">t_to</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_GetElementPtr</span> : <span class="kwd">forall</span> (<span class="id">t</span>:<span class="id">typ</span>) (<span class="id">ptrval</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">idxs</span>:<span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> (<span class="id">snd</span> <span class="id">ptrval</span>) -&gt; (<span class="kwd">forall</span> <span class="id">p</span>, <span class="id">In</span> <span class="id">p</span> <span class="id">idxs</span> -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">p</span>)) -&gt; <span class="id">P</span> ((<span class="id">OP_GetElementPtr</span> <span class="id">t</span> <span class="id">ptrval</span> <span class="id">idxs</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_ExtractElement</span>: <span class="kwd">forall</span> (<span class="id">vec</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">idx</span>:(<span class="id">typ</span> * <span class="id">exp</span>)), <span class="id">P</span> (<span class="id">snd</span> <span class="id">vec</span>) -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">idx</span>) -&gt; <span class="id">P</span> ((<span class="id">OP_ExtractElement</span> <span class="id">vec</span> <span class="id">idx</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_InsertElement</span> : <span class="kwd">forall</span> (<span class="id">vec</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">elt</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">idx</span>:(<span class="id">typ</span> * <span class="id">exp</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> (<span class="id">snd</span> <span class="id">vec</span>) -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">elt</span>) -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">idx</span>) -&gt; <span class="id">P</span> ((<span class="id">OP_InsertElement</span> <span class="id">vec</span> <span class="id">elt</span> <span class="id">idx</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_ShuffleVector</span> : <span class="kwd">forall</span> (<span class="id">vec1</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">vec2</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">idxmask</span>:(<span class="id">typ</span> * <span class="id">exp</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> (<span class="id">snd</span> <span class="id">vec1</span>) -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">vec2</span> ) -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">idxmask</span>) -&gt; <span class="id">P</span> ((<span class="id">OP_ShuffleVector</span> <span class="id">vec1</span> <span class="id">vec2</span> <span class="id">idxmask</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_ExtractValue</span>  : <span class="kwd">forall</span> (<span class="id">vec</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">idxs</span>:<span class="id">list</span> <span class="id">int</span>), <span class="id">P</span> (<span class="id">snd</span> <span class="id">vec</span>) -&gt; <span class="id">P</span> ((<span class="id">OP_ExtractValue</span> <span class="id">vec</span> <span class="id">idxs</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_InsertValue</span>   : <span class="kwd">forall</span> (<span class="id">vec</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">elt</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">idxs</span>:<span class="id">list</span> <span class="id">int</span>), <span class="id">P</span> (<span class="id">snd</span> <span class="id">vec</span>) -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">elt</span>) -&gt; <span class="id">P</span> ((<span class="id">OP_InsertValue</span> <span class="id">vec</span> <span class="id">elt</span> <span class="id">idxs</span>)).<br/>
+&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IH_Select</span>        : <span class="kwd">forall</span> (<span class="id">cnd</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">v1</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">v2</span>:(<span class="id">typ</span> * <span class="id">exp</span>)), <span class="id">P</span> (<span class="id">snd</span> <span class="id">cnd</span>) -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">v1</span>) -&gt; <span class="id">P</span> (<span class="id">snd</span> <span class="id">v2</span>) -&gt; <span class="id">P</span> ((<span class="id">OP_Select</span> <span class="id">cnd</span> <span class="id">v1</span> <span class="id">v2</span>)).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">exp_ind</span>' : <span class="kwd">forall</span> (<span class="id">v</span>:<span class="id">exp</span>), <span class="id">P</span> <span class="id">v</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IH</span> 1.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">v</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Ident</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Integer</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Float</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Hex</span>.      <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Bool</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Null</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Zero_initializer</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Cstring</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Undef</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Struct</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id">revert</span> <span class="id">fields</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IHfields</span> 1. <span class="tactic">intros</span> [|<span class="id">u</span> <span class="id">fields</span>']. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">u</span>' [&lt;-|<span class="id">Hin</span>]. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">eapply</span> <span class="id">IHfields</span>. <span class="tactic">apply</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Packed_struct</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id">revert</span> <span class="id">fields</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IHfields</span> 1. <span class="tactic">intros</span> [|<span class="id">u</span> <span class="id">fields</span>']. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">u</span>' [&lt;-|<span class="id">Hin</span>]. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">eapply</span> <span class="id">IHfields</span>. <span class="tactic">apply</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Array</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id">revert</span> <span class="id">elts</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IHelts</span> 1. <span class="tactic">intros</span> [|<span class="id">u</span> <span class="id">elts</span>']. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">u</span>' [&lt;-|<span class="id">Hin</span>]. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">eapply</span> <span class="id">IHelts</span>. <span class="tactic">apply</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Vector</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id">revert</span> <span class="id">elts</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IHelts</span> 1. <span class="tactic">intros</span> [|<span class="id">u</span> <span class="id">elts</span>']. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">u</span>' [&lt;-|<span class="id">Hin</span>]. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">eapply</span> <span class="id">IHelts</span>. <span class="tactic">apply</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_IBinop</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_ICmp</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_FBinop</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_FCmp</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Conversion</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_GetElementPtr</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="id">revert</span> <span class="id">idxs</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fix</span> <span class="id">IHidxs</span> 1. <span class="tactic">intros</span> [|<span class="id">u</span> <span class="id">idxs</span>']. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">u</span>' [&lt;-|<span class="id">Hin</span>]. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">eapply</span> <span class="id">IHidxs</span>. <span class="tactic">apply</span> <span class="id">Hin</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_ExtractElement</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_InsertElement</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_ShuffleVector</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_ExtractValue</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_InsertValue</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">IH_Select</span>.  <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>. <span class="tactic">apply</span> <span class="id">IH</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<span class="kwd">End</span> <span class="id">ExpInd</span>.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_raw_id</span> : <span class="id">StringOf</span> <span class="id">raw_id</span> := <span class="kwd">fun</span> <span class="id">r</span> =&gt;<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">r</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Name</span> <span class="id">s</span> =&gt; <span class="id">s</span><br/>
+&nbsp;&nbsp;| <span class="id">Anon</span> <span class="id">n</span> =&gt; <span class="id">to_string_b10</span> <span class="id">n</span><br/>
+&nbsp;&nbsp;| <span class="id">Raw</span>  <span class="id">n</span> =&gt; "<span class="id">_RAW_</span>" ++ (<span class="id">to_string_b10</span> <span class="id">n</span>)                           <br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_ident</span> : <span class="id">StringOf</span> <span class="id">ident</span> :=  <span class="kwd">fun</span> <span class="id">id</span> =&gt;<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">id</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">ID_Global</span> <span class="id">r</span> =&gt; "@" ++ (<span class="id">string_of_raw_id</span> <span class="id">r</span>)<br/>
+&nbsp;&nbsp;| <span class="id">ID_Local</span>  <span class="id">r</span> =&gt; "%" ++ (<span class="id">string_of_raw_id</span> <span class="id">r</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_instr_id</span> : <span class="id">StringOf</span> <span class="id">instr_id</span> := <span class="kwd">fun</span> <span class="id">ins</span> =&gt;<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">ins</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">IId</span> <span class="id">id</span> =&gt; (<span class="id">string_of_raw_id</span> <span class="id">id</span>)<br/>
+&nbsp;&nbsp;| <span class="id">IVoid</span> <span class="id">n</span> =&gt; "<span class="id">void</span>&lt;" ++ (<span class="id">to_string_b10</span> <span class="id">n</span>) ++ "&gt;"<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_ibinop</span> : <span class="id">StringOf</span> <span class="id">ibinop</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">binop</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">binop</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="kwd">Add</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt; "<span class="id">add</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sub</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt; "<span class="id">sub</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Mul</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt; "<span class="id">mul</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Shl</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt; "<span class="id">shl</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">UDiv</span> <span class="id">flag</span> =&gt; "<span class="id">udiv</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SDiv</span> <span class="id">flag</span> =&gt; "<span class="id">sdiv</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LShr</span> <span class="id">flag</span> =&gt; "<span class="id">lshr</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">AShr</span> <span class="id">flag</span> =&gt; "<span class="id">ashr</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">URem</span> | <span class="id">SRem</span> =&gt; "<span class="id">rem</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">And</span> =&gt; "<span class="id">and</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Or</span> =&gt; "<span class="id">or</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Xor</span> =&gt; "<span class="id">xor</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_icmp</span> : <span class="id">StringOf</span> <span class="id">icmp</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">cmp</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;"<span class="id">icmp</span> " ++ <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">cmp</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Eq</span> =&gt; "<span class="id">eq</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ne</span> =&gt; "<span class="id">ne</span>" <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ugt</span> =&gt; "<span class="id">ugt</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Uge</span> =&gt; "<span class="id">uge</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ult</span> =&gt; "<span class="id">ult</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ule</span> =&gt; "<span class="id">ule</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sgt</span> =&gt; "<span class="id">sgt</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sge</span> =&gt; "<span class="id">sge</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Slt</span> =&gt; "<span class="id">slt</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sle</span> =&gt; "<span class="id">sle</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<span class="kwd">Fixpoint</span> <span class="id">string_of_typ</span>' <span class="id">typ</span> := <br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">typ</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_I</span> <span class="id">sz</span> =&gt; ("<span class="id">i</span>" ++ (<span class="id">string_of</span> <span class="id">sz</span>))%<span class="id">string</span><br/>
+&nbsp;&nbsp;| <span class="id">TYPE_Pointer</span> <span class="id">t</span> =&gt; ((<span class="id">string_of_typ</span>' <span class="id">t</span>) ++ "*")%<span class="id">string</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; "(<span class="id">string_of_typ</span> <span class="id">todo</span>)"<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_typ</span> : <span class="id">StringOf</span> <span class="id">typ</span> := <span class="id">string_of_typ</span>'.<br/>
+<br/>
+<span class="kwd">Fixpoint</span> <span class="id">string_of_exp</span> (<span class="id">v</span> : <span class="id">exp</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">v</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EXP_Ident</span> <span class="id">id</span> =&gt; <span class="id">string_of</span> <span class="id">id</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EXP_Integer</span> <span class="id">x</span> =&gt; <span class="id">string_of</span> <span class="id">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EXP_Bool</span> <span class="id">b</span> =&gt; <span class="id">string_of</span> <span class="id">b</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EXP_Null</span> =&gt; "<span class="id">null</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EXP_Zero_initializer</span> =&gt; "<span class="id">zero</span> <span class="id">initializer</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EXP_Cstring</span> <span class="id">s</span> =&gt; <span class="id">s</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EXP_Undef</span> =&gt; "<span class="id">undef</span>"                                <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">OP_IBinop</span> <span class="id">iop</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="id">string_of</span> <span class="id">iop</span>) ++ " " ++ (<span class="id">string_of</span> <span class="id">t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++ " " ++ (<span class="id">string_of_exp</span> <span class="id">v1</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++ " " ++ (<span class="id">string_of_exp</span> <span class="id">v2</span>))%<span class="id">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">OP_ICmp</span> <span class="id">cmp</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="id">string_of</span> <span class="id">cmp</span>) ++ " " ++ (<span class="id">string_of</span> <span class="id">t</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++ " " ++ (<span class="id">string_of_exp</span> <span class="id">v1</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++ " " ++ (<span class="id">string_of_exp</span> <span class="id">v2</span>))%<span class="id">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">OP_GetElementPtr</span> <span class="id">t</span> <span class="id">ptrval</span> <span class="id">idxs</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"<span class="id">getelementptr</span>"                                                       <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; "<span class="id">string_of_exp</span> <span class="id">todo</span>"<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_exp_instance</span> : <span class="id">StringOf</span> <span class="id">exp</span> := <span class="id">string_of_exp</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_instr</span> : <span class="id">StringOf</span> <span class="id">instr</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">instr</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">instr</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">INSTR_Op</span> <span class="id">op</span> =&gt; <span class="id">string_of</span> <span class="id">op</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">INSTR_Load</span> <span class="id">vol</span> <span class="id">t</span> <span class="id">ptr</span> <span class="id">align</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("<span class="id">load</span> " ++ (<span class="id">string_of</span> <span class="id">t</span>) ++ " " ++ (<span class="id">string_of</span> <span class="id">ptr</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++ ", <span class="id">align</span> " ++ (<span class="id">string_of</span> <span class="id">align</span>))%<span class="id">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">INSTR_Store</span> <span class="id">vol</span> <span class="id">tval</span> <span class="id">ptr</span> <span class="id">align</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("<span class="id">store</span> " ++ (<span class="id">string_of</span> <span class="id">tval</span>) ++ " " ++ (<span class="id">string_of</span> <span class="id">ptr</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++ ", <span class="id">align</span> " ++ (<span class="id">string_of</span> <span class="id">align</span>))%<span class="id">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">INSTR_Alloca</span> <span class="id">t</span> <span class="id">nb</span> <span class="id">align</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("<span class="id">alloca</span> " ++ (<span class="id">string_of</span> <span class="id">t</span>) ++ ", <span class="id">align</span> " ++ (<span class="id">string_of</span> <span class="id">align</span>))%<span class="id">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; "<span class="id">string_of_instr</span> <span class="id">todo</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_terminator</span> : <span class="id">StringOf</span> <span class="id">terminator</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">t</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">t</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">TERM_Ret</span> <span class="id">v</span> =&gt; ("<span class="id">ret</span> " ++ (<span class="id">string_of</span> <span class="id">v</span>))%<span class="id">string</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">TERM_Ret_void</span> =&gt; "<span class="id">ret</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; "<span class="id">string_of_terminator</span> <span class="id">todo</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_block</span> : <span class="id">StringOf</span> <span class="id">block</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">block</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;("<span class="id">Block</span> " ++ (<span class="id">string_of</span> (<span class="id">blk_id</span> <span class="id">block</span>)) ++ ": "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++ (<span class="id">string_of</span> (<span class="id">blk_code</span> <span class="id">block</span>)))%<span class="id">string</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_definition_list_block</span> : <span class="id">StringOf</span> (<span class="id">definition</span> (<span class="id">list</span> <span class="id">block</span>)) :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">defn</span> =&gt; ("<span class="id">defn</span>: " ++ <span class="id">string_of</span> (<span class="id">df_instrs</span> <span class="id">defn</span>))%<span class="id">string</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">string_of_tle_list_block</span> : <span class="id">StringOf</span> (<span class="id">toplevel_entity</span> (<span class="id">list</span> <span class="id">block</span>)) :=<br/>
+&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">tle</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">TLE_Definition</span> <span class="id">defn</span> =&gt; <span class="id">string_of</span> <span class="id">defn</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; "<span class="id">string_of_tle_list_block</span> <span class="id">todo</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">target_of</span> {<span class="id">X</span>} (<span class="id">tle</span> : <span class="id">toplevel_entity</span> <span class="id">X</span>) : <span class="id">option</span> <span class="id">string</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TLE_Target</span> <span class="id">tgt</span> =&gt; <span class="id">Some</span> <span class="id">tgt</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">None</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">datalayout_of</span> {<span class="id">X</span>} (<span class="id">tle</span> : <span class="id">toplevel_entity</span> <span class="id">X</span>) : <span class="id">option</span> <span class="id">string</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TLE_Datalayout</span> <span class="id">l</span> =&gt; <span class="id">Some</span> <span class="id">l</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">None</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">filename_of</span> {<span class="id">X</span>} (<span class="id">tle</span> : <span class="id">toplevel_entity</span> <span class="id">X</span>) : <span class="id">option</span> <span class="id">string</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TLE_Source_filename</span> <span class="id">l</span> =&gt; <span class="id">Some</span> <span class="id">l</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">None</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">globals_of</span> {<span class="id">X</span>} (<span class="id">tle</span> : <span class="id">toplevel_entity</span> <span class="id">X</span>) : <span class="id">list</span> <span class="id">global</span>  :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TLE_Global</span> <span class="id">g</span> =&gt; [<span class="id">g</span>]<br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; []<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">declarations_of</span> {<span class="id">X</span>} (<span class="id">tle</span> : <span class="id">toplevel_entity</span> <span class="id">X</span>) : <span class="id">list</span> <span class="id">declaration</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TLE_Declaration</span> <span class="id">d</span> =&gt; [<span class="id">d</span>]<br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; []<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">definitions_of</span> {<span class="id">X</span>} (<span class="id">tle</span> : <span class="id">toplevel_entity</span> <span class="id">X</span>) : <span class="id">list</span> (<span class="id">definition</span> <span class="id">X</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TLE_Definition</span> <span class="id">d</span> =&gt; [<span class="id">d</span>]<br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; []<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">type_defs_of</span> {<span class="id">X</span>} (<span class="id">tle</span> : <span class="id">toplevel_entity</span> <span class="id">X</span>) : <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">tle</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">TLE_Type_decl</span> <span class="id">id</span> <span class="id">t</span> =&gt; [(<span class="id">id</span>,<span class="id">t</span>)]<br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; []<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">modul_of_toplevel_entities</span> {<span class="id">X</span>} (<span class="id">tles</span> : <span class="id">list</span> (<span class="id">toplevel_entity</span> <span class="id">X</span>)) : <span class="id">modul</span> <span class="id">X</span> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_name</span> := <span class="id">find_map</span> <span class="id">filename_of</span> <span class="id">tles</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_target</span> := <span class="id">find_map</span> <span class="id">target_of</span> <span class="id">tles</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_datalayout</span> := <span class="id">find_map</span> <span class="id">datalayout_of</span> <span class="id">tles</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_type_defs</span> := <span class="id">flat_map</span> <span class="id">type_defs_of</span> <span class="id">tles</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_globals</span> := <span class="id">flat_map</span> <span class="id">globals_of</span> <span class="id">tles</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_declarations</span> := <span class="id">flat_map</span> <span class="id">declarations_of</span> <span class="id">tles</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_definitions</span> := <span class="id">flat_map</span> <span class="id">definitions_of</span> <span class="id">tles</span>;<br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Class</span> <span class="id">Ident</span> (<span class="id">X</span>:<span class="kwd">Set</span>) := <span class="id">ident_of</span> : <span class="id">X</span> -&gt; <span class="id">ident</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">ident_of_block</span> : <span class="id">Ident</span> <span class="id">block</span> := <span class="kwd">fun</span> (<span class="id">b</span>:<span class="id">block</span>) =&gt; <span class="id">ID_Local</span> (<span class="id">blk_id</span> <span class="id">b</span>).<br/>
+<span class="kwd">Instance</span> <span class="id">ident_of_global</span> : <span class="id">Ident</span> <span class="id">global</span> := <span class="kwd">fun</span> (<span class="id">g</span>:<span class="id">global</span>) =&gt; <span class="id">ID_Global</span> (<span class="id">g_ident</span> <span class="id">g</span>).<br/>
+<span class="kwd">Instance</span> <span class="id">ident_of_declaration</span> : <span class="id">Ident</span> <span class="id">declaration</span> := <span class="kwd">fun</span> (<span class="id">d</span>:<span class="id">declaration</span>) =&gt; <span class="id">ID_Global</span> (<span class="id">dc_name</span> <span class="id">d</span>).<br/>
+<span class="kwd">Instance</span> <span class="id">ident_of_definition</span> : <span class="kwd">forall</span> <span class="id">X</span>, <span class="id">Ident</span> (<span class="id">definition</span> <span class="id">X</span>) := <span class="kwd">fun</span> <span class="id">X</span> =&gt; <span class="kwd">fun</span> (<span class="id">d</span>:<span class="id">definition</span> <span class="id">X</span>) =&gt; <span class="id">ident_of</span> (<span class="id">df_prototype</span> <span class="id">d</span>).<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">globals</span> {<span class="id">X</span>} (<span class="id">m</span>:<span class="id">modul</span> <span class="id">X</span>) : <span class="id">list</span> <span class="id">ident</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">map</span> <span class="id">ident_of</span> (<span class="id">m_globals</span> <span class="id">m</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++ <span class="id">map</span> <span class="id">ident_of</span> (<span class="id">m_declarations</span> <span class="id">m</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++ <span class="id">map</span> <span class="id">ident_of</span> (<span class="id">m_definitions</span> <span class="id">m</span>).<br/>
+<br/>
+</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>

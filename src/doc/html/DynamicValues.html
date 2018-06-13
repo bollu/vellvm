@@ -1,0 +1,621 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module DynamicValues</title>
+<meta name="description" content="Documentation of Coq module DynamicValues" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module DynamicValues</h1>
+<div class="coq">
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">ZArith</span> <span class="id">List</span> <span class="id">String</span> <span class="id">Omega</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">compcert.lib.Integers</span> <span class="id">compcert.lib.Floats</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Classes</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.MemoryAddress</span>.<br/>
+<br/>
+<span class="kwd">Set</span> <span class="kwd">Implicit</span> <span class="id">Arguments</span>.<br/>
+<span class="kwd">Set</span> <span class="id">Contextual</span> <span class="kwd">Implicit</span>.<br/>
+<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">Z_scope</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">Wordsize1</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">wordsize</span> := 1%<span class="id">nat</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Remark</span> <span class="id">wordsize_not_zero</span>: <span class="id">wordsize</span> &lt;&gt; 0%<span class="id">nat</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof165')">Proof.</div>
+<div class="proofscript" id="proof165">
+ <span class="tactic">unfold</span> <span class="id">wordsize</span>; <span class="tactic">congruence</span>. Qed.</div>
+<span class="kwd">End</span> <span class="id">Wordsize1</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">Wordsize8</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">wordsize</span> := 8%<span class="id">nat</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Remark</span> <span class="id">wordsize_not_zero</span>: <span class="id">wordsize</span> &lt;&gt; 0%<span class="id">nat</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof166')">Proof.</div>
+<div class="proofscript" id="proof166">
+ <span class="tactic">unfold</span> <span class="id">wordsize</span>; <span class="tactic">congruence</span>. Qed.</div>
+<span class="kwd">End</span> <span class="id">Wordsize8</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">Int1</span> := <span class="id">Make</span>(<span class="id">Wordsize1</span>).<br/>
+<span class="kwd">Module</span> <span class="id">Int8</span> := <span class="id">Make</span>(<span class="id">Wordsize8</span>).<br/>
+<span class="kwd">Module</span> <span class="id">Int32</span> := <span class="id">Integers.Int</span>.<br/>
+<span class="kwd">Module</span> <span class="id">Int64</span> := <span class="id">Integers.Int64</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">int1</span> := <span class="id">Int1.int</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">int8</span> := <span class="id">Int8.int</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">int32</span> := <span class="id">Int32.int</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">int64</span> := <span class="id">Int64.int</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">inttyp</span> (<span class="id">x</span>:<span class="id">Z</span>) : <span class="kwd">Type</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">x</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| 1 =&gt; <span class="id">int1</span><br/>
+&nbsp;&nbsp;| 8 =&gt; <span class="id">int8</span><br/>
+&nbsp;&nbsp;| 32 =&gt; <span class="id">int32</span><br/>
+&nbsp;&nbsp;| 64 =&gt; <span class="id">int64</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">False</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">ll_float</span>  := <span class="id">Floats.float32</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">ll_double</span> := <span class="id">Floats.float</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">DVALUE</span>(<span class="id">A</span>:<span class="id">Vellvm.MemoryAddress.ADDRESS</span>).<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">dvalue</span> : <span class="kwd">Set</span> :=<br/>
+| <span class="id">DVALUE_Addr</span> (<span class="id">a</span>:<span class="id">A.addr</span>)<br/>
+| <span class="id">DVALUE_I1</span> (<span class="id">x</span>:<span class="id">int1</span>)<br/>
+| <span class="id">DVALUE_I8</span> (<span class="id">x</span>:<span class="id">int8</span>)<br/>
+| <span class="id">DVALUE_I32</span> (<span class="id">x</span>:<span class="id">int32</span>)<br/>
+| <span class="id">DVALUE_I64</span> (<span class="id">x</span>:<span class="id">int64</span>)<br/>
+| <span class="id">DVALUE_Double</span> (<span class="id">x</span>:<span class="id">ll_double</span>)<br/>
+| <span class="id">DVALUE_Float</span> (<span class="id">x</span>:<span class="id">ll_float</span>)<br/>
+| <span class="id">DVALUE_Undef</span>     <br/>
+| <span class="id">DVALUE_Poison</span><br/>
+| <span class="id">DVALUE_None</span><br/>
+| <span class="id">DVALUE_Struct</span>        (<span class="id">fields</span>: <span class="id">list</span> <span class="id">dvalue</span>)<br/>
+| <span class="id">DVALUE_Packed_struct</span> (<span class="id">fields</span>: <span class="id">list</span> <span class="id">dvalue</span>)<br/>
+| <span class="id">DVALUE_Array</span>         (<span class="id">elts</span>: <span class="id">list</span> <span class="id">dvalue</span>)<br/>
+| <span class="id">DVALUE_Vector</span>        (<span class="id">elts</span>: <span class="id">list</span> <span class="id">dvalue</span>)<br/>
+.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">is_DVALUE_I1</span> (<span class="id">d</span>:<span class="id">dvalue</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">d</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">DVALUE_I1</span> <span class="id">_</span> =&gt; <span class="id">true</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">is_DVALUE_I8</span> (<span class="id">d</span>:<span class="id">dvalue</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">d</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">DVALUE_I8</span> <span class="id">_</span> =&gt; <span class="id">true</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">is_DVALUE_I32</span> (<span class="id">d</span>:<span class="id">dvalue</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">d</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">DVALUE_I32</span> <span class="id">_</span> =&gt; <span class="id">true</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">is_DVALUE_I64</span> (<span class="id">d</span>:<span class="id">dvalue</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">d</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">DVALUE_I64</span> <span class="id">_</span> =&gt; <span class="id">true</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">undef_i1</span>  := <span class="id">DVALUE_Undef</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">undef_i8</span>  := <span class="id">DVALUE_Undef</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">undef_i32</span> := <span class="id">DVALUE_Undef</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">undef_i64</span> := <span class="id">DVALUE_Undef</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Section</span> <span class="id">ARITHMETIC</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_i1_op</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 1) : <span class="id">dvalue</span>:=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">iop</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="kwd">Add</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">Int1.eq</span> (<span class="id">Int1.add_carry</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int1.zero</span>) <span class="id">Int1.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">Int1.eq</span> (<span class="id">Int1.add_overflow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int1.zero</span>) <span class="id">Int1.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> (<span class="id">Int1.add</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sub</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">Int1.eq</span> (<span class="id">Int1.sub_borrow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int1.zero</span>) <span class="id">Int1.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">Int1.eq</span> (<span class="id">Int1.sub_overflow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int1.zero</span>) <span class="id">Int1.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> (<span class="id">Int1.sub</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Mul</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I1</span> (<span class="id">Int1.mul</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Shl</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int1.unsigned</span> <span class="id">y</span>) &gt;=? 1 <span class="kwd">then</span> <span class="id">undef_i1</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">UDiv</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int1.unsigned</span> <span class="id">x</span>) <span class="id">mod</span> (<span class="id">Int1.unsigned</span> <span class="id">y</span>) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> (<span class="id">Int1.divu</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SDiv</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> (((<span class="id">Int1.signed</span> <span class="id">x</span>) <span class="id">mod</span> (<span class="id">Int1.signed</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> (<span class="id">Int1.divs</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LShr</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int1.unsigned</span> <span class="id">y</span>) &gt;=? 1 <span class="kwd">then</span> <span class="id">undef_i1</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">AShr</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int1.unsigned</span> <span class="id">y</span>) &gt;=? 1 <span class="kwd">then</span> <span class="id">undef_i1</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">x</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">URem</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I1</span> (<span class="id">Int1.modu</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SRem</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I1</span> (<span class="id">Int1.mods</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">And</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I1</span> (<span class="id">Int1.and</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Or</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I1</span> (<span class="id">Int1.or</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Xor</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I1</span> (<span class="id">Int1.xor</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_i1_op</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_i8_op</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 8) : <span class="id">dvalue</span>:=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">iop</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="kwd">Add</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">Int8.eq</span> (<span class="id">Int8.add_carry</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int8.zero</span>) <span class="id">Int8.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">Int8.eq</span> (<span class="id">Int8.add_overflow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int8.zero</span>) <span class="id">Int8.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I8</span> (<span class="id">Int8.add</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sub</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">Int8.eq</span> (<span class="id">Int8.sub_borrow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int8.zero</span>) <span class="id">Int8.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">Int8.eq</span> (<span class="id">Int8.sub_overflow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int8.zero</span>) <span class="id">Int8.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I8</span> (<span class="id">Int8.sub</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Mul</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res</span> := <span class="id">Int8.mul</span> <span class="id">x</span> <span class="id">y</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res_s</span>' := (<span class="id">Int8.signed</span> <span class="id">x</span>) * (<span class="id">Int8.signed</span> <span class="id">y</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> ((<span class="id">Int8.unsigned</span> <span class="id">x</span>) * (<span class="id">Int8.unsigned</span> <span class="id">y</span>) &gt;?<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Int8.unsigned</span> <span class="id">res</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">orb</span> (<span class="id">Int8.min_signed</span> &gt;? <span class="id">res_s</span>')<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">res_s</span>' &gt;? <span class="id">Int8.max_signed</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I8</span> <span class="id">res</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Shl</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res</span> := <span class="id">Int8.shl</span> <span class="id">x</span> <span class="id">y</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res_u</span> := <span class="id">Int8.unsigned</span> <span class="id">res</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res_u</span>' := <span class="id">Z.shiftl</span> (<span class="id">Int8.unsigned</span> <span class="id">x</span>) (<span class="id">Int8.unsigned</span> <span class="id">y</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int8.unsigned</span> <span class="id">y</span>) &gt;=? 8 <span class="kwd">then</span> <span class="id">undef_i8</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">res_u</span>' &gt;? <span class="id">res_u</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">negb</span> (<span class="id">Z.shiftr</span> (<span class="id">Int8.unsigned</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(8 - <span class="id">Int8.unsigned</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=? (<span class="id">Int8.unsigned</span> (<span class="id">Int8.negative</span> <span class="id">res</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* (<span class="id">Z.pow</span> 2 (<span class="id">Int8.unsigned</span> <span class="id">y</span>) - 1))))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I8</span> <span class="id">res</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">UDiv</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int8.unsigned</span> <span class="id">x</span>) <span class="id">mod</span> (<span class="id">Int8.unsigned</span> <span class="id">y</span>) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I8</span> (<span class="id">Int8.divu</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SDiv</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> (((<span class="id">Int8.signed</span> <span class="id">x</span>) <span class="id">mod</span> (<span class="id">Int8.signed</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I8</span> (<span class="id">Int8.divs</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LShr</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int8.unsigned</span> <span class="id">y</span>) &gt;=? 8 <span class="kwd">then</span> <span class="id">undef_i8</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int8.unsigned</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mod</span> (<span class="id">Z.pow</span> 2 (<span class="id">Int8.unsigned</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I8</span> (<span class="id">Int8.shru</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">AShr</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int8.unsigned</span> <span class="id">y</span>) &gt;=? 8 <span class="kwd">then</span> <span class="id">undef_i8</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int8.unsigned</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mod</span> (<span class="id">Z.pow</span> 2 (<span class="id">Int8.unsigned</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I8</span> (<span class="id">Int8.shr</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">URem</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I8</span> (<span class="id">Int8.modu</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SRem</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I8</span> (<span class="id">Int8.mods</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">And</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I8</span> (<span class="id">Int8.and</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Or</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I8</span> (<span class="id">Int8.or</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Xor</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I8</span> (<span class="id">Int8.xor</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_i8_op</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_i32_op</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 32) : <span class="id">dvalue</span>:=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">iop</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="kwd">Add</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">Int32.eq</span> (<span class="id">Int32.add_carry</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int32.zero</span>) <span class="id">Int32.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">Int32.eq</span> (<span class="id">Int32.add_overflow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int32.zero</span>) <span class="id">Int32.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I32</span> (<span class="id">Int32.add</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sub</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">Int32.eq</span> (<span class="id">Int32.sub_borrow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int32.zero</span>) <span class="id">Int32.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">Int32.eq</span> (<span class="id">Int32.sub_overflow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int32.zero</span>) <span class="id">Int32.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I32</span> (<span class="id">Int32.sub</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Mul</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res</span> := <span class="id">Int32.mul</span> <span class="id">x</span> <span class="id">y</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res_s</span>' := (<span class="id">Int32.signed</span> <span class="id">x</span>) * (<span class="id">Int32.signed</span> <span class="id">y</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> ((<span class="id">Int32.unsigned</span> <span class="id">x</span>) * (<span class="id">Int32.unsigned</span> <span class="id">y</span>) &gt;?<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Int32.unsigned</span> <span class="id">res</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">orb</span> (<span class="id">Int32.min_signed</span> &gt;? <span class="id">res_s</span>')<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">res_s</span>' &gt;? <span class="id">Int32.max_signed</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I32</span> <span class="id">res</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Shl</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res</span> := <span class="id">Int32.shl</span> <span class="id">x</span> <span class="id">y</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res_u</span> := <span class="id">Int32.unsigned</span> <span class="id">res</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res_u</span>' := <span class="id">Z.shiftl</span> (<span class="id">Int32.unsigned</span> <span class="id">x</span>) (<span class="id">Int32.unsigned</span> <span class="id">y</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int32.unsigned</span> <span class="id">y</span>) &gt;=? 32 <span class="kwd">then</span> <span class="id">undef_i32</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">res_u</span>' &gt;? <span class="id">res_u</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">negb</span> (<span class="id">Z.shiftr</span> (<span class="id">Int32.unsigned</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(32 - <span class="id">Int32.unsigned</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=? (<span class="id">Int32.unsigned</span> (<span class="id">Int32.negative</span> <span class="id">res</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* (<span class="id">Z.pow</span> 2 (<span class="id">Int32.unsigned</span> <span class="id">y</span>) - 1))))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I32</span> <span class="id">res</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">UDiv</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int32.unsigned</span> <span class="id">x</span>) <span class="id">mod</span> (<span class="id">Int32.unsigned</span> <span class="id">y</span>) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I32</span> (<span class="id">Int32.divu</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SDiv</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> (((<span class="id">Int32.signed</span> <span class="id">x</span>) <span class="id">mod</span> (<span class="id">Int32.signed</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I32</span> (<span class="id">Int32.divs</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LShr</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int32.unsigned</span> <span class="id">y</span>) &gt;=? 32 <span class="kwd">then</span> <span class="id">undef_i32</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int32.unsigned</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mod</span> (<span class="id">Z.pow</span> 2 (<span class="id">Int32.unsigned</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I32</span> (<span class="id">Int32.shru</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">AShr</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int32.unsigned</span> <span class="id">y</span>) &gt;=? 32 <span class="kwd">then</span> <span class="id">undef_i32</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int32.unsigned</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mod</span> (<span class="id">Z.pow</span> 2 (<span class="id">Int32.unsigned</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I32</span> (<span class="id">Int32.shr</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">URem</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I32</span> (<span class="id">Int32.modu</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SRem</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I32</span> (<span class="id">Int32.mods</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">And</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I32</span> (<span class="id">Int32.and</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Or</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I32</span> (<span class="id">Int32.or</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Xor</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I32</span> (<span class="id">Int32.xor</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_i32_op</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_i64_op</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 64) : <span class="id">dvalue</span>:=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">iop</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="kwd">Add</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">Int64.eq</span> (<span class="id">Int64.add_carry</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int64.zero</span>) <span class="id">Int64.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">Int64.eq</span> (<span class="id">Int64.add_overflow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int64.zero</span>) <span class="id">Int64.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I64</span> (<span class="id">Int64.add</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sub</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">Int64.eq</span> (<span class="id">Int64.sub_borrow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int64.zero</span>) <span class="id">Int64.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">Int64.eq</span> (<span class="id">Int64.sub_overflow</span> <span class="id">x</span> <span class="id">y</span> <span class="id">Int64.zero</span>) <span class="id">Int64.one</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I64</span> (<span class="id">Int64.sub</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Mul</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res</span> := <span class="id">Int64.mul</span> <span class="id">x</span> <span class="id">y</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res_s</span>' := (<span class="id">Int64.signed</span> <span class="id">x</span>) * (<span class="id">Int64.signed</span> <span class="id">y</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> ((<span class="id">Int64.unsigned</span> <span class="id">x</span>) * (<span class="id">Int64.unsigned</span> <span class="id">y</span>) &gt;?<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Int64.unsigned</span> <span class="id">res</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">orb</span> (<span class="id">Int64.min_signed</span> &gt;? <span class="id">res_s</span>')<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">res_s</span>' &gt;? <span class="id">Int64.max_signed</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I64</span> <span class="id">res</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Shl</span> <span class="id">nuw</span> <span class="id">nsw</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res</span> := <span class="id">Int64.shl</span> <span class="id">x</span> <span class="id">y</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res_u</span> := <span class="id">Int64.unsigned</span> <span class="id">res</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">res_u</span>' := <span class="id">Z.shiftl</span> (<span class="id">Int64.unsigned</span> <span class="id">x</span>) (<span class="id">Int64.unsigned</span> <span class="id">y</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int64.unsigned</span> <span class="id">y</span>) &gt;=? 64 <span class="kwd">then</span> <span class="id">undef_i64</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="kwd">if</span> <span class="id">orb</span> (<span class="id">andb</span> <span class="id">nuw</span> (<span class="id">res_u</span>' &gt;? <span class="id">res_u</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">andb</span> <span class="id">nsw</span> (<span class="id">negb</span> (<span class="id">Z.shiftr</span> (<span class="id">Int64.unsigned</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(64 - <span class="id">Int64.unsigned</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=? (<span class="id">Int64.unsigned</span> (<span class="id">Int64.negative</span> <span class="id">res</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* (<span class="id">Z.pow</span> 2 (<span class="id">Int64.unsigned</span> <span class="id">y</span>) - 1))))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I64</span> <span class="id">res</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">UDiv</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int64.unsigned</span> <span class="id">x</span>) <span class="id">mod</span> (<span class="id">Int64.unsigned</span> <span class="id">y</span>) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I64</span> (<span class="id">Int64.divu</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SDiv</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> (((<span class="id">Int64.signed</span> <span class="id">x</span>) <span class="id">mod</span> (<span class="id">Int64.signed</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I64</span> (<span class="id">Int64.divs</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">LShr</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int64.unsigned</span> <span class="id">y</span>) &gt;=? 64 <span class="kwd">then</span> <span class="id">undef_i64</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int64.unsigned</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mod</span> (<span class="id">Z.pow</span> 2 (<span class="id">Int64.unsigned</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I64</span> (<span class="id">Int64.shru</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">AShr</span> <span class="id">ex</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> (<span class="id">Int64.unsigned</span> <span class="id">y</span>) &gt;=? 64 <span class="kwd">then</span> <span class="id">undef_i64</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="kwd">if</span> <span class="id">andb</span> <span class="id">ex</span> (<span class="id">negb</span> ((<span class="id">Int64.unsigned</span> <span class="id">x</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mod</span> (<span class="id">Z.pow</span> 2 (<span class="id">Int64.unsigned</span> <span class="id">y</span>)) =? 0))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_Poison</span> <span class="kwd">else</span> <span class="id">DVALUE_I64</span> (<span class="id">Int64.shr</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">URem</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I64</span> (<span class="id">Int64.modu</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SRem</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I64</span> (<span class="id">Int64.mods</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">And</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I64</span> (<span class="id">Int64.and</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Or</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I64</span> (<span class="id">Int64.or</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Xor</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DVALUE_I64</span> (<span class="id">Int64.xor</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_i64_op</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">integer_op</span> (<span class="id">bits</span>:<span class="id">Z</span>) (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> <span class="id">bits</span>) : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">bits</span>, <span class="id">x</span>, <span class="id">y</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 1, <span class="id">x</span>, <span class="id">y</span> =&gt; <span class="id">mret</span> (<span class="id">eval_i1_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 8, <span class="id">x</span>, <span class="id">y</span> =&gt; <span class="id">mret</span> (<span class="id">eval_i8_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 32, <span class="id">x</span>, <span class="id">y</span> =&gt; <span class="id">mret</span> (<span class="id">eval_i32_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 64, <span class="id">x</span>, <span class="id">y</span> =&gt; <span class="id">mret</span> (<span class="id">eval_i64_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">unsupported</span> <span class="id">bitsize</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">integer_op</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">coerce_integer_to_int</span> (<span class="id">bits</span>:<span class="id">Z</span>) (<span class="id">i</span>:<span class="id">Z</span>) : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">bits</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 1 =&gt; <span class="id">mret</span> (<span class="id">DVALUE_I1</span> (<span class="id">Int1.repr</span> <span class="id">i</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 8 =&gt; <span class="id">mret</span> (<span class="id">DVALUE_I8</span> (<span class="id">Int8.repr</span> <span class="id">i</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 32 =&gt; <span class="id">mret</span> (<span class="id">DVALUE_I32</span> (<span class="id">Int32.repr</span> <span class="id">i</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 64 =&gt; <span class="id">mret</span> (<span class="id">DVALUE_I64</span> (<span class="id">Int64.repr</span> <span class="id">i</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">unsupported</span> <span class="id">integer</span> <span class="id">size</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">coerce_integer_to_int</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Fixpoint</span> <span class="id">vec_loop</span> (<span class="id">f</span>:<span class="id">dvalue</span> -&gt; <span class="id">dvalue</span> -&gt; <span class="id">err</span> <span class="id">dvalue</span>) (<span class="id">elts</span>:<span class="id">list</span> (<span class="id">dvalue</span> * <span class="id">dvalue</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id">err</span> (<span class="id">list</span> <span class="id">dvalue</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">monad_fold_right</span> (<span class="kwd">fun</span> <span class="id">acc</span> '(<span class="id">e1</span>, <span class="id">e2</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">val</span> &lt;- <span class="id">f</span> <span class="id">e1</span> <span class="id">e2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mret</span> (<span class="id">val</span> :: <span class="id">acc</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) <span class="id">elts</span> [].<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_iop_integer_h</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span> : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">v1</span>, <span class="id">v2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I1</span> <span class="id">i1</span>, <span class="id">DVALUE_I1</span> <span class="id">i2</span> =&gt; <span class="id">integer_op</span> 1 <span class="id">iop</span> <span class="id">i1</span> <span class="id">i2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I8</span> <span class="id">i1</span>, <span class="id">DVALUE_I8</span> <span class="id">i2</span> =&gt; <span class="id">integer_op</span> 8 <span class="id">iop</span> <span class="id">i1</span> <span class="id">i2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I32</span> <span class="id">i1</span>, <span class="id">DVALUE_I32</span> <span class="id">i2</span> =&gt; <span class="id">integer_op</span> 32 <span class="id">iop</span> <span class="id">i1</span> <span class="id">i2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I64</span> <span class="id">i1</span>, <span class="id">DVALUE_I64</span> <span class="id">i2</span> =&gt; <span class="id">integer_op</span> 64 <span class="id">iop</span> <span class="id">i1</span> <span class="id">i2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">ill_typed</span>-<span class="id">iop</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_iop_integer_h</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_iop</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span> : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">v1</span>, <span class="id">v2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">DVALUE_Vector</span> <span class="id">elts1</span>), (<span class="id">DVALUE_Vector</span> <span class="id">elts2</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">val</span> &lt;- <span class="id">vec_loop</span> (<span class="id">eval_iop_integer_h</span> <span class="id">iop</span>) (<span class="id">List.combine</span> <span class="id">elts1</span> <span class="id">elts2</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mret</span> (<span class="id">DVALUE_Vector</span> <span class="id">val</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">eval_iop_integer_h</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_iop</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_i1_icmp</span> <span class="id">icmp</span> <span class="id">x</span> <span class="id">y</span> : <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="kwd">match</span> <span class="id">icmp</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Eq</span> =&gt; <span class="id">Int1.cmp</span> <span class="id">Ceq</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ne</span> =&gt; <span class="id">Int1.cmp</span> <span class="id">Cne</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ugt</span> =&gt; <span class="id">Int1.cmpu</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Uge</span> =&gt; <span class="id">Int1.cmpu</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ult</span> =&gt; <span class="id">Int1.cmpu</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ule</span> =&gt; <span class="id">Int1.cmpu</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sgt</span> =&gt; <span class="id">Int1.cmp</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sge</span> =&gt; <span class="id">Int1.cmp</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Slt</span> =&gt; <span class="id">Int1.cmp</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sle</span> =&gt; <span class="id">Int1.cmp</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_i1_icmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_i8_icmp</span> <span class="id">icmp</span> <span class="id">x</span> <span class="id">y</span> : <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="kwd">match</span> <span class="id">icmp</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Eq</span> =&gt; <span class="id">Int8.cmp</span> <span class="id">Ceq</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ne</span> =&gt; <span class="id">Int8.cmp</span> <span class="id">Cne</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ugt</span> =&gt; <span class="id">Int8.cmpu</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Uge</span> =&gt; <span class="id">Int8.cmpu</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ult</span> =&gt; <span class="id">Int8.cmpu</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ule</span> =&gt; <span class="id">Int8.cmpu</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sgt</span> =&gt; <span class="id">Int8.cmp</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sge</span> =&gt; <span class="id">Int8.cmp</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Slt</span> =&gt; <span class="id">Int8.cmp</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sle</span> =&gt; <span class="id">Int8.cmp</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_i8_icmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_i32_icmp</span> <span class="id">icmp</span> <span class="id">x</span> <span class="id">y</span> : <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="kwd">match</span> <span class="id">icmp</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Eq</span> =&gt; <span class="id">Int32.cmp</span> <span class="id">Ceq</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ne</span> =&gt; <span class="id">Int32.cmp</span> <span class="id">Cne</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ugt</span> =&gt; <span class="id">Int32.cmpu</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Uge</span> =&gt; <span class="id">Int32.cmpu</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ult</span> =&gt; <span class="id">Int32.cmpu</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ule</span> =&gt; <span class="id">Int32.cmpu</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sgt</span> =&gt; <span class="id">Int32.cmp</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sge</span> =&gt; <span class="id">Int32.cmp</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Slt</span> =&gt; <span class="id">Int32.cmp</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sle</span> =&gt; <span class="id">Int32.cmp</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_i32_icmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_i64_icmp</span> <span class="id">icmp</span> <span class="id">x</span> <span class="id">y</span> : <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="kwd">match</span> <span class="id">icmp</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Eq</span> =&gt; <span class="id">Int64.cmp</span> <span class="id">Ceq</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ne</span> =&gt; <span class="id">Int64.cmp</span> <span class="id">Cne</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ugt</span> =&gt; <span class="id">Int64.cmpu</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Uge</span> =&gt; <span class="id">Int64.cmpu</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ult</span> =&gt; <span class="id">Int64.cmpu</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Ule</span> =&gt; <span class="id">Int64.cmpu</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sgt</span> =&gt; <span class="id">Int64.cmp</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sge</span> =&gt; <span class="id">Int64.cmp</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Slt</span> =&gt; <span class="id">Int64.cmp</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Sle</span> =&gt; <span class="id">Int64.cmp</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_i64_icmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">integer_cmp</span> <span class="id">bits</span> <span class="id">icmp</span> (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> <span class="id">bits</span>) : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">bits</span>, <span class="id">x</span>, <span class="id">y</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 1, <span class="id">x</span>, <span class="id">y</span> =&gt; <span class="id">mret</span> (<span class="id">eval_i1_icmp</span> <span class="id">icmp</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 8, <span class="id">x</span>, <span class="id">y</span> =&gt; <span class="id">mret</span> (<span class="id">eval_i8_icmp</span> <span class="id">icmp</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 32, <span class="id">x</span>, <span class="id">y</span> =&gt; <span class="id">mret</span> (<span class="id">eval_i32_icmp</span> <span class="id">icmp</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| 64, <span class="id">x</span>, <span class="id">y</span> =&gt; <span class="id">mret</span> (<span class="id">eval_i64_icmp</span> <span class="id">icmp</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">unsupported</span> <span class="id">bitsize</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">integer_cmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_icmp</span> <span class="id">icmp</span> <span class="id">v1</span> <span class="id">v2</span> : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">v1</span>, <span class="id">v2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I1</span> <span class="id">i1</span>, <span class="id">DVALUE_I1</span> <span class="id">i2</span> =&gt; <span class="id">integer_cmp</span> 1 <span class="id">icmp</span> <span class="id">i1</span> <span class="id">i2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I8</span> <span class="id">i1</span>, <span class="id">DVALUE_I8</span> <span class="id">i2</span> =&gt; <span class="id">integer_cmp</span> 8 <span class="id">icmp</span> <span class="id">i1</span> <span class="id">i2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I32</span> <span class="id">i1</span>, <span class="id">DVALUE_I32</span> <span class="id">i2</span> =&gt; <span class="id">integer_cmp</span> 32 <span class="id">icmp</span> <span class="id">i1</span> <span class="id">i2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I64</span> <span class="id">i1</span>, <span class="id">DVALUE_I64</span> <span class="id">i2</span> =&gt; <span class="id">integer_cmp</span> 64 <span class="id">icmp</span> <span class="id">i1</span> <span class="id">i2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">ill_typed</span>-<span class="id">icmp</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_icmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">double_op</span> (<span class="id">fop</span>:<span class="id">fbinop</span>) (<span class="id">v1</span>:<span class="id">ll_double</span>) (<span class="id">v2</span>:<span class="id">ll_double</span>) : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">fop</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FAdd</span> =&gt; <span class="id">mret</span> (<span class="id">DVALUE_Double</span> (<span class="id">Float.add</span> <span class="id">v1</span> <span class="id">v2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FSub</span> =&gt; <span class="id">mret</span> (<span class="id">DVALUE_Double</span> (<span class="id">Float.sub</span> <span class="id">v1</span> <span class="id">v2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FMul</span> =&gt; <span class="id">mret</span> (<span class="id">DVALUE_Double</span> (<span class="id">Float.mul</span> <span class="id">v1</span> <span class="id">v2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FDiv</span> =&gt; <span class="id">mret</span> (<span class="id">DVALUE_Double</span> (<span class="id">Float.div</span> <span class="id">v1</span> <span class="id">v2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FRem</span> =&gt; <span class="id">failwith</span> "<span class="id">unimplemented</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">float_op</span> (<span class="id">fop</span>:<span class="id">fbinop</span>) (<span class="id">v1</span>:<span class="id">ll_float</span>) (<span class="id">v2</span>:<span class="id">ll_float</span>) : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">fop</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FAdd</span> =&gt; <span class="id">mret</span> (<span class="id">DVALUE_Float</span> (<span class="id">Float32.add</span> <span class="id">v1</span> <span class="id">v2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FSub</span> =&gt; <span class="id">mret</span> (<span class="id">DVALUE_Float</span> (<span class="id">Float32.sub</span> <span class="id">v1</span> <span class="id">v2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FMul</span> =&gt; <span class="id">mret</span> (<span class="id">DVALUE_Float</span> (<span class="id">Float32.mul</span> <span class="id">v1</span> <span class="id">v2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FDiv</span> =&gt; <span class="id">mret</span> (<span class="id">DVALUE_Float</span> (<span class="id">Float32.div</span> <span class="id">v1</span> <span class="id">v2</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FRem</span> =&gt; <span class="id">failwith</span> "<span class="id">unimplemented</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_fop</span> (<span class="id">fop</span>:<span class="id">fbinop</span>) (<span class="id">v1</span>:<span class="id">dvalue</span>) (<span class="id">v2</span>:<span class="id">dvalue</span>) : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">v1</span>, <span class="id">v2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Float</span> <span class="id">f1</span>, <span class="id">DVALUE_Float</span> <span class="id">f2</span> =&gt; <span class="id">float_op</span> <span class="id">fop</span> <span class="id">f1</span> <span class="id">f2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Double</span> <span class="id">d1</span>, <span class="id">DVALUE_Double</span> <span class="id">d2</span> =&gt; <span class="id">double_op</span> <span class="id">fop</span> <span class="id">d1</span> <span class="id">d2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">ill_typed</span>-<span class="id">fop</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">not_nan32</span> (<span class="id">f</span>:<span class="id">ll_float</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">negb</span> (<span class="id">compcert.flocq.Appli.Fappli_IEEE.is_nan</span> <span class="id">_</span> <span class="id">_</span> <span class="id">f</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">ordered32</span> (<span class="id">f1</span> <span class="id">f2</span>:<span class="id">ll_float</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">andb</span> (<span class="id">not_nan32</span> <span class="id">f1</span>) (<span class="id">not_nan32</span> <span class="id">f2</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">not_nan64</span> (<span class="id">f</span>:<span class="id">ll_double</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">negb</span> (<span class="id">compcert.flocq.Appli.Fappli_IEEE.is_nan</span> <span class="id">_</span> <span class="id">_</span> <span class="id">f</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">ordered64</span> (<span class="id">f1</span> <span class="id">f2</span>:<span class="id">ll_double</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">andb</span> (<span class="id">not_nan64</span> <span class="id">f1</span>) (<span class="id">not_nan64</span> <span class="id">f2</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">float_cmp</span> (<span class="id">fcmp</span>:<span class="id">fcmp</span>) (<span class="id">x</span>:<span class="id">ll_float</span>) (<span class="id">y</span>:<span class="id">ll_float</span>) : <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="kwd">match</span> <span class="id">fcmp</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FFalse</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOeq</span> =&gt; <span class="id">andb</span> (<span class="id">ordered32</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float32.cmp</span> <span class="id">Ceq</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOgt</span> =&gt; <span class="id">andb</span> (<span class="id">ordered32</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float32.cmp</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOge</span> =&gt; <span class="id">andb</span> (<span class="id">ordered32</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float32.cmp</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOlt</span> =&gt; <span class="id">andb</span> (<span class="id">ordered32</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float32.cmp</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOle</span> =&gt; <span class="id">andb</span> (<span class="id">ordered32</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float32.cmp</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOne</span> =&gt; <span class="id">andb</span> (<span class="id">ordered32</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float32.cmp</span> <span class="id">Cne</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOrd</span> =&gt; <span class="id">ordered32</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUno</span> =&gt; <span class="id">negb</span> (<span class="id">ordered32</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUeq</span> =&gt; (<span class="id">Float32.cmp</span> <span class="id">Ceq</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUgt</span> =&gt; (<span class="id">Float32.cmp</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUge</span> =&gt; (<span class="id">Float32.cmp</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUlt</span> =&gt; (<span class="id">Float32.cmp</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUle</span> =&gt; (<span class="id">Float32.cmp</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUne</span> =&gt; (<span class="id">Float32.cmp</span> <span class="id">Cne</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FTrue</span> =&gt; <span class="id">true</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">float_cmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">double_cmp</span> (<span class="id">fcmp</span>:<span class="id">fcmp</span>) (<span class="id">x</span>:<span class="id">ll_double</span>) (<span class="id">y</span>:<span class="id">ll_double</span>) : <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="kwd">match</span> <span class="id">fcmp</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FFalse</span> =&gt; <span class="id">false</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOeq</span> =&gt; <span class="id">andb</span> (<span class="id">ordered64</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float.cmp</span> <span class="id">Ceq</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOgt</span> =&gt; <span class="id">andb</span> (<span class="id">ordered64</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float.cmp</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOge</span> =&gt; <span class="id">andb</span> (<span class="id">ordered64</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float.cmp</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOlt</span> =&gt; <span class="id">andb</span> (<span class="id">ordered64</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float.cmp</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOle</span> =&gt; <span class="id">andb</span> (<span class="id">ordered64</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float.cmp</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOne</span> =&gt; <span class="id">andb</span> (<span class="id">ordered64</span> <span class="id">x</span> <span class="id">y</span>) (<span class="id">Float.cmp</span> <span class="id">Cne</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FOrd</span> =&gt; <span class="id">ordered64</span> <span class="id">x</span> <span class="id">y</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUno</span> =&gt; <span class="id">negb</span> (<span class="id">ordered64</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUeq</span> =&gt; (<span class="id">Float.cmp</span> <span class="id">Ceq</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUgt</span> =&gt; (<span class="id">Float.cmp</span> <span class="id">Cgt</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUge</span> =&gt; (<span class="id">Float.cmp</span> <span class="id">Cge</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUlt</span> =&gt; (<span class="id">Float.cmp</span> <span class="id">Clt</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUle</span> =&gt; (<span class="id">Float.cmp</span> <span class="id">Cle</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FUne</span> =&gt; (<span class="id">Float.cmp</span> <span class="id">Cne</span> <span class="id">x</span> <span class="id">y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">FTrue</span> =&gt; <span class="id">true</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span> <span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">double_cmp</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_fcmp</span> (<span class="id">fcmp</span>:<span class="id">fcmp</span>) (<span class="id">v1</span>:<span class="id">dvalue</span>) (<span class="id">v2</span>:<span class="id">dvalue</span>) : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">v1</span>, <span class="id">v2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Float</span> <span class="id">f1</span>, <span class="id">DVALUE_Float</span> <span class="id">f2</span> =&gt; <span class="id">mret</span> (<span class="id">float_cmp</span> <span class="id">fcmp</span> <span class="id">f1</span> <span class="id">f2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Double</span> <span class="id">f1</span>, <span class="id">DVALUE_Double</span> <span class="id">f2</span> =&gt; <span class="id">mret</span> (<span class="id">double_cmp</span> <span class="id">fcmp</span> <span class="id">f1</span> <span class="id">f2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">ill_typed</span>-<span class="id">fcmp</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">End</span> <span class="id">ARITHMETIC</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_select_h</span> <span class="id">cnd</span> <span class="id">v1</span> <span class="id">v2</span> : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">cnd</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I1</span> <span class="id">i</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mret</span> (<span class="kwd">if</span> <span class="id">Int1.unsigned</span> <span class="id">i</span> =? 1 <span class="kwd">then</span> <span class="id">v1</span> <span class="kwd">else</span> <span class="id">v2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">ill_typed</span>-<span class="id">select</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_select_h</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eval_select</span> <span class="id">cnd</span> <span class="id">v1</span> <span class="id">v2</span> : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">cnd</span>, <span class="id">v1</span>, <span class="id">v2</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">DVALUE_Vector</span> <span class="id">es</span>), (<span class="id">DVALUE_Vector</span> <span class="id">es1</span>), (<span class="id">DVALUE_Vector</span> <span class="id">es2</span>) =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">fix</span> <span class="id">loop</span> <span class="id">elts</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">elts</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [] =&gt; <span class="id">mret</span> []<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">cnd</span>,(<span class="id">v1</span>,<span class="id">v2</span>)) :: <span class="id">tl</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">val</span> &lt;- <span class="id">eval_select_h</span> <span class="id">cnd</span> <span class="id">v1</span> <span class="id">v2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">vec</span> &lt;- <span class="id">loop</span> <span class="id">tl</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mret</span> (<span class="id">val</span> :: <span class="id">vec</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">val</span> &lt;- <span class="id">loop</span> (<span class="id">List.combine</span> <span class="id">es</span> (<span class="id">List.combine</span> <span class="id">es1</span> <span class="id">es2</span>));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mret</span> (<span class="id">DVALUE_Vector</span> <span class="id">val</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span>, <span class="id">_</span>, <span class="id">_</span> =&gt; <span class="id">eval_select_h</span> <span class="id">cnd</span> <span class="id">v1</span> <span class="id">v2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">eval_select</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">index_into_str</span> (<span class="id">v</span>:<span class="id">dvalue</span>) (<span class="id">idx</span>:<span class="id">LLVMAst.int</span>) : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">fix</span> <span class="id">loop</span> <span class="id">elts</span> <span class="id">i</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">elts</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [] =&gt; <span class="id">failwith</span> "<span class="id">index</span> <span class="id">out</span> <span class="id">of</span> <span class="id">bounds</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">h</span> :: <span class="id">tl</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">idx</span> =? 0 <span class="kwd">then</span> <span class="id">mret</span> <span class="id">h</span> <span class="kwd">else</span> <span class="id">loop</span> <span class="id">tl</span> (<span class="id">i</span>-1)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">v</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Struct</span> <span class="id">f</span> =&gt; <span class="id">loop</span> <span class="id">f</span> <span class="id">idx</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Array</span> <span class="id">e</span> =&gt; <span class="id">loop</span> <span class="id">e</span> <span class="id">idx</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">invalid</span> <span class="id">aggregate</span> <span class="id">data</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">index_into_str</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">insert_into_str</span> (<span class="id">str</span>:<span class="id">dvalue</span>) (<span class="id">v</span>:<span class="id">dvalue</span>) (<span class="id">idx</span>:<span class="id">LLVMAst.int</span>) : <span class="id">err</span> <span class="id">dvalue</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">fix</span> <span class="id">loop</span> (<span class="id">acc</span> <span class="id">elts</span>:<span class="id">list</span> <span class="id">dvalue</span>) (<span class="id">i</span>:<span class="id">LLVMAst.int</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">elts</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [] =&gt; <span class="id">failwith</span> "<span class="id">index</span> <span class="id">out</span> <span class="id">of</span> <span class="id">bounds</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">h</span> :: <span class="id">tl</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">idx</span> =? 0 <span class="kwd">then</span> <span class="id">mret</span> (<span class="id">acc</span> ++ (<span class="id">v</span> :: <span class="id">tl</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">loop</span> (<span class="id">acc</span> ++ [<span class="id">h</span>]) <span class="id">tl</span> (<span class="id">i</span>-1)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>%<span class="id">list</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">str</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Struct</span> <span class="id">f</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">v</span> &lt;- (<span class="id">loop</span> [] <span class="id">f</span> <span class="id">idx</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mret</span> (<span class="id">DVALUE_Struct</span> <span class="id">v</span>)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Array</span> <span class="id">e</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">v</span> &lt;- (<span class="id">loop</span> [] <span class="id">e</span> <span class="id">idx</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mret</span> (<span class="id">DVALUE_Array</span> <span class="id">v</span>)<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">failwith</span> "<span class="id">invalid</span> <span class="id">aggregate</span> <span class="id">data</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<span class="id">Arguments</span> <span class="id">insert_into_str</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> : <span class="tactic">simpl</span> <span class="id">nomatch</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">End</span> <span class="id">DVALUE</span>.<br/>
+</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>
