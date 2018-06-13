@@ -469,7 +469,8 @@ Inductive exp : Set :=
 
 
 Section exp_nested_ind.
-  Variable P: exp -> Prop.
+  Variable P: exp -> Type.
+  Variable Q: list (typ * exp) -> Type.
   
   Hypothesis IDENT: forall (id: ident), P (EXP_Ident id).
   Hypothesis INTEGER: forall (x: int), P (EXP_Integer x).
@@ -480,25 +481,46 @@ Section exp_nested_ind.
   Hypothesis ZERO_INITIALIZER: P (EXP_Zero_initializer).
   Hypothesis CSTRING: forall (s: string), P (EXP_Cstring s).
   Hypothesis UNDEF: P (EXP_Undef).
-  Hypothesis STRUCT: forall te: list (typ * exp), Forall P (map snd te) ->
-                                             P (EXP_Struct te).
+  Hypothesis STRUCT:
+    (forall tes: list (typ * exp),
+        Q tes -> P (EXP_Struct tes)) ->
+    (Q nil) ->
+    (forall (tes: list (typ * exp)) (e: exp) (t: typ),
+             P e -> Q tes -> Q (cons (t, e) tes)) ->
+    forall (tes: list (typ * exp)), P (EXP_Struct tes).
+
+  Hypothesis PACKED_STRUCT: forall (tes: list (typ * exp)),
+      P (EXP_Packed_struct tes).
+
+  
+  Hypothesis EXP_Array: forall (elts: list (typ * exp)),
+      P (EXP_Array elts).
+  
+  Hypothesis EXP_Vector: forall         (elts: list (typ * exp)),
+      P (EXP_Vector elts).
+  Hypothesis OP_IBinop: forall (iop:ibinop) (t:typ) (v1:exp) (v2:exp),
+      P v1 -> P v2 -> P (OP_IBinop iop t v1 v2).
+  
+  Hypothesis OP_ICmp: forall (cmp:icmp)   (t:typ) (v1:exp) (v2:exp),
+      P v1 -> P v2 -> P (OP_ICmp cmp t v1 v2).
+  Hypothesis OP_FBinop: forall(fop:fbinop)
+                         (fm:list fast_math)
+                         (t:typ)
+                         (v1:exp)
+                         (v2:exp),
+      P v1 -> P v2 -> P (OP_FBinop fop fm t v1 v2).
+      
+  Hypothesis OP_FCmp: forall (cmp:fcmp)   (t:typ) (v1:exp) (v2:exp),
+      P v1 -> P v2 -> P (OP_FCmp cmp t v1 v2).
   (* 
- EXP_Struct          (fields: list (typ * exp))
- EXP_Packed_struct   (fields: list (typ * exp))
- EXP_Array           (elts: list (typ * exp))
- EXP_Vector          (elts: list (typ * exp))
- OP_IBinop           (iop:ibinop) (t:typ) (v1:exp) (v2:exp)  
- OP_ICmp             (cmp:icmp)   (t:typ) (v1:exp) (v2:exp)
- OP_FBinop           (fop:fbinop) (fm:list fast_math) (t:typ) (v1:exp) (v2:exp)
- OP_FCmp             (cmp:fcmp)   (t:typ) (v1:exp) (v2:exp)
- OP_Conversion       (conv:conversion_type) (t_from:typ) (v:exp) (t_to:typ)
- OP_GetElementPtr    (t:typ) (ptrval:(typ * exp)) (idxs:list (typ * exp))
- OP_ExtractElement   (vec:(typ * exp)) (idx:(typ * exp))
- OP_InsertElement    (vec:(typ * exp)) (elt:(typ * exp)) (idx:(typ * exp))
- OP_ShuffleVector    (vec1:(typ * exp)) (vec2:(typ * exp)) (idxmask:(typ * exp))
- OP_ExtractValue     (vec:(typ * exp)) (idxs:list int)
- OP_InsertValue      (vec:(typ * exp)) (elt:(typ * exp)) (idxs:list int)
- OP_Select           (cnd:(typ * exp)) (v1:(typ * exp)) (v2:(typ * exp)) (* if * then * else *)
+ Hypothesis OP_Conversion:       (conv:conversion_type) (t_from:typ) (v:exp) (t_to:typ)
+ Hypothesis OP_GetElementPtr:    (t:typ) (ptrval:(typ * exp)) (idxs:list (typ * exp))
+ Hypothesis OP_ExtractElement:   (vec:(typ * exp)) (idx:(typ * exp))
+ Hypothesis OP_InsertElement:    (vec:(typ * exp)) (elt:(typ * exp)) (idx:(typ * exp))
+ Hypothesis OP_ShuffleVector:    (vec1:(typ * exp)) (vec2:(typ * exp)) (idxmask:(typ * exp))
+ Hypothesis OP_ExtractValue:     (vec:(typ * exp)) (idxs:list int)
+ Hypothesis OP_InsertValue:     (vec:(typ * exp)) (elt:(typ * exp)) (idxs:list int)
+ Hypothesis OP_Select:          (cnd:(typ * exp)) (v1:(typ * exp)) (v2:(typ * exp)) (* if * then * else *)
 *)
 End exp_nested_ind.
 
