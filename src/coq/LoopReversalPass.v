@@ -84,6 +84,10 @@ Definition exp_add (v1: exp) (v2: exp): exp :=
 Definition exp_lt (v1: exp) (v2: exp): exp :=
   OP_ICmp Ule (i32TY) v1 v2.
 
+
+Definition exp_eq (v1: exp) (v2: exp): exp :=
+  OP_ICmp Eq (i32TY) v1 v2.
+
 Definition exp_increment_ident (name: string): exp :=
   exp_add (exp_ident "name") (exp_const_z 1).
 
@@ -95,6 +99,14 @@ Definition bbInit: block :=
       blk_term := (IVoid 0%Z, break "loop");
     |}.
 
+
+Definition bbInitRewrite: block := 
+    {|
+      blk_id := Name "init";
+      blk_phis  := [];
+      blk_code  := [alloca_array "arr" TRIPCOUNT];
+      blk_term := (IVoid (TRIPCOUNT - 1), break "loop");
+    |}.
 
 Definition bbLoop :=
   {|
@@ -109,12 +121,34 @@ Definition bbLoop :=
                                            "arr"
                                            (texp_ident "iv")));
                    (IId (Name "iv.next"), INSTR_Op (exp_increment_ident "iv"));
-                   (IId (Name "cond"), INSTR_Op (exp_lt (exp_ident "iv.next")
+                   (IId (Name "cond"), INSTR_Op (exp_eq (exp_ident "iv.next")
                                                        (exp_const_z TRIPCOUNT)
                 ))];
                 
-    blk_term := (IVoid 101%Z, branch (texp_ident "cond") "loop" "exit");
+    blk_term := (IVoid 101%Z, branch (texp_ident "cond") "exit" "loop")
   |}.
+
+
+Definition bbLoopRewrite :=
+  {|
+    blk_id := Name "loop";
+    blk_phis := [(Name "iv",
+                  Phi i32TY [
+                        (Name "init", exp_const_z 0);
+                        (Name "loop", exp_ident "iv.next")
+                ])];
+    blk_code := [(IVoid 100%Z, inst_store (texp_ident "iv")
+                            (exp_gep_at_ix arr_ty
+                                           "arr"
+                                           (texp_ident "iv")));
+                   (IId (Name "iv.next"), INSTR_Op (exp_increment_ident "iv"));
+                   (IId (Name "cond"), INSTR_Op (exp_eq (exp_ident "iv.next")
+                                                       (exp_const_z (-1))
+                ))];
+                
+    blk_term := (IVoid 101%Z, branch (texp_ident "cond") "exit" "loop")
+  |}.
+
 
                        
 Definition bbExit : block :=
@@ -135,7 +169,9 @@ Definition try_rewrite_main_blks (bbs: list block): option (list block) :=
   | [x1;x2; x3] => if (x1 == bbInit)
                   then if (x2 == bbLoop)
                        then if (x3 == bbExit)
-                                 then Some [bbExit]
+                            then Some [bbInitRewrite;
+                                         bbLoopRewrite;
+                                         bbExit]
                             else None
                        else None
                   else None
