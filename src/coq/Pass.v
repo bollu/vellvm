@@ -153,6 +153,60 @@ Proof.
   exact (blks i).
 Qed.
 
+
+(** THIS CANNOT TYPECLASS RESOLVE
+Instance liftToDefinitionFunctor {T: Set}:
+  MonoFunctor (definition T) T :=
+  {
+    monomap (pass: T -> T) (defn: definition T) :=
+      
+     mk_definition T
+                   (df_prototype defn) 
+                   (df_args defn)
+                   (runPass pass (df_instrs defn));
+
+  }.
+Proof.
+  intros.
+  simpl.
+  constructor.
+Qed.
+ **)
+
+
+Instance CFGToDefinitionCFGFunctor:
+  MonoFunctor (definition cfg) cfg :=
+  {
+    monomap (pass: cfg -> cfg) (defn: definition cfg) :=
+      
+     mk_definition cfg
+                   (df_prototype defn) 
+                   (df_args defn)
+                   (runPass pass (df_instrs defn));
+
+  }.
+Proof.
+  intros.
+  simpl.
+  constructor.
+Qed.
+
+Instance DefinitionCFGPassToMCFGFunctor:
+  MonoFunctor  mcfg  (definition cfg) :=
+  {
+    monomap (pass: definition cfg -> definition cfg) (m: mcfg) :=
+      {| m_name := m_name m;
+         m_target:= m_target m;
+         m_datalayout := m_datalayout m;
+         m_type_defs := m_type_defs m;
+         m_globals := m_globals m;
+         m_declarations := m_declarations m;
+         m_definitions := map pass (m_definitions m);
+      |};
+  }.
+
+
+
 (** NOTE: I needed funext **)
 Instance monofunctor_chain (A: Type) (B: Type) (C: Type) `{MonoFunctor B A} `{MonoFunctor C B}:
   MonoFunctor C A :=
@@ -181,27 +235,22 @@ Check (f_instr).
 
 (** NICE! I can automatically lift instances using monomap **)
 Definition map_f_instr_on_block (b: block): block :=  monomap (f_instr) b.
-Definition map_f_instr_on_cfg (c: cfg): cfg :=  monomap (f_instr) c.
+(** This just hangs because of from the looks of it, instance resolution **)
 
-    
+Set Typeclasses Debug.
+Set Typeclasses Debug Verbosity 2.
+Definition map_f_instr_on_cfg (c: cfg): cfg :=
+  monomap (f_instr) c.
 
-(* 
-Definition liftBlockPassToCFGPass (pass: BlockPass): CFGPass:=
-  fun (c: cfg) =>
-    {|
-      init := init c;
-      blks := map pass (blks c);
-      args := args c;
-    |}.
+Definition map_f_instr_on_definion_cfg (d: definition cfg):
+  definition cfg :=  monomap (f_instr) d.
 
-Definition liftCFGPassToCFGDefinitionPass (pass: CFGPass): CFGDefinitionPass :=
-  fun (d: definition cfg) =>
-     mk_definition cfg
-                   (df_prototype d) 
-                   (df_args d)
-                   (pass (df_instrs d)).
+(** once again, typeclass does not resolve 
+Definition map_f_instr_on_mcfg (m: mcfg): mcfg :=  monomap (f_instr) m.
+**)
 
 
+(*
 Definition liftCFGDefinitionPassToMCFGPass
            (pass: CFGDefinitionPass): MCFGPass :=
   fun (m: mcfg) =>
@@ -289,11 +338,14 @@ Definition preserves_types (P: Type) `{MCFGPass P} (p: P): Prop :=
 Definition preserves_eval_typ (P: Type) `{MCFGPass P} (p: P) (t: typ): Prop :=
   forall (CFG: mcfg), eval_typ (runPass p CFG) t = eval_typ CFG t.
 
-(* 
-Lemma preserves_types_implies_preserves_eval_typ:
-  forall (p: MCFGPass) (CFG: mcfg) (t: typ),
+Create HintDb passes.
+
+
+Lemma preserves_types_implies_preserves_eval_typ: forall
+   {P: Type} `{MCFGPass P}
+   (p: P) (CFG: mcfg) (t: typ),
     preserves_types p ->
-    eval_typ (p CFG) t = eval_typ CFG t.
+    eval_typ (runPass p CFG) t = eval_typ CFG t.
 Proof.
   intros.
   repeat (unfold eval_typ).
@@ -304,13 +356,17 @@ Proof.
   destruct t; auto.
 Qed.
 
-Hint Resolve preserves_types_implies_preserves_eval_typ.
+Hint Resolve preserves_types_implies_preserves_eval_typ : passes.
 
-Definition preserves_ident_definition (g: CFGDefinitionPass): Prop :=
-  forall (fn: definition cfg), ident_of (g fn) = ident_of fn.
 
-Hint Unfold preserves_ident_definition.
+Definition preserves_ident_definition
+           {P: Type} `{CFGDefinitionPass P}
+           (p: P) : Prop :=
+  forall (fn: definition cfg), ident_of (runPass p fn) = ident_of fn.
 
+Hint Unfold preserves_ident_definition: pass.
+
+(* 
 Lemma lifted_cfg_pass_preserves_ident_definition: forall (pass: CFGPass),
     preserves_ident_definition (liftCFGPassToCFGDefinitionPass pass).
 Proof.
@@ -365,10 +421,13 @@ Hint Resolve preserves_ident_definition_commutes_with_find_defn.
 
 
 
-Lemma find_definition_some: forall (CFG: mcfg)
-                                 (fnid: function_id)
-                                (oldfn: definition cfg)
-                                (g: CFGDefinitionPass),
+Lemma find_definition_some:
+  forall (P: Type) `{CFGDefinitionPass P}
+    (p: P)
+    (CFG: mcfg)
+    (fnid: function_id)
+    (oldfn: definition cfg)
+    (g: CFGDefinitionPass),
 
   preserves_ident_definition g ->
   find_function CFG fnid = Some oldfn ->
