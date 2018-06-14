@@ -755,9 +755,9 @@ Proof.
 Qed.
 
       
+*)
   
 End PASSTHEOREMS.
-*)
 
 
 
