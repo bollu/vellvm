@@ -124,9 +124,23 @@ Definition bbExit : block :=
      blk_term := (IVoid 10%Z, TERM_Ret (texp_ident "val"));
   |}.
 
+Instance bb_eq_decidable: eq_dec (block).
+Proof.
+Admitted.
+
+Locate "&&".
 
 Definition try_rewrite_main_blks (bbs: list block): option (list block) :=
-  None.
+  match bbs with
+  | [x1;x2; x3] => if (x1 == bbInit)
+                  then if (x2 == bbLoop)
+                       then if (x3 == bbExit)
+                                 then Some [bbExit]
+                            else None
+                       else None
+                  else None
+  | _ => None
+  end.
                                                       
 Definition try_rewrite_main_cfg (c: cfg) : option cfg :=
   option_map (fun blks' => {| init := init c;
