@@ -50,7 +50,8 @@ Require Import Vellvm.Memory.
 
 Section LOOPREV.
 
-  Variable TRIPCOUNT: Z.
+  Variable ORIGTRIPCOUNT: nat.
+  Definition TRIPCOUNT: Z := Z.of_nat ORIGTRIPCOUNT.
   
   (* 
 Notation TRIPCOUNT := 100%Z.
@@ -259,10 +260,15 @@ Definition program': mcfg :=
   |}.
 End LOOPREV.
 
+Definition LoopWriteSet (n: nat) : list nat := seq 1 n.
+
+Theorem loop_write_sets_are_write_locations:
+  forall (n i: nat), List.In i (LoopWriteSet n) <->
+
 
 (* Lemma I care about *)
 Theorem looprev_same_semantics:
-  forall (n: Z),
+  forall (n: nat),
     run_mcfg_with_memory (program n) = run_mcfg_with_memory (program' n).
 Proof.
   intros.
