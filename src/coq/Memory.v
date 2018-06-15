@@ -720,7 +720,8 @@ Fixpoint MemDFin {A} (memory:mtype) (d:Obs A) (steps:nat) : option mtype :=
     | Eff (Call d ds k)    => None
     end
   end%N.
-*)
+ *)
+End Make.
                         
 
 
