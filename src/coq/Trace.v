@@ -79,6 +79,17 @@ Proof.
     rewrite @matchM with (i := i2).
     auto.
 Qed.
+
+Inductive TraceFinite {E: Type -> Type} {X: Type}: M E X -> Type :=
+| TFRet: forall (x: X), TraceFinite (Ret x)
+| TFErr: forall (s: String.string), TraceFinite (Err s)
+| TFTau: forall (mex: M E X) (FIN: TraceFinite mex),
+    TraceFinite (Tau mex)
+| TFVis: forall {Y: Type} (e: E Y) (k: Y -> M E X)
+           (FINK: forall (y: Y), TraceFinite (k y)),
+    TraceFinite (Vis e k)
+.
+
   
 
 (** [M E] forms a [Monad] *)

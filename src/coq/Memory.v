@@ -310,6 +310,46 @@ CoFixpoint memD {X} (m:memory) (d:Trace X) : Trace X :=
   | Trace.Err x => d
   end.
 
+
+(* 
+| TFRet: forall (x: X), TraceFinite (Ret x)
+| TFErr: forall (s: String.string), TraceFinite (Err s)
+| TFTau: forall (mex: M E X) (FIN: TraceFinite mex),
+    TraceFinite (Tau mex)
+| TFVis: forall {Y: Type} (e: E Y) (k: Y -> M E X)
+           (FINK: forall (y: Y), TraceFinite (k y)),
+    TraceFinite (Vis e k)
+ *)
+
+
+Definition pairMemToTrace {X}
+                             (m: memory)
+                             (d: Trace X): Trace (memory * X) :=
+  Trace.mapM (fun t => (m, t)) d.
+                                                               
+(** Tear down the finite trace to record effects that happened on memory **)
+Fixpoint mem_effect {X} (m: memory) (d: Trace X) (FIN: Trace.TraceFinite d)
+  {struct FIN}: memory *Trace X :=
+  match FIN with
+  | Trace.TFRet _ => (m, d)
+  | Trace.TFErr  _ => (m, d)
+  | Trace.TFTau mex' FIN' => let (m, t) := mem_effect m FIN'
+                            in (m, Trace.Tau t)
+  | Trace.TFVis Y io k FINK => match (mem_step io m) with
+                              | inr (m', v) =>
+                                (* Is this correct..?*)
+                                let (m'', t) := mem_effect m' (FINK v)
+                                in  (m'', Trace.Tau t)
+                              | inl e => (m, (Trace.Vis io k))
+                              end
+  end.
+
+Check (mem_effect).
+Print mem_effect.
+    
+                             
+                             
+
 Open Scope list_scope.
 Lemma seq_inc_size: forall (begin size: nat),
     (seq begin (S size)) = (seq begin size) ++ [(begin+size)%nat].
@@ -475,7 +515,21 @@ Proof.
   reflexivity.
 Qed.
 
-Ltac forcememd := do [rewrite force_memD_ret | rewrite force_memD_vis ]; simpl; auto.
+
+Lemma force_memD_err:
+  forall {X: Type}
+    (s:String.string)
+    (mem: memory),
+    memD (X:=X) mem  (Trace.Err s) ≡ Trace.Err s.
+Proof.
+  intros.
+  rewrite @Trace.matchM with (i := memD _ _).
+  simpl.
+  reflexivity.
+Qed.
+
+Ltac forcememd := do [rewrite force_memD_ret | rewrite force_memD_vis |
+                     rewrite force_memD_err]; simpl; auto.
 
 Import Trace.MonadVerif.
 
@@ -561,7 +615,63 @@ Proof.
   apply MemD_proper_wrt_eutt; assumption.
 Qed.
 
-End Make.
+Require Import Vellvm.Trace.
+
+Check (memD).
+Check (mem_step).
+(**
+x
+y
+z
+x >>= \f -> ....
+**)
+Lemma MemD_commutes_with_bind: forall {X Y: Type}
+                                 (trx: Trace X)
+                                 (FINTRX: Trace.TraceFinite trx)
+                                 (f: X -> Trace Y)
+                                 (m: memory),
+    let (m', trx') := mem_effect m FINTRX
+    in memD m (bindM trx f) ≡
+            memD m' (bindM trx' f).
+Proof.
+  intros until FINTRX.
+  induction FINTRX; intros.
+  - (* Ret *)
+    simpl.
+    euttnorm.
+
+  - (* Err *)
+    simpl.
+    euttnorm.
+
+  - (* Tau *)
+    simpl.
+    destruct (mem_effect m FINTRX) eqn:EFF.
+    euttnorm.
+    specialize IHFINTRX with (f:= f) (m:=m).
+    rewrite EFF in IHFINTRX.
+    auto.
+    Guarded.
+
+  - (* Vis *)
+    simpl.
+    destruct (mem_step e m) eqn:MEMSTEP.
+    + euttnorm.
+    + euttnorm.
+      destruct p eqn:P.
+      subst.
+      destruct (mem_effect m0 (FINK y)) eqn:EFF.
+      subst.
+      specialize H with (f := f).
+      specialize H with (m := m0).
+      specialize H with (y := y).
+      destruct (mem_effect m0 (FINK y)) eqn:EFF'.
+      inversion EFF; subst.
+      euttnorm.
+      forcememd.
+      rewrite MEMSTEP.
+      euttnorm.
+Qed.
 (*
 Definition run_with_memory prog : option (Trace dvalue) :=
   let scfg := Vellvm.AstLib.modul_of_toplevel_entities prog in
