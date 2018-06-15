@@ -7,14 +7,37 @@
  *   License as published by the Free Software Foundation, either version     *
  *   3 of the License, or (at your option) any later version.                 *
  ---------------------------------------------------------------------------- *)
-
 Require Import ZArith List String Omega.
-Require Import Program.
+Require Import Vellvm.AstLib Vellvm.LLVMAst.
+Require Import Vellvm.Classes.
+Require Import Vellvm.Util.
+Require Import Vellvm.CFG.
+Require Import Vellvm.LLVMIO.
+Require Import Vellvm.DynamicValues.
+Require Import Vellvm.StepSemantics.
 Require Import  Vellvm.Classes Vellvm.Util.
 Require Import Vellvm.LLVMAst.
-Require Import Vellvm.CFG.
-Require Import List ListDec.
-Require Import Vellvm.Pass.
+Require Import Vellvm.TypeUtil.
+Require Import Vellvm.Memory.
+Require Import Vellvm.Trace.
+Require Import Setoid Morphisms.
+Require Import Coq.Setoids.Setoid.
+Require Import SetoidClass.
+Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Classes.Equivalence.
+Require Import Vellvm.StoreSwitch.
+Require Import Vellvm.TopLevel.
+Require FunctionalExtensionality.
+Require Import Eqdep_dec.
+Require Import Classical.
+Require Import Vellvm.Trace.
+Require Import FSets.FMapAVL.
+Require Import Integers.
+Require Coq.Structures.OrderedTypeEx.
+Require Import ZMicromega.
+Import IO.DV.
+Import Trace.MonadVerif.
+Require Nsatz.
 
 Import ListNotations.
 Open Scope Z_scope.
@@ -25,7 +48,13 @@ Set Contextual Implicit.
 
 Require Import Vellvm.Memory.
 
+Section LOOPREV.
+
+  Variable TRIPCOUNT: Z.
+  
+  (* 
 Notation TRIPCOUNT := 100%Z.
+*)
 
 Notation i32TY := (TYPE_I (32%Z)).
 Definition i32ARRTY := (TYPE_Array 2 i32TY).
@@ -228,3 +257,13 @@ Definition program': mcfg :=
     m_declarations := [];
     m_definitions:= [mainDefinition']
   |}.
+End LOOPREV.
+
+
+(* Lemma I care about *)
+Theorem looprev_same_semantics:
+  forall (n: Z),
+    run_mcfg_with_memory (program n) = run_mcfg_with_memory (program' n).
+Proof.
+  intros.
+Abort.
