@@ -121,9 +121,10 @@ Definition exp_eq (v1: exp) (v2: exp): exp :=
 Definition exp_increment_ident (name: string): exp :=
   exp_add (exp_ident "name") (exp_const_z 1).
 
+Definition simpleProgramInitBBId : block_id := Name "init".
 Definition bbInit: block := 
     {|
-      blk_id := Name "init";
+      blk_id := simpleProgramInitBBId;
       blk_phis  := [];
       blk_code  := [alloca_array "arr" TRIPCOUNT];
       blk_term := (IVoid 0%Z, break "loop");
@@ -132,7 +133,7 @@ Definition bbInit: block :=
 
 Definition bbInitRewrite: block := 
     {|
-      blk_id := Name "init";
+      blk_id := simpleProgramInitBBId;
       blk_phis  := [];
       blk_code  := [alloca_array "arr" TRIPCOUNT];
       blk_term := (IVoid (TRIPCOUNT - 1), break "loop");
@@ -189,7 +190,6 @@ Definition bbExit : block :=
   |}.
 
 
-Definition simpleProgramInitBBId : block_id := Name "entry".
 Definition mainCFG : cfg := 
 {|
   init := simpleProgramInitBBId;
@@ -262,6 +262,20 @@ End LOOPREV.
 
 Definition LoopWriteSet (n: nat) : list nat := seq 1 n.
 
+Lemma prog_prog'_equal: forall n, program n = program' n.
+Proof.
+  intros.
+  unfold program.
+  unfold program'.
+  apply f_equal.
+  unfold mainDefinition.
+  unfold mainDefinition'.
+  simpl.
+  cut (mainCFG n = mainCFGRewrite n); intros; try (rewrite H; auto).
+  unfold mainCFG.
+  unfold mainCFGRewrite.
+Abort.
+
 
 Hint Transparent SS.init_state.
 Hint Unfold SS.init_state.
@@ -274,6 +288,31 @@ Proof.
   intros.
   unfold program.
   unfold program'.
+  
+  unfold run_mcfg_with_memory.
+  simpl.
+  unfold SS.init_state.
+  simpl.
+  unfold SS.build_global_environment.
+  simpl.
+  unfold SS.allocate_globals.
+  simpl.
+
+  euttnorm.
+  unfold SS.register_functions.
+  simpl.
+  euttnorm.
+  unfold SS.register_declaration.
+  euttnorm.
+  Set Ltac debug.
+  forcetrace.
+  euttnorm.
+  unfold SS.initialize_globals.
+
+    repeat (  euttnorm ||
+        M.forcememd ||
+        SS.forcestepsem ||
+        unfold SS.cont;simpl).
 
   unfold run_mcfg_with_memory.
   simpl.
@@ -292,5 +331,7 @@ Proof.
 
   unfold SS.initialize_globals.
   simpl.
-  repeat progress euttnorm.
+  rewrite bindM_Ret.
+  rewrite bindM_Ret.
+  euttnorm.
 Qed.
