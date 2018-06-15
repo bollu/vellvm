@@ -686,13 +686,6 @@ Qed.
 
 Import Logic.ProofIrrelevance.
 
-Lemma vis_inj :
-  forall E X Y (e e' : E Y)
-         (k : Y -> M E X) (k' : Y -> M E X),
-    Vis e k = Vis e' k' -> e = e'.
-Proof.
-Admitted.
-
 Lemma eutt_err_t : forall E X s1 s2 (t : M E X) , EquivUpToTau (Err s1) t -> EquivUpToTau (Err s2) t.
 Proof.  
   cofix eutt_err_t.
@@ -1451,30 +1444,6 @@ Proof.
     reflexivity.
     Guarded.
 Qed.
-
-
-
-
-
-(* 
-Instance eutt_proper_wrt_eutt_2 {X Y Z E } f:
-  Proper ((@EquivUpToTau E X) ==> (@EquivUpToTau E Y) ==> (@EquivUpToTau E Z)) f.
-Proof.
-  intros MEX MEX' MEX_EQ_MEX'.
-  intros MEY MEY' MEY_EQ_MEY'.
-Admitted.
-
-
-
-Instance eutt_proper_wrt_eutt_3 {X Y Z  A E } f:
-  Proper ((@EquivUpToTau E X)
-            ==> (@EquivUpToTau E Y)
-            ==> (@EquivUpToTau E Z) 
-            ==> (@EquivUpToTau E A)) f.
-Proof.
-Admitted.
-*)
-    
 
 
 (* SAZ: 
