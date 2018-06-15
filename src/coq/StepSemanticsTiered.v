@@ -55,22 +55,7 @@ Module StepSemantics(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A)).
   Definition genv := ENV.t dvalue.
   Definition env  := ENV.t dvalue.
 
-  Inductive frame : Type :=
-  | KRet      (e:env) (id:local_id) (q:pc)
-  | KRet_void (e:env) (p:pc)
-  .       
-  Definition instid := nat.
-  Definition stack := list frame.
-  Definition state := (genv * pc * env * stack)%type.
 
-  Definition pc_of (s:state) :=
-    let '(g, p, e, k) := s in p.
-
-  Definition env_of (s:state) :=
-    let '(g, p, e, k) := s in e.
-
-  Definition stack_of (s:state) :=
-    let '(g, p, e, k) := s in k.
   
   Fixpoint string_of_env' (e:list (raw_id * dvalue)) : string :=
     match e with
@@ -400,8 +385,9 @@ End IN_LOCAL_ENVIRONMENT.
 Section INSTRUCTION.
   Inductive InstResult : Type :=
   (** Represent calling a function.
-IRCall <function-to-call> <args> <instruction ID to resume from> **)
-  | IRCall: function_id -> list texp -> instid -> InstResult
+IRCall <function-to-call> <args> <instruction ID to write to> <instruction ID to resume from> **)
+  | IRCall: function_id -> list texp -> instr_id -> instr_id -> InstResult
+  | IRCallVoid: function_id -> list texp -> instr_id -> InstResult
   (** Represent modifying the environment **)
   | IREnvEffect: env  -> InstResult
   (** Is a Noop. Note that such instructions can still have memory
@@ -464,7 +450,8 @@ Section BASICBLOCK.
   | BBRRetVoid: BBResult
   (** Call a function, given the function id, arguments,
 and point in the basic block to resume from **)
-  | BBRCall: function_id -> list texp -> instid -> block_id -> BBResult
+  | BBRCall: function_id -> list texp -> instr_id -> instr_id -> block_id -> BBResult
+  | BBRCallVoid: function_id -> list texp -> instr_id -> block_id -> BBResult
   .
 
   Definition BBResultFromTermResult (tr: TermResult): BBResult :=
@@ -497,7 +484,9 @@ and point in the basic block to resume from **)
     | cons (id, i) irest =>
       'iresult <- (execInst ge e id i);
         match iresult with
-        | IRCall fnid args instid => Ret (BBRCall fnid args instid bbid)
+        | IRCall fnid args retinstid instid =>
+          Ret (BBRCall fnid args retinstid instid bbid)
+        | IRCallVoid fnid args instid => Ret (BBRCallVoid fnid args instid bbid)
         | _ => execBBInstrs ge e bbid irest term
         end
     end.
@@ -512,13 +501,17 @@ and point in the basic block to resume from **)
 End BASICBLOCK.
 
 
+Definition pc : Type := instr_id * block_id * function_id.
+
 (** Define semantics of executing a function **)
 Section FUNCTION.
   Inductive FunctionResult :=
   | FRReturn: dvalue -> FunctionResult
   | FRReturnVoid: FunctionResult
-  | FRCall: function_id -> list texp ->
-            instid -> block_id -> function_id -> FunctionResult.
+  | FRCall: function_id -> list texp -> instr_id -> 
+            pc -> FunctionResult
+  | FRCallVoid: function_id -> list texp ->
+            pc -> FunctionResult.
 
 
   (** To execute a function, execute a basic block.
@@ -538,8 +531,10 @@ Section FUNCTION.
         | BBRBreak bbid' => execFunctionWithBBId ge e CFG fnid bbid' 
         | BBRRet dv => Ret (FRReturn dv)
         | BBRRetVoid => Ret FRReturnVoid
-        | BBRCall fnid args instid bbid =>
-          Ret (FRCall fnid args instid bbid fnid)
+        | BBRCall fnid args retinstid instid bbid =>
+          Ret (FRCall fnid args retinstid (instid, bbid, fnid))
+        | BBRCallVoid fnid args instid bbid =>
+          Ret (FRCallVoid fnid args (instid, bbid, fnid))
         end
     end.
 
@@ -554,11 +549,34 @@ End FUNCTION.
 
 
 Section INTERPRETER.
+  (** What is local_id?
+   Ah, it's just an alias for ID **)
+  Inductive frame : Type :=
+  | KRet      (e:env) (retid: instr_id) (pc: pc)
+  | KRet_void (e:env) (pc: pc)
+  .       
+  Definition stack := list frame.
   Definition InterpreterState : Type := genv * env * stack.
   
   Inductive InterpreterResult :=
   | IRDone (v: dvalue)
-  | IREnterFunction (fnid: function_id).
+  | IREnterFunction (fnid: function_id) (args: list texp)
+  .
+
+  (* 
+  CoFixpoint execInterpreterFromStackFrame (ge: genv)
+              (s: stack) (retval: dvalue):
+    Trace InterpreterResult :=
+    match s with
+    | [] => Ret (IRDone retval)
+    | frame :: s' => match frame with
+                    | KRet e instid pc => Err "exec function from here "
+                    | KRet_void e fnid bid iid => Err "incorrect stack frame"
+                    end
+    end.
+  *)
+
+
 
   CoFixpoint execInterpreter (ge: genv)
              (e: env) (s: stack) (MCFG: mcfg)
@@ -566,14 +584,37 @@ Section INTERPRETER.
     Trace InterpreterResult :=
     match ir with
     | IRDone v => Ret (IRDone v)
-    | IREnterFunction fnid =>
+    | IREnterFunction fnid args =>
       match find_function MCFG fnid with
-      | Some CFGDefn => 'fres <- execFunction ge e (df_instrs CFGDefn) fnid;
-                     match fres with
-                     | FRReturn retval => Err "return and check stack frame"
-                     | FRReturnVoid => Err "return void and check stack frame"
-                     | FRCall callfnid args
-                       curinstid curblockid curfnid => Err "push stack frame and call"
+      | Some CFGDefn =>
+        'fres <- execFunction ge e (df_instrs CFGDefn) fnid;
+          match fres with
+          | FRReturn retval => match s with
+                              | [] => Ret (IRDone retval)
+                              | (KRet instrid e pc) :: s' =>
+                                Err "start executoin"
+                              | _ => Err "incorrect environment"
+                              end
+          | FRReturnVoid => match s with
+                           | [] => Err "no value to return"
+                           | (KRet_void e pc :: s') => Err " foo"
+                           | _ => Err "incorrect stack frame"
+                           end
+            
+          | FRCall callfnid args retinstid pc =>
+            execInterpreter ge
+                            e
+                            (cons (KRet e retinstid pc) s)
+                            MCFG
+                            (IREnterFunction callfnid args)
+          | FRCallVoid callfnid args pc =>
+            execInterpreter ge
+                            e
+                            (cons (KRet_void e pc) s)
+                            MCFG
+                            (IREnterFunction callfnid args)
+                            
+                       
                      end
       | None => Err "unable to find function"
       end
