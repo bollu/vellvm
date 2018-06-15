@@ -262,14 +262,35 @@ End LOOPREV.
 
 Definition LoopWriteSet (n: nat) : list nat := seq 1 n.
 
-Theorem loop_write_sets_are_write_locations:
-  forall (n i: nat), List.In i (LoopWriteSet n) <->
 
+Hint Transparent SS.init_state.
+Hint Unfold SS.init_state.
 
 (* Lemma I care about *)
 Theorem looprev_same_semantics:
   forall (n: nat),
-    run_mcfg_with_memory (program n) = run_mcfg_with_memory (program' n).
+    run_mcfg_with_memory (program n) ≡ run_mcfg_with_memory (program' n).
 Proof.
   intros.
-Abort.
+  unfold program.
+  unfold program'.
+
+  unfold run_mcfg_with_memory.
+  simpl.
+  unfold SS.init_state.
+  unfold SS.build_global_environment.
+  unfold SS.allocate_globals.
+  simpl.
+  repeat progress euttnorm.
+  unfold SS.register_functions.
+  simpl.
+  repeat progress euttnorm.
+  unfold SS.register_declaration.
+  repeat progress (euttnorm).
+  repeat progress M.forcememd.
+  euttnorm.
+
+  unfold SS.initialize_globals.
+  simpl.
+  repeat progress euttnorm.
+Qed.
