@@ -443,6 +443,8 @@ Section TERMINATOR.
 End TERMINATOR.
 
 (** Define the semantics of basic block execution **)
+(** Location of the current instruction in the BB **)
+Definition instr_pt := nat.
 Section BASICBLOCK.
   Inductive BBResult :=
   | BBRBreak: block_id -> BBResult
@@ -450,8 +452,8 @@ Section BASICBLOCK.
   | BBRRetVoid: BBResult
   (** Call a function, given the function id, arguments,
 and point in the basic block to resume from **)
-  | BBRCall: function_id -> list texp -> instr_id -> instr_id -> block_id -> BBResult
-  | BBRCallVoid: function_id -> list texp -> instr_id -> block_id -> BBResult
+  | BBRCall: function_id -> list texp -> instr_id -> instr_pt -> block_id -> BBResult
+  | BBRCallVoid: function_id -> list texp -> instr_pt -> block_id -> BBResult
   .
 
   Definition BBResultFromTermResult (tr: TermResult): BBResult :=
@@ -478,33 +480,43 @@ and point in the basic block to resume from **)
            (e: env)
            (bbid: block_id)
            (instrs: list (instr_id *instr))
-           (term: terminator): Trace BBResult :=
+           (term: terminator)
+           (pt: instr_pt): Trace BBResult :=
     match instrs with
     | [] =>  Trace.mapM BBResultFromTermResult (execTerm ge e term)
     | cons (id, i) irest =>
       'iresult <- (execInst ge e id i);
         match iresult with
         | IRCall fnid args retinstid instid =>
-          Ret (BBRCall fnid args retinstid instid bbid)
-        | IRCallVoid fnid args instid => Ret (BBRCallVoid fnid args instid bbid)
-        | _ => execBBInstrs ge e bbid irest term
+          Ret (BBRCall fnid args retinstid pt bbid)
+        | IRCallVoid fnid args instid => Ret (BBRCallVoid fnid args pt bbid)
+        | _ => execBBInstrs ge e bbid irest term (pt + 1)%nat
         end
     end.
 
-  (* Find section of list _after_ the current instruction *)
-  Fixpoint findInstrsAfterInstr (li: list (instr_id * instr)) (needle: instr_id): list (instr_id * instr) :=
-    match li with
-    | [] => []
-    | (curid, _)::li' => if curid == needle
-                        then li'
-                        else findInstrsAfterInstr li' needle
-    end.
+  Fixpoint findInstrsAfterInstr_ (li: list (instr_id * instr))
+           (needle: nat) (cur: nat): list (instr_id * instr) :=
+    if needle == cur
+    then match li with
+         | [] => []
+         | _::li' => li'
+         end
+    else match li with
+         | [] => []
+         | _::li' => findInstrsAfterInstr_ li' needle (cur + 1)
+         end.
 
-  Definition execBBAfterLoc (ge: genv) (e: env) (bb: block) (loc: instr_id):
+  Definition findInstrsAfterInstr (li: list (instr_id * instr))
+             (needle: nat): list (instr_id * instr) :=
+    findInstrsAfterInstr_ li needle 0.
+             
+
+  Definition execBBAfterLoc (ge: genv) (e: env) (bb: block) (loc: nat):
     Trace BBResult := execBBInstrs ge e
                                    (blk_id bb)
                                    (findInstrsAfterInstr (blk_code bb) loc)
-                                   (snd (blk_term bb)).
+                                   (snd (blk_term bb))
+                                   (loc + 1)%nat.
                                    
 
   (** TODO: add PHI nodes! **)
@@ -513,11 +525,12 @@ and point in the basic block to resume from **)
     Trace BBResult := execBBInstrs ge e
                                    (blk_id bb)
                                    (blk_code bb)
-                                   (snd (blk_term bb)).
+                                   (snd (blk_term bb))
+                                   0%nat.
 End BASICBLOCK.
 
 
-Definition pc : Type := instr_id * block_id * function_id.
+Definition pc : Type := instr_pt * block_id * function_id.
 
 (** Define semantics of executing a function **)
 Section FUNCTION.
@@ -563,7 +576,7 @@ Section FUNCTION.
   
 
   CoFixpoint execFunctionAtBBIdAfterLoc (ge: genv) (e: env)
-    (CFG: cfg) (fnid: function_id) (bbid: block_id) (loc: instr_id):
+    (CFG: cfg) (fnid: function_id) (bbid: block_id) (loc: instr_pt):
     Trace FunctionResult :=
     match find_block (blks CFG) bbid with
     | None => 
