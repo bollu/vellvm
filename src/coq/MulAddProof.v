@@ -98,7 +98,7 @@ Proof.
   repeat (rewrite normalize_type_equation).
 
   destruct t; auto.
-Qed.
+Admitted.
 
 Lemma transform_correct:
   forall (i: Z),
@@ -212,70 +212,29 @@ Proof.
   - admit .
   - edestruct IHexpr1.
     admit.
-Admitted.
+Abort.
     
   
 
 (* OP_IBinop (Add nuw_disabled nsw_disabled) (TYPE_I 64) v1 v2 *)
-Lemma eval_exp_equal: forall (mcfg : mcfg)
+(*
+Fixpoint eval_exp_equal (mcfg : mcfg)
                         (ge: genv)
                         (e: env)
                         (top: option dtyp)
-                        (o: exp),
+                        (o: exp)
+                        {struct o}:
     eval_exp (rewrite_mcfg mcfg) ge e top (rewrite_exp o) ≡
     eval_exp mcfg ge e top o.
 Proof.
   intros.
-  induction o; simpl; try (apply MonadVerif.eutt_refl);
-  destruct iop; simpl; try (apply MonadVerif.eutt_refl);
-  destruct t; simpl; try (apply MonadVerif.eutt_refl);
-  destruct nuw; simpl; try (apply MonadVerif.eutt_refl);
-  destruct nsw; simpl; try (apply MonadVerif.eutt_refl);
-  destruct sz; simpl; try (apply MonadVerif.eutt_refl);
-  destruct p; simpl; try (apply MonadVerif.eutt_refl);
-  destruct p; simpl; try (apply MonadVerif.eutt_refl);
-  destruct p; simpl; try (apply MonadVerif.eutt_refl);
-  destruct p; simpl; try (apply MonadVerif.eutt_refl);
-  destruct p; simpl; try (apply MonadVerif.eutt_refl);
-  destruct p; simpl; try (apply MonadVerif.eutt_refl).
-  destruct p; simpl; try (apply MonadVerif.eutt_refl).
-  remember (is_exp_equal_ints o1 o2) as ISEQ.
-
-  assert (ISEQ_CASES: {ISEQ = true} + {ISEQ <> true}).
-  decide equality.
-
-  destruct ISEQ_CASES as [ISEQ_TRUE | ISEQ_FALSE]; subst.
-
-  --  rewrite ISEQ_TRUE.
-
-      assert (EXPLOIT_EQ_INT: o1 = o2 /\ exists x, o1 = EXP_Integer x).
-      apply is_exp_equal_ints_inv; auto.
-
-      
-      destruct EXPLOIT_EQ_INT as [EQ_INT  INT_DESCRIPTION].
-      subst.
-      destruct INT_DESCRIPTION as [i O2_AS_INT].
-      subst.
-      simpl.
-      
-      rewrite eval_typ_rewrite_mcfg.
-      repeat (rewrite eval_type_I64).
-      simpl.
-
-      repeat (rewrite bindM_Ret).
-      simpl.
-      rewrite transform_correct.
-      auto.
-
-
-
-  -- rewrite Bool.not_true_iff_false in ISEQ_FALSE.
-     rewrite ISEQ_FALSE.
-     simpl.
-     apply eutt_refl.
+  induction o; try reflexivity;
+  repeat (apply eval_exp_equal).
 Qed.
+*)
 
 
+(* 
 Lemma lifted_instruction_pass_preserves_block_term_id:
   forall (b : LLVMAst.block),
   blk_term_id (liftInstrPassToBlockPass rewrite_instr b) =
@@ -520,5 +479,6 @@ Lemma muladd_step_sem : forall (CFG:mcfg) (r:result),
     (step_sem (rewrite_mcfg CFG) r) ≡ (step_sem CFG r).
 Proof.
 Abort.
+*)
   
 End MULADDPROOF.

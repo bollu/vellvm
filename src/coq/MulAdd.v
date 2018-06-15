@@ -58,6 +58,10 @@ Definition rewrite_instr(i: instr): instr :=
   end.
 
 
+Definition rewrite_mcfg: mcfg -> mcfg :=
+  monomap rewrite_instr.
+
+
 (* 
 Record block : Set :=
   mk_block
@@ -69,7 +73,8 @@ Record block : Set :=
     }.
 *)
 
-Definition rewrite_block: block -> block := liftInstrPassToBlockPass rewrite_instr.
+(*
+Definition rewrite_block: block -> block := monomap rewrite_instr.
 
 
 (* 
@@ -114,10 +119,9 @@ Definition rewrite_modul(m: modul (list block)): modul (list block) :=
   |}.
 *)
                                                       
-Definition rewrite_cfg: cfg -> cfg := liftBlockPassToCFGPass rewrite_block.
+Definition rewrite_cfg: cfg -> cfg := monomap rewrite_block.
 
 Definition rewrite_cfg_definition: definition cfg -> definition cfg :=
-  liftCFGPassToCFGDefinitionPass rewrite_cfg.
+  monomap rewrite_cfg.
+*)
 
-Definition rewrite_mcfg: mcfg -> mcfg :=
-  liftCFGDefinitionPassToMCFGPass rewrite_cfg_definition.

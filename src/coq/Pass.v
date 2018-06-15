@@ -123,7 +123,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma map_map': forall {A B C: Type} (l: list A) (f: B -> C) (g: A -> B) (x: list A),
+Lemma map_map': forall {A B C: Type} (f: B -> C) (g: A -> B) (x: list A),
     map f ((map g) x) = map (f ∘ g) x.
 Proof.
   intros until x.
@@ -150,7 +150,6 @@ Proof.
   simpl.
   rewrite map_map'.
   reflexivity.
-  exact (blks i).
 Qed.
 
 
@@ -204,6 +203,11 @@ Instance DefinitionCFGPassToMCFGFunctor:
          m_definitions := map pass (m_definitions m);
       |};
   }.
+Proof.
+  intros.
+  simpl.
+  rewrite map_map'; auto.
+Qed.
 
 
 
