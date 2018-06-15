@@ -491,6 +491,22 @@ and point in the basic block to resume from **)
         end
     end.
 
+  (* Find section of list _after_ the current instruction *)
+  Fixpoint findInstrsAfterInstr (li: list (instr_id * instr)) (needle: instr_id): list (instr_id * instr) :=
+    match li with
+    | [] => []
+    | (curid, _)::li' => if curid == needle
+                        then li'
+                        else findInstrsAfterInstr li' needle
+    end.
+
+  Definition execBBAfterLoc (ge: genv) (e: env) (bb: block) (loc: instr_id):
+    Trace BBResult := execBBInstrs ge e
+                                   (blk_id bb)
+                                   (findInstrsAfterInstr (blk_code bb) loc)
+                                   (snd (blk_term bb)).
+                                   
+
   (** TODO: add PHI nodes! **)
   (** TODO: consider if the terminator may need it's ID?**)
   Definition execBB (ge: genv) (e: env) (bb: block):
@@ -511,7 +527,7 @@ Section FUNCTION.
   | FRCall: function_id -> list texp -> instr_id -> 
             pc -> FunctionResult
   | FRCallVoid: function_id -> list texp ->
-            pc -> FunctionResult.
+                pc -> FunctionResult.
 
 
   (** To execute a function, execute a basic block.
@@ -519,7 +535,7 @@ Section FUNCTION.
   -  If it is performing control flow, execute the next BB
   - If it is calling a function, push this information toplevel
    *)
-  CoFixpoint execFunctionWithBBId (ge: genv) (e: env)
+  CoFixpoint execFunctionAtBBId (ge: genv) (e: env)
     (CFG: cfg) (fnid: function_id) (bbid: block_id):
     Trace FunctionResult :=
     match find_block (blks CFG) bbid with
@@ -528,7 +544,7 @@ Section FUNCTION.
     | Some bb =>
       'bbres <- execBB ge e bb;
         match bbres with
-        | BBRBreak bbid' => execFunctionWithBBId ge e CFG fnid bbid' 
+        | BBRBreak bbid' => execFunctionAtBBId ge e CFG fnid bbid' 
         | BBRRet dv => Ret (FRReturn dv)
         | BBRRetVoid => Ret FRReturnVoid
         | BBRCall fnid args retinstid instid bbid =>
@@ -542,7 +558,28 @@ Section FUNCTION.
              (e: env)
              (CFG: cfg)
              (fnid: function_id) : Trace FunctionResult :=
-    execFunctionWithBBId ge e CFG fnid (init CFG).
+    execFunctionAtBBId ge e CFG fnid (init CFG).
+
+  
+
+  CoFixpoint execFunctionAtBBIdAfterLoc (ge: genv) (e: env)
+    (CFG: cfg) (fnid: function_id) (bbid: block_id) (loc: instr_id):
+    Trace FunctionResult :=
+    match find_block (blks CFG) bbid with
+    | None => 
+      Err "no block found"
+    | Some bb =>
+      'bbres <- execBBAfterLoc ge e bb loc;
+        match bbres with
+        | BBRBreak bbid' => execFunctionAtBBId ge e CFG fnid bbid' 
+        | BBRRet dv => Ret (FRReturn dv)
+        | BBRRetVoid => Ret FRReturnVoid
+        | BBRCall fnid args retinstid instid bbid =>
+          Ret (FRCall fnid args retinstid (instid, bbid, fnid))
+        | BBRCallVoid fnid args instid bbid =>
+          Ret (FRCallVoid fnid args (instid, bbid, fnid))
+        end
+    end.
     
     
 End FUNCTION.
@@ -561,6 +598,8 @@ Section INTERPRETER.
   Inductive InterpreterResult :=
   | IRDone (v: dvalue)
   | IREnterFunction (fnid: function_id) (args: list texp)
+  | IRReturnFunction  (fres: FunctionResult)
+  | IRResumeFunction  (pc: pc)
   .
 
   (* 
@@ -578,45 +617,60 @@ Section INTERPRETER.
 
 
 
+  (** TODO: the spurious tau nodes are possible a code smell,
+  so I need to think about this a little more carefully **)
   CoFixpoint execInterpreter (ge: genv)
              (e: env) (s: stack) (MCFG: mcfg)
              (ir: InterpreterResult) :
     Trace InterpreterResult :=
     match ir with
     | IRDone v => Ret (IRDone v)
+    | IRResumeFunction pc' =>
+      let '(iid, bbid, fnid) := pc' in
+      match find_function MCFG fnid with
+      | Some CFGDefn =>
+        'fres <- execFunctionAtBBIdAfterLoc ge e (df_instrs CFGDefn) fnid bbid iid;
+          Ret (IRReturnFunction fres)
+      | None => Err "unable to find function"
+      end
+      
     | IREnterFunction fnid args =>
       match find_function MCFG fnid with
       | Some CFGDefn =>
         'fres <- execFunction ge e (df_instrs CFGDefn) fnid;
+          Ret (IRReturnFunction fres)
+                           
+      | None => Err "unable to find function"
+      end
+    | IRReturnFunction fres =>
           match fres with
           | FRReturn retval => match s with
                               | [] => Ret (IRDone retval)
-                              | (KRet instrid e pc) :: s' =>
-                                Err "start executoin"
+                              | (KRet e' instrid pc) :: s' =>
+                                let e'' := e' (* TODO: wrote value *) in
+                                Tau (execInterpreter ge e'' s' MCFG (IRResumeFunction pc))
+
                               | _ => Err "incorrect environment"
                               end
           | FRReturnVoid => match s with
                            | [] => Err "no value to return"
-                           | (KRet_void e pc :: s') => Err " foo"
+                           | (KRet_void e' pc :: s') =>
+                             Tau (execInterpreter ge e s' MCFG (IRResumeFunction pc))
                            | _ => Err "incorrect stack frame"
                            end
             
           | FRCall callfnid args retinstid pc =>
-            execInterpreter ge
+            Tau (execInterpreter ge
                             e
                             (cons (KRet e retinstid pc) s)
                             MCFG
-                            (IREnterFunction callfnid args)
+                            (IREnterFunction callfnid args))
           | FRCallVoid callfnid args pc =>
-            execInterpreter ge
+            Tau (execInterpreter ge
                             e
                             (cons (KRet_void e pc) s)
                             MCFG
-                            (IREnterFunction callfnid args)
-                            
-                       
+                            (IREnterFunction callfnid args))
                      end
-      | None => Err "unable to find function"
-      end
     end.
 End INTERPRETER.
