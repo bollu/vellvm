@@ -35,5 +35,3 @@ Fixpoint code_contains_funcall_dec (c: code): bool :=
                  end
   end.
                                                 
-                                                
-Lemma trace_of_bb_finite: 
