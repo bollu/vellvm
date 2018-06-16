@@ -385,9 +385,9 @@ End IN_LOCAL_ENVIRONMENT.
 Section INSTRUCTION.
   Inductive InstResult : Type :=
   (** Represent calling a function.
-IRCall <function-to-call> <args> <instruction ID to write to> <instruction ID to resume from> **)
-  | IRCall: function_id -> list texp -> instr_id -> instr_id -> InstResult
-  | IRCallVoid: function_id -> list texp -> instr_id -> InstResult
+IRCall <function-to-call> <args> <instruction ID to write to> <instruction ID to write to> <instruction ID to resume from> **)
+  | IRCall: function_id -> list (local_id*dvalue) -> instr_id -> instr_id -> InstResult
+  | IRCallVoid: function_id -> list (local_id *dvalue) -> instr_id -> InstResult
   (** Represent modifying the environment **)
   | IREnvEffect: env  -> InstResult
   (** Is a Noop. Note that such instructions can still have memory
@@ -408,6 +408,34 @@ IRCall <function-to-call> <args> <instruction ID to write to> <instruction ID to
       'dv <- eval_exp ge e (Some (eval_typ t)) val; 
         'v <- eval_exp ge e(Some (eval_typ u)) ptr;
         Trace.Vis (Store v dv) (fun _ => Ret IRNone)
+    | pt, INSTR_Call (t, f) args =>
+      'fv <- eval_exp ge e None f;
+        'dvs <-  map_monad (fun '(t, op) => (eval_exp ge e(Some (eval_typ t)) op)) args;
+        match fv with
+        | DVALUE_Addr addr =>
+          (* TODO: lookup fid given addr from global environment *)
+          do fid <- reverse_lookup_function_id ge addr;
+            match (find_function_entry CFG fid) with
+            | Some fnentry =>
+              let 'FunctionEntry ids pc_f := fnentry in
+              do bs <- combine_lists_err ids dvs;
+                match pt with
+                | IVoid _ => Ret (IRCallVoid fid bs id)
+                  (* cont (ge, pc_f, env, (KRet_void e pc_next::k)) *)
+                | IId _ => Ret (IRCall fid bs id id)
+                  (* cont (ge, pc_f, env, (KRet e id pc_next::k)) *)
+                end
+            | None => (* This must have been a registered external function *)
+              match fid with
+              (* TODO: make sure the external call's type is correct *)
+              | Name s => Err "implement external function call"
+                (* Trace.Vis (Call DTYPE_Void s dvs)
+                                   (fun dv => cont (ge, pc_next, e, k)) *)
+              | _ => raise ("step: no function " ++ (string_of fid))
+              end
+            end
+        | _ => Err  "call got non-function pointer"
+        end
     |  _, _ => Err "foo"
     end.
 End INSTRUCTION.
@@ -452,8 +480,8 @@ Section BASICBLOCK.
   | BBRRetVoid: BBResult
   (** Call a function, given the function id, arguments,
 and point in the basic block to resume from **)
-  | BBRCall: function_id -> list texp -> instr_id -> instr_pt -> block_id -> BBResult
-  | BBRCallVoid: function_id -> list texp -> instr_pt -> block_id -> BBResult
+  | BBRCall: function_id -> list (local_id * dvalue) -> instr_id -> instr_pt -> block_id -> BBResult
+  | BBRCallVoid: function_id -> list (local_id * dvalue) -> instr_pt -> block_id -> BBResult
   .
 
   Definition BBResultFromTermResult (tr: TermResult): BBResult :=
@@ -537,9 +565,9 @@ Section FUNCTION.
   Inductive FunctionResult :=
   | FRReturn: dvalue -> FunctionResult
   | FRReturnVoid: FunctionResult
-  | FRCall: function_id -> list texp -> instr_id -> 
+  | FRCall: function_id -> list (local_id * dvalue) -> instr_id -> 
             pc -> FunctionResult
-  | FRCallVoid: function_id -> list texp ->
+  | FRCallVoid: function_id -> list (local_id * dvalue) ->
                 pc -> FunctionResult.
 
 
@@ -610,24 +638,10 @@ Section INTERPRETER.
   
   Inductive InterpreterResult :=
   | IRDone (v: dvalue)
-  | IREnterFunction (fnid: function_id) (args: list texp)
+  | IREnterFunction (fnid: function_id) (args: list (local_id *dvalue))
   | IRReturnFunction  (fres: FunctionResult)
   | IRResumeFunction  (pc: pc)
   .
-
-  (* 
-  CoFixpoint execInterpreterFromStackFrame (ge: genv)
-              (s: stack) (retval: dvalue):
-    Trace InterpreterResult :=
-    match s with
-    | [] => Ret (IRDone retval)
-    | frame :: s' => match frame with
-                    | KRet e instid pc => Err "exec function from here "
-                    | KRet_void e fnid bid iid => Err "incorrect stack frame"
-                    end
-    end.
-  *)
-
 
 
   (** TODO: the spurious tau nodes are possible a code smell,
@@ -650,7 +664,8 @@ Section INTERPRETER.
     | IREnterFunction fnid args =>
       match find_function MCFG fnid with
       | Some CFGDefn =>
-        'fres <- execFunction ge e (df_instrs CFGDefn) fnid;
+        let fn_env := env_of_assoc args in
+        'fres <- execFunction ge fn_env (df_instrs CFGDefn) fnid;
           Ret (IRReturnFunction fres)
                            
       | None => Err "unable to find function"
