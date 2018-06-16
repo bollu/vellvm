@@ -38,7 +38,7 @@ Definition InstrPass := Pass instr.
 Definition CodePass := Pass code.
 Definition BlockPass := Pass block.
 Definition CFGPass := Pass cfg.
-Definition CFGDefinitionPass := Pass (definition cfg).
+Definition DefinitionCFGPass := Pass (definition cfg).
 Definition MCFGPass := Pass mcfg.
 *)
 
@@ -48,24 +48,14 @@ get resolved (At least, I think this is possible), but let's not, for now *)
 (** Fancy typeclass machinery **)
 
 (** a pass P is anything that can act on Unit **)
-Class Pass Unit P : Type :=
-  {
-    runPass: P -> Unit -> Unit
-  }.
+Definition Pass (U: Type) := U -> U.
 
 Notation InstrPass := (Pass instr).
 Notation CodePass := (Pass code).
 Notation BlockPass := (Pass block).
 Notation CFGPass := (Pass cfg).
-Notation CFGDefinitionPass := (Pass (definition cfg)).
+Notation DefinitionCFGPass := (Pass (definition cfg)).
 Notation MCFGPass := (Pass mcfg).
-
-(** Functions of type (Unit -> Unit) can act on Units **)
-Instance functionAsPass {Unit: Type}: Pass Unit (Unit -> Unit) :=
-  {
-    runPass (p: Unit -> Unit) (u: Unit) := p u
-  }.
-
 (** Define a functorial structure that can transform a small transformation into a
     larger one **)
 Class MonoFunctor (Out: Type) (In: Type) : Type :=
@@ -77,12 +67,6 @@ Class MonoFunctor (Out: Type) (In: Type) : Type :=
                            
   }.
 
-(** Show how we can lift passes using the functorl structure **)
-Instance liftedFunctionAsPass {InnerUnit OuterUnit: Type}
-         `{MonoFunctor OuterUnit InnerUnit}: Pass OuterUnit (InnerUnit -> InnerUnit) :=
-  {
-     runPass (p: InnerUnit -> InnerUnit) (o: OuterUnit) := monomap p o;
-  }.
 
 Instance instrToIdInstrFunctor: MonoFunctor (instr_id * instr) instr :=
   {
@@ -91,7 +75,7 @@ Instance instrToIdInstrFunctor: MonoFunctor (instr_id * instr) instr :=
 Proof.
   intros.
   auto.
-Qed.
+Defined.
 
 Check (instrToIdInstrFunctor).
 
@@ -106,6 +90,8 @@ Instance instrToBlockFunctor: MonoFunctor block instr :=
   }.
 Proof.
   intros.
+  
+  Opaque monomap.
   simpl.
   destruct i; simpl.
   assert (MAP_EQ: map (monomap f) (map (monomap g) blk_code) =
@@ -121,7 +107,8 @@ Proof.
 
   rewrite MAP_EQ.
   reflexivity.
-Qed.
+  Transparent monomap.
+Defined.
 
 Lemma map_map': forall {A B C: Type} (f: B -> C) (g: A -> B) (x: list A),
     map f ((map g) x) = map (f ∘ g) x.
@@ -132,7 +119,7 @@ Proof.
   rewrite IHx.
   simpl.
   reflexivity.
-Qed.
+Defined.
 Hint Resolve map_map'.
 
 Instance blockToCFGFunctor : MonoFunctor cfg block :=
@@ -150,27 +137,7 @@ Proof.
   simpl.
   rewrite map_map'.
   reflexivity.
-Qed.
-
-
-(** THIS CANNOT TYPECLASS RESOLVE
-Instance liftToDefinitionFunctor {T: Set}:
-  MonoFunctor (definition T) T :=
-  {
-    monomap (pass: T -> T) (defn: definition T) :=
-      
-     mk_definition T
-                   (df_prototype defn) 
-                   (df_args defn)
-                   (runPass pass (df_instrs defn));
-
-  }.
-Proof.
-  intros.
-  simpl.
-  constructor.
-Qed.
- **)
+Defined.
 
 
 Instance CFGToDefinitionCFGFunctor:
@@ -181,14 +148,14 @@ Instance CFGToDefinitionCFGFunctor:
      mk_definition cfg
                    (df_prototype defn) 
                    (df_args defn)
-                   (runPass pass (df_instrs defn));
+                   (pass (df_instrs defn));
 
   }.
 Proof.
   intros.
   simpl.
   constructor.
-Qed.
+Defined.
 
 
 Instance DefinitionCFGPassToMCFGFunctor:
@@ -208,7 +175,7 @@ Proof.
   intros.
   simpl.
   rewrite map_map'; auto.
-Qed.
+Defined.
 
 
 
@@ -231,11 +198,10 @@ Proof.
   rewrite <- monomap_functorial with (f0 := monomap f) (g0 := monomap g) (i0 := i).
   simpl.
   auto.
-Qed.
+Defined.
   
 
 Definition f_instr (i: instr): instr := id i.
-Opaque f_instr.
 Check (f_instr).
 
 (** NICE! I can automatically lift instances using monomap **)
@@ -319,19 +285,19 @@ Class PreservesType (P: Type) (MCFP: MCFGPass P) {
       }.
 *)
 
-Definition preserves_types (P: Type) `{MCFGPass P} (p: P): Prop :=
-  forall (CFG: mcfg), m_type_defs (runPass p CFG) = m_type_defs CFG.
+Definition preserves_types (p: MCFGPass): Prop :=
+  forall (CFG: mcfg), m_type_defs (p CFG) = m_type_defs CFG.
 
-Definition preserves_eval_typ (P: Type) `{MCFGPass P} (p: P) (t: typ): Prop :=
-  forall (CFG: mcfg), eval_typ (runPass p CFG) t = eval_typ CFG t.
+Definition preserves_eval_typ (p: MCFGPass) (t: typ): Prop :=
+  forall (CFG: mcfg), eval_typ (p CFG) t = eval_typ CFG t.
 
 Create HintDb passes.
 
 
-Lemma preserves_types_implies_preserves_eval_typ
-      `{MCFGPass P} : forall (p: P) (CFG: mcfg) (t: typ),
+Lemma preserves_types_implies_preserves_eval_typ:
+  forall (p: MCFGPass) (CFG: mcfg) (t: typ),
     preserves_types p ->
-    eval_typ (runPass p CFG) t = eval_typ CFG t.
+    eval_typ (p CFG) t = eval_typ CFG t.
 Proof.
   intros.
   repeat (unfold eval_typ).
@@ -345,28 +311,30 @@ Qed.
 Hint Resolve preserves_types_implies_preserves_eval_typ : passes.
 
 
-Definition preserves_ident_definition
-            `{CFGDefinitionPass P}
-           (p: P) : Prop :=
-  forall (fn: definition cfg), ident_of (runPass p fn) = ident_of fn.
+Definition preserves_ident_definition (p: DefinitionCFGPass) : Prop :=
+  forall (fn: definition cfg), ident_of (p fn) = ident_of fn.
 
 Hint Unfold preserves_ident_definition: pass.
                                          
 
 (** TODO: Phrase `monomap` in terms of lifting `Pass`, not just lifting
 functions of the form A -> A **)
-Lemma lifted_cfg_pass_preserves_ident_definition
-  `{CFGPass P}: forall (pass: P), preserves_ident_definition ((monomap pass)).
+Lemma lifted_cfg_pass_preserves_ident_definition:
+   forall (p: CFGPass), preserves_ident_definition (monomap p).
 Proof.
-  intros.
-  auto.
+  unfold monomap.
+  unfold CFGToDefinitionCFGFunctor.
+  simpl.
+  
+  unfold preserves_ident_definition.
+  reflexivity.
 Qed.
 
 Hint Resolve lifted_cfg_pass_preserves_ident_definition.
 
 Lemma preserves_ident_definition_commutes_with_find_defn:
   forall (fnid: function_id)
-    (g: CFGDefinitionPass),
+    (g: DefinitionCFGPass),
     preserves_ident_definition g ->
     agress_on_filter (find_defn fnid) g.
 Proof.
@@ -410,12 +378,10 @@ Hint Resolve preserves_ident_definition_commutes_with_find_defn.
 
 
 Lemma find_definition_some:
-  forall (P: Type) `{CFGDefinitionPass P}
-    (p: P)
-    (CFG: mcfg)
+  forall (CFG: mcfg)
     (fnid: function_id)
     (oldfn: definition cfg)
-    (g: CFGDefinitionPass),
+    (g: DefinitionCFGPass),
 
   preserves_ident_definition g ->
   find_function CFG fnid = Some oldfn ->
@@ -452,27 +418,27 @@ Lemma find_function_some: forall
     (CFG: mcfg)
     (fnid: function_id)
     (oldfn: definition cfg)
-    (g: CFGDefinitionPass)
+    (g: DefinitionCFGPass)
     (PRESERVES_DEFN_IDENT: preserves_ident_definition g),
     find_function CFG fnid = Some oldfn ->
-    find_function ((liftCFGDefinitionPassToMCFGPass g) CFG) fnid = Some (g oldfn).
+    find_function ((monomap g) CFG) fnid = Some (g oldfn).
 Proof.
   intros.
+  unfold monomap.
+  unfold DefinitionCFGPassToMCFGFunctor.
   unfold find_function in *.
   simpl.
   apply find_definition_some; auto.
 Qed.
-
-
 Hint Resolve find_function_some.
 
 Lemma find_function_none:
   forall (CFG: mcfg)
     (fnid: function_id)
-    (g: CFGDefinitionPass)
+    (g: DefinitionCFGPass)
     (PRESERVES_DEFN_IDENT: preserves_ident_definition g), 
     find_function CFG fnid = None ->
-    find_function ((liftCFGDefinitionPassToMCFGPass g) CFG) fnid = None.
+    find_function ((monomap g) CFG) fnid = None.
 Proof.
   intros.
   unfold find_function in *.
@@ -481,21 +447,22 @@ Proof.
   auto.
 Qed.
 
-
 Hint Resolve  (find_function_none).
-Hint Rewrite  (find_function_none).
 
 Lemma find_function_lifted_definition_pass:
   forall (CFG: mcfg)
     (fnid: function_id)
-    (g: CFGDefinitionPass)
+    (g: DefinitionCFGPass)
     (PRESERVES_DEFN_IDENT: preserves_ident_definition g),
-    find_function  ((liftCFGDefinitionPassToMCFGPass g) CFG) fnid =
+    find_function  ((monomap g) CFG) fnid =
     option_map g (find_function CFG fnid).
 Proof.
   intros.
+  Opaque monomap.
+  simpl.
   remember (find_function CFG fnid) as FIND_F.
   destruct FIND_F; simpl; auto.
+  Transparent monomap.
 Qed.
                                                         
 Hint Resolve(find_function_lifted_definition_pass).
@@ -549,7 +516,7 @@ Hint Unfold preserves_block_terminator.
 
 Lemma lifted_instr_pass_to_block_pass_preserves_block_terminator:
   forall (pass: InstrPass),
-    preserves_block_terminator (liftInstrPassToBlockPass pass).
+    preserves_block_terminator (monomap pass).
 Proof.
   unfold preserves_block_terminator.
   intros.
@@ -637,14 +604,12 @@ Definition preserves_block_entry (pass: MCFGPass) : Prop :=
 
 Lemma lifted_instr_pass_to_MCFG_pass_preserves_block_entry:
   forall (pass: InstrPass),
-    preserves_block_entry (liftCFGDefinitionPassToMCFGPass
-                             (liftCFGPassToCFGDefinitionPass
-                                (liftBlockPassToCFGPass
-                                   (liftInstrPassToBlockPass pass)))).
+    preserves_block_entry (monomap pass).
 Proof.
   unfold preserves_block_entry.
   intros.
   unfold find_block_entry.
+  repeat (unfold monomap; unfold monofunctor_chain).
   rewrite find_function_lifted_definition_pass; auto.
   simpl.
 
