@@ -190,6 +190,7 @@ Proof.
   constructor.
 Qed.
 
+
 Instance DefinitionCFGPassToMCFGFunctor:
   MonoFunctor  mcfg  (definition cfg) :=
   {
@@ -249,25 +250,7 @@ Definition map_f_instr_on_cfg (c: cfg): cfg :=
 Definition map_f_instr_on_definion_cfg (d: definition cfg):
   definition cfg :=  monomap (f_instr) d.
 
-(** once again, typeclass does not resolve 
 Definition map_f_instr_on_mcfg (m: mcfg): mcfg :=  monomap (f_instr) m.
-**)
-
-
-(*
-Definition liftCFGDefinitionPassToMCFGPass
-           (pass: CFGDefinitionPass): MCFGPass :=
-  fun (m: mcfg) =>
-    {| m_name := m_name m;
-       m_target:= m_target m;
-       m_datalayout := m_datalayout m;
-       m_type_defs := m_type_defs m;
-       m_globals := m_globals m;
-       m_declarations := m_declarations m;
-       m_definitions := map pass (m_definitions m);
-    |}.
-*)
-
 
 
 
@@ -345,9 +328,8 @@ Definition preserves_eval_typ (P: Type) `{MCFGPass P} (p: P) (t: typ): Prop :=
 Create HintDb passes.
 
 
-Lemma preserves_types_implies_preserves_eval_typ: forall
-   {P: Type} `{MCFGPass P}
-   (p: P) (CFG: mcfg) (t: typ),
+Lemma preserves_types_implies_preserves_eval_typ
+      `{MCFGPass P} : forall (p: P) (CFG: mcfg) (t: typ),
     preserves_types p ->
     eval_typ (runPass p CFG) t = eval_typ CFG t.
 Proof.
@@ -364,16 +346,17 @@ Hint Resolve preserves_types_implies_preserves_eval_typ : passes.
 
 
 Definition preserves_ident_definition
-           {P: Type} `{CFGDefinitionPass P}
+            `{CFGDefinitionPass P}
            (p: P) : Prop :=
   forall (fn: definition cfg), ident_of (runPass p fn) = ident_of fn.
 
 Hint Unfold preserves_ident_definition: pass.
                                          
 
-(* 
-Lemma lifted_cfg_pass_preserves_ident_definition: forall (pass: CFGPass),
-    preserves_ident_definition (liftCFGPassToCFGDefinitionPass pass).
+(** TODO: Phrase `monomap` in terms of lifting `Pass`, not just lifting
+functions of the form A -> A **)
+Lemma lifted_cfg_pass_preserves_ident_definition
+  `{CFGPass P}: forall (pass: P), preserves_ident_definition ((monomap pass)).
 Proof.
   intros.
   auto.
