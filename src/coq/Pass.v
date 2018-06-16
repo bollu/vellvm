@@ -369,6 +369,7 @@ Definition preserves_ident_definition
   forall (fn: definition cfg), ident_of (runPass p fn) = ident_of fn.
 
 Hint Unfold preserves_ident_definition: pass.
+                                         
 
 (* 
 Lemma lifted_cfg_pass_preserves_ident_definition: forall (pass: CFGPass),
