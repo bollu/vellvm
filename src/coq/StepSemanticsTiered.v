@@ -801,13 +801,40 @@ Definition init_state_tiered (MCFG: mcfg) (fname:string) :
 
 (** Theorems and lemmas on properties of StepSemanticsTiered **)
 
-Lemma force_step_sem_tiered: forall (e: env) (ge: genv) (st: stack) (MCFG: mcfg)
-   (r: InterpreterResult),
+Lemma force_step_sem_tiered:
+  forall (e: env)
+    (ge: genv)
+    (st: stack)
+    (MCFG: mcfg)
+    (r: InterpreterResult),
     (step_sem_tiered ge e st MCFG r) ≡
                                         ('rnext <- execInterpreter ge e  st MCFG r ;
                                            step_sem_tiered ge e  st MCFG rnext).
 Proof.
 Admitted.
+Lemma force_exec_function_at_bb_id: 
+  forall (tds: typedefs)
+    (e: env)
+    (ge: genv)
+    (CFG: cfg)
+    (fnid: function_id)
+    (bbid: block_id)
+    (bb:block)
+    (BLK: find_block (blks CFG) bbid = Some bb),
+    execFunctionAtBBId tds ge e  CFG fnid bbid ≡
+      'bbres <- execBB tds ge e bb;
+        match bbres with
+        | BBRBreak bbid' => execFunctionAtBBId tds ge e CFG fnid bbid' 
+        | BBRRet dv => Ret (FRReturn dv)
+        | BBRRetVoid => Ret FRReturnVoid
+        | BBRCall fnid args retinstid instid bbid =>
+          Ret (FRCall fnid args retinstid (instid, bbid, fnid))
+        | BBRCallVoid fnid args instid bbid =>
+          Ret (FRCallVoid fnid args (instid, bbid, fnid))
+        end.
+Proof.
+Admitted.
 
-
+Ltac forcesst := do [rewrite force_step_sem_tiered |
+                    rewrite force_exec_function_at_bb_id].
 End StepSemanticsTiered.

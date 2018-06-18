@@ -266,6 +266,41 @@ Definition LoopWriteSet (n: nat) : list nat := seq 1 n.
 Hint Transparent SS.init_state.
 Hint Unfold SS.init_state.
 
+
+(** I need to show that the trace is finite to be able to "peek into"
+the effect of memory **)
+Lemma exec_main_function_has_finite_trace: forall (n: nat),
+  TraceFinite (SST.execFunction []
+              (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
+                 (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
+              (mainCFG n) (Name "main")).
+Proof.
+  Opaque SST.execBB.
+  Opaque SST.step_sem_tiered.
+  Opaque SST.execBB.
+  Opaque SST.execBBInstrs.
+  Opaque SST.execBBAfterLoc.
+  Opaque SST.execFunctionAtBBId.
+  Opaque Trace.bindM.
+
+  intros.
+  unfold SST.execFunction.
+  simpl.
+  unfold simpleProgramInitBBId.
+
+(** tiered semantics is already paying off, I can look at what happens
+when I execute a function **)
+Lemma exec_main_function_orig: forall (n: nat),
+  (SST.execFunction []
+              (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
+                 (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
+              (mainCFG n) (Name "main")) ≡ Ret (SST.FRReturn (DVALUE_I32  (Int32.repr 1%Z))).
+Proof.
+  intros.
+  SST.forcesst.
+
+                                              
+
 (** Show this spurious proof to experiment with unfolding our new
 definition of program semantics **)
 Lemma run_mcfg_with_memory_orig:
@@ -295,13 +330,20 @@ Proof.
   unfold SST.initialize_globals_tiered. simpl.
   euttnorm.
 
-  Opaque SST.execFunction.
-  
   rewrite SST.force_step_sem_tiered.
   simpl.
   
-  rewrite @Trace.matchM with (i := SST.step_sem_tiered _ _ _ _ _ ).
+  (** Need the opacity to make sure that Coq does not "unfold" too much **)
+  Opaque SST.execBB.
+  Opaque SST.step_sem_tiered.
+  Opaque SST.execFunction.
+  Opaque Trace.bindM.
+
+  
   simpl.
+  rewrite @Trace.matchM with (i := SST.execInterpreter _ _ _ _ _ ).
+  simpl.
+  rewrite M.rewrite_memD_as_memEffect'.
   M.forcememd.
   euttnorm.
   
