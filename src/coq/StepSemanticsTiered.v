@@ -6,7 +6,7 @@
  *   This file is distributed under the terms of the GNU General Public       *
  *   License as published by the Free Software Foundation, either version     *
  *   3 of the License, or (at your option) any later version.                 *
- ---------------------------------------------------------------------------- *)
+ *--------------------------------------------------------------------------- *)
 
 Require Import ZArith List String Omega.
 Require Coq.FSets.FMapAVL.
@@ -40,7 +40,7 @@ Set Contextual Implicit.
 Open Scope Z_scope.
 Open Scope string_scope.
 
-Module StepSemantics(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A)).
+Module StepSemanticsTiered(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A)).
   
   Import LLVMIO.
   
@@ -172,11 +172,12 @@ Module StepSemantics(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A)).
     failwith "dv_zero_initializer unimplemented".
 
 
-Section IN_CFG_CONTEXT.
-Variable CFG:mcfg.
+Section IN_TYPEDEFS_CONTEXT.
+  (** TODO: find some way to remove this, it adds a CFG requirement to _everything_, WTF **)
+  Variable tds: typedefs.
 
 Definition eval_typ (t:typ) : dtyp :=
-  TypeUtil.normalize_type (m_type_defs CFG) t.
+  TypeUtil.normalize_type tds t.
 
 
 Section IN_LOCAL_ENVIRONMENT.
@@ -380,6 +381,7 @@ Definition eval_op (o:exp) : Trace dvalue :=
 Arguments eval_op _ : simpl nomatch.
 
 End IN_LOCAL_ENVIRONMENT.
+End IN_TYPEDEFS_CONTEXT.
 
 (** Define the semantics of instruction execution **)
 Section INSTRUCTION.
@@ -387,23 +389,26 @@ Section INSTRUCTION.
   (** Represent calling a function.
 IRCall <function-to-call> <args> <instruction ID to write to> <instruction ID to write to> <instruction ID to resume from> **)
   | IRCall: function_id -> list (local_id*dvalue) -> instr_id -> instr_id -> InstResult
-  | IRCallVoid: function_id -> list (local_id *dvalue) -> instr_id -> InstResult
+  | IRCallVoid: function_id -> list (local_id*dvalue) -> instr_id -> InstResult
   (** Represent modifying the environment **)
   | IREnvEffect: env  -> InstResult
   (** Is a Noop. Note that such instructions can still have memory
    effects by recording against the trace **)
   | IRNone.
 
-  Definition execInst (ge:  genv)
+  Definition execInst
+             (tds: typedefs)
+             (ge:  genv)
              (e: env)
              (id: instr_id)
              (i: instr): Trace InstResult :=
     match id, i with
     | IId id, INSTR_Load _ t (u,ptr) _ =>
-      'dv <- eval_exp ge e (Some (eval_typ u)) ptr;
-        Trace.Vis (Load (eval_typ t) dv)
+      'dv <- eval_exp tds ge e (Some (eval_typ tds u)) ptr;
+        Trace.Vis (Load (eval_typ tds t) dv)
                   (fun dv => Ret (IREnvEffect (add_env id dv e)))
                   
+   (**
     | IVoid _, INSTR_Store _ (t, val) (u, ptr) _ => 
       'dv <- eval_exp ge e (Some (eval_typ t)) val; 
         'v <- eval_exp ge e(Some (eval_typ u)) ptr;
@@ -436,6 +441,7 @@ IRCall <function-to-call> <args> <instruction ID to write to> <instruction ID to
             end
         | _ => Err  "call got non-function pointer"
         end
+    **)
     |  _, _ => Err "foo"
     end.
 End INSTRUCTION.
@@ -446,17 +452,19 @@ Section TERMINATOR.
   | TRRet: dvalue -> TermResult
   | TRRetVoid: TermResult.
 
-  Definition execTerm (ge: genv) (e: env)
+  Definition execTerm
+             (tds: typedefs)
+             (ge: genv) (e: env)
              (term: terminator): Trace TermResult :=
   match term with
   | (TERM_Ret (t, op)) =>
-    'dv <- eval_exp ge e (Some (eval_typ t)) op;
+    'dv <- eval_exp tds ge e (Some (eval_typ tds t)) op;
       Ret (TRRet dv)
         
   |  TERM_Ret_void =>Ret (TRRetVoid)
       
   | TERM_Br (t,op) br1 br2 =>
-    'dv <- eval_exp ge e(Some (eval_typ t)) op; 
+    'dv <- eval_exp tds ge e(Some (eval_typ tds t)) op; 
     'br <- match dv with 
             | DVALUE_I1 comparison_bit =>
               if Int1.eq comparison_bit Int1.one then
@@ -504,6 +512,7 @@ and point in the basic block to resume from **)
   If there is no current instruction, it executes the terminator of the
   basic block **)
   Fixpoint execBBInstrs
+           (tds: typedefs)
            (ge: genv)
            (e: env)
            (bbid: block_id)
@@ -511,14 +520,14 @@ and point in the basic block to resume from **)
            (term: terminator)
            (pt: instr_pt): Trace BBResult :=
     match instrs with
-    | [] =>  Trace.mapM BBResultFromTermResult (execTerm ge e term)
+    | [] =>  Trace.mapM BBResultFromTermResult (execTerm tds ge e term)
     | cons (id, i) irest =>
-      'iresult <- (execInst ge e id i);
+      'iresult <- (execInst tds ge e id i);
         match iresult with
         | IRCall fnid args retinstid instid =>
           Ret (BBRCall fnid args retinstid pt bbid)
         | IRCallVoid fnid args instid => Ret (BBRCallVoid fnid args pt bbid)
-        | _ => execBBInstrs ge e bbid irest term (pt + 1)%nat
+        | _ => execBBInstrs tds ge e bbid irest term (pt + 1)%nat
         end
     end.
 
@@ -539,8 +548,15 @@ and point in the basic block to resume from **)
     findInstrsAfterInstr_ li needle 0.
              
 
-  Definition execBBAfterLoc (ge: genv) (e: env) (bb: block) (loc: nat):
-    Trace BBResult := execBBInstrs ge e
+  Definition execBBAfterLoc
+             (tds: typedefs)
+             (ge: genv)
+             (e: env)
+             (bb: block)
+             (loc: nat):
+    Trace BBResult := execBBInstrs tds
+                                   ge
+                                   e
                                    (blk_id bb)
                                    (findInstrsAfterInstr (blk_code bb) loc)
                                    (snd (blk_term bb))
@@ -549,8 +565,11 @@ and point in the basic block to resume from **)
 
   (** TODO: add PHI nodes! **)
   (** TODO: consider if the terminator may need it's ID?**)
-  Definition execBB (ge: genv) (e: env) (bb: block):
-    Trace BBResult := execBBInstrs ge e
+  Definition execBB (tds: typedefs)
+             (ge: genv)
+             (e: env)
+             (bb: block):
+    Trace BBResult := execBBInstrs tds ge e
                                    (blk_id bb)
                                    (blk_code bb)
                                    (snd (blk_term bb))
@@ -573,19 +592,19 @@ Section FUNCTION.
 
   (** To execute a function, execute a basic block.
   - If it is returning a value, return it upwards
-  -  If it is performing control flow, execute the next BB
+  - If it is performing control flow, execute the next BB
   - If it is calling a function, push this information toplevel
    *)
-  CoFixpoint execFunctionAtBBId (ge: genv) (e: env)
+  CoFixpoint execFunctionAtBBId (tds: typedefs )(ge: genv) (e: env)
     (CFG: cfg) (fnid: function_id) (bbid: block_id):
     Trace FunctionResult :=
     match find_block (blks CFG) bbid with
     | None => 
       Err "no block found"
     | Some bb =>
-      'bbres <- execBB ge e bb;
+      'bbres <- execBB tds ge e bb;
         match bbres with
-        | BBRBreak bbid' => execFunctionAtBBId ge e CFG fnid bbid' 
+        | BBRBreak bbid' => execFunctionAtBBId tds ge e CFG fnid bbid' 
         | BBRRet dv => Ret (FRReturn dv)
         | BBRRetVoid => Ret FRReturnVoid
         | BBRCall fnid args retinstid instid bbid =>
@@ -595,24 +614,26 @@ Section FUNCTION.
         end
     end.
 
-  Definition execFunction (ge: genv)
+  Definition execFunction
+             (tds: typedefs)
+             (ge: genv)
              (e: env)
              (CFG: cfg)
              (fnid: function_id) : Trace FunctionResult :=
-    execFunctionAtBBId ge e CFG fnid (init CFG).
+    execFunctionAtBBId tds ge e CFG fnid (init CFG).
 
   
 
-  CoFixpoint execFunctionAtBBIdAfterLoc (ge: genv) (e: env)
+  CoFixpoint execFunctionAtBBIdAfterLoc (tds: typedefs) (ge: genv) (e: env)
     (CFG: cfg) (fnid: function_id) (bbid: block_id) (loc: instr_pt):
     Trace FunctionResult :=
     match find_block (blks CFG) bbid with
     | None => 
       Err "no block found"
     | Some bb =>
-      'bbres <- execBBAfterLoc ge e bb loc;
+      'bbres <- execBBAfterLoc tds ge e bb loc;
         match bbres with
-        | BBRBreak bbid' => execFunctionAtBBId ge e CFG fnid bbid' 
+        | BBRBreak bbid' => execFunctionAtBBId tds ge e CFG fnid bbid' 
         | BBRRet dv => Ret (FRReturn dv)
         | BBRRetVoid => Ret FRReturnVoid
         | BBRCall fnid args retinstid instid bbid =>
@@ -632,7 +653,8 @@ Section INTERPRETER.
   Inductive frame : Type :=
   | KRet      (e:env) (retid: instr_id) (pc: pc)
   | KRet_void (e:env) (pc: pc)
-  .       
+  .
+  
   Definition stack := list frame.
   Definition InterpreterState : Type := genv * env * stack.
   
@@ -649,14 +671,16 @@ Section INTERPRETER.
   CoFixpoint execInterpreter (ge: genv)
              (e: env) (s: stack) (MCFG: mcfg)
              (ir: InterpreterResult) :
-    Trace InterpreterResult :=
+      Trace InterpreterResult :=
+    let tds := m_type_defs MCFG
+    in
     match ir with
     | IRDone v => Ret (IRDone v)
     | IRResumeFunction pc' =>
       let '(iid, bbid, fnid) := pc' in
       match find_function MCFG fnid with
       | Some CFGDefn =>
-        'fres <- execFunctionAtBBIdAfterLoc ge e (df_instrs CFGDefn) fnid bbid iid;
+        'fres <- execFunctionAtBBIdAfterLoc tds ge e (df_instrs CFGDefn) fnid bbid iid;
           Ret (IRReturnFunction fres)
       | None => Err "unable to find function"
       end
@@ -665,7 +689,7 @@ Section INTERPRETER.
       match find_function MCFG fnid with
       | Some CFGDefn =>
         let fn_env := env_of_assoc args in
-        'fres <- execFunction ge fn_env (df_instrs CFGDefn) fnid;
+        'fres <- execFunction tds ge fn_env (df_instrs CFGDefn) fnid;
           Ret (IRReturnFunction fres)
                            
       | None => Err "unable to find function"
@@ -702,3 +726,5 @@ Section INTERPRETER.
                      end
     end.
 End INTERPRETER.
+
+End StepSemanticsTiered.

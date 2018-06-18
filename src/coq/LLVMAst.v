@@ -643,13 +643,16 @@ Arguments TLE_Attribute_group {_} _ _.
 
 Definition toplevel_entities (FnBody:Set) : Set := list (toplevel_entity FnBody).
 
+
+Definition typedefs := list (ident * typ).
+
 Record modul (FnBody:Set) : Set :=
   mk_modul
   {
     m_name: option string;
     m_target: option string;
     m_datalayout: option string;
-    m_type_defs: list (ident * typ);
+    m_type_defs: typedefs;
     m_globals: list global;
     m_declarations: list declaration;
     m_definitions: list (definition FnBody);
