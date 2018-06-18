@@ -11,11 +11,13 @@
 Require Import Vellvm.Classes.
 Require Import Vellvm.LLVMIO.
 Require Import Vellvm.StepSemantics.
+Require Import Vellvm.StepSemanticsTiered.
 Require Import Vellvm.Memory.
 
 Module IO := LLVMIO.Make(Memory.A).
 Module M := Memory.Make(IO).
 Module SS := StepSemantics(Memory.A)(IO).
+Module SST := StepSemanticsTiered(Memory.A)(IO).
 
 Import IO.
 Export IO.DV.
@@ -26,6 +28,14 @@ Definition run_mcfg_with_memory (mcfg: CFG.mcfg) : Trace DV.dvalue :=
          SS.step_sem mcfg (SS.Step s))).
 
 Check (run_mcfg_with_memory).
+
+
+Definition run_mcfg_with_memory_tiered (mcfg: CFG.mcfg) : Trace DV.dvalue :=
+  M.memD M.empty
+         (Trace.bindM (SST.init_state_tiered mcfg "main")
+         (fun x => let '(ir, ge) := x in
+                (SST.step_sem_tiered ge (@SST.ENV.empty dvalue) nil mcfg ir))).
+
 
 
 Definition run_with_memory prog : option (Trace DV.dvalue) :=

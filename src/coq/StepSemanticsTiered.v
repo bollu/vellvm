@@ -727,4 +727,74 @@ Section INTERPRETER.
     end.
 End INTERPRETER.
 
+
+CoFixpoint step_sem_tiered
+           (ge: genv)
+           (e: env)
+           (s: stack)
+           (MCFG: mcfg)
+           (r:InterpreterResult) : Trace dvalue :=
+  match r with
+  | IRDone v => mret v
+  | _ => 'rnext <- execInterpreter ge e s MCFG r ;
+          step_sem_tiered ge e s MCFG rnext
+  end.
+
+(** === INITIALIZING GLOBAL SECTION === **)
+
+Definition allocate_globals_tiered (tds: typedefs)(gs:list global) : Trace genv :=
+  monad_fold_right
+    (fun (m:genv) (g:global) =>
+       Trace.Vis (Alloca (eval_typ tds (g_typ g))) (fun v => mret (ENV.add (g_ident g) v m))) gs (@ENV.empty _).
+
+
+Definition register_declaration_tiered (g:genv) (d:declaration) : Trace genv :=
+  (* TODO: map dc_name d to the returned address *)
+    Trace.Vis (Alloca DTYPE_Pointer) (fun v => mret (ENV.add (dc_name d) v g)).
+
+Definition register_functions_tiered (g:genv)
+           (decls: list declaration) :=
+  monad_fold_right register_declaration_tiered decls g.
+                   (* )
+                   ((m_declarations MCFG) ++
+                    (List.map df_prototype (m_definitions MCFG)))
+*)
+  
+Definition initialize_globals_tiered (tds: typedefs)
+           (gs:list global)
+           (g:genv) : Trace unit :=
+  monad_fold_right
+    (fun (_:unit) (glb:global) =>
+       let dt := eval_typ tds (g_typ glb) in
+       do a <- lookup_env g (g_ident glb);
+       'dv <-
+           match (g_exp glb) with
+           | None => mret DVALUE_Undef
+           | Some e => eval_exp tds g (@ENV.empty _) (Some dt) e
+           end;
+       Trace.Vis (Store a dv) mret)
+    gs tt.
+  
+Definition build_global_environment_tiered
+           (tds: typedefs)
+           (gs: list global)
+           (decls: list declaration) : Trace genv :=
+  'g <- allocate_globals_tiered tds gs;
+  'g2 <- register_functions_tiered g decls;
+  '_ <- initialize_globals_tiered tds gs g2;
+  mret g2.
+
+(* Assumes that the entry-point function is named "fname" and that it takes
+   no parameters *)
+Definition declarations_in_module_tiered (MCFG: mcfg): list declaration :=
+                   ((m_declarations MCFG) ++
+                    (List.map df_prototype (m_definitions MCFG))).
+
+Definition init_state_tiered (MCFG: mcfg) (fname:string) :
+  Trace (InterpreterResult *genv) :=
+  'g <- build_global_environment_tiered (m_type_defs MCFG)
+     (m_globals MCFG)
+     (declarations_in_module_tiered MCFG);
+  mret ((IREnterFunction (Name fname) []), g).
+
 End StepSemanticsTiered.
