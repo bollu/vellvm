@@ -287,6 +287,17 @@ Proof.
   unfold SST.execFunction.
   simpl.
   unfold simpleProgramInitBBId.
+  rewrite SST.force_exec_function_at_bb_id
+    with (tds:=[])
+         (ge:=(SST.ENV.add (Name "main") (DVALUE_Addr (M.size M.empty, 0))
+                           (SST.ENV.empty dvalue)))
+         (e:=(SST.env_of_assoc []))
+         (CFG:=mainCFG n)
+         (fnid:= (Name "main"))
+         (bbid:=Name "init").
+  
+  SST.forcesst.
+Abort.
 
 (** tiered semantics is already paying off, I can look at what happens
 when I execute a function **)
@@ -296,8 +307,13 @@ Lemma exec_main_function_orig: forall (n: nat),
                  (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
               (mainCFG n) (Name "main")) ≡ Ret (SST.FRReturn (DVALUE_I32  (Int32.repr 1%Z))).
 Proof.
+  Opaque SST.execBB.
+  Opaque SST.step_sem_tiered.
+  Opaque SST.execFunction.
+  Opaque Trace.bindM.
   intros.
-  SST.forcesst.
+Abort.
+  
 
                                               
 
@@ -350,6 +366,7 @@ Proof.
   rewrite @Trace.matchM with (i := SST.step_sem_tiered _ _ _ _ _ ).
   unfold SST.step_sem_tiered.
   unfold SST.execInterpreter.
+Abort.
   
 (* Lemma I care about *)
 Theorem looprev_same_semantics:
