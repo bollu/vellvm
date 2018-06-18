@@ -14,7 +14,7 @@ Require Import Vellvm.Util.
 Require Import Vellvm.CFG.
 Require Import Vellvm.LLVMIO.
 Require Import Vellvm.DynamicValues.
-Require Import Vellvm.StepSemantics.
+Require Import Vellvm.StepSemanticsTiered.
 Require Import  Vellvm.Classes Vellvm.Util.
 Require Import Vellvm.LLVMAst.
 Require Import Vellvm.TypeUtil.
@@ -25,7 +25,6 @@ Require Import Coq.Setoids.Setoid.
 Require Import SetoidClass.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Equivalence.
-Require Import Vellvm.StoreSwitch.
 Require Import Vellvm.TopLevel.
 Require FunctionalExtensionality.
 Require Import Eqdep_dec.
@@ -45,6 +44,7 @@ Open Scope string_scope.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
+
 
 Require Import Vellvm.Memory.
 
@@ -262,76 +262,58 @@ End LOOPREV.
 
 Definition LoopWriteSet (n: nat) : list nat := seq 1 n.
 
-Lemma prog_prog'_equal: forall n, program n = program' n.
-Proof.
-  intros.
-  unfold program.
-  unfold program'.
-  apply f_equal.
-  unfold mainDefinition.
-  unfold mainDefinition'.
-  simpl.
-  cut (mainCFG n = mainCFGRewrite n); intros; try (rewrite H; auto).
-  unfold mainCFG.
-  unfold mainCFGRewrite.
-Abort.
-
 
 Hint Transparent SS.init_state.
 Hint Unfold SS.init_state.
 
+(** Show this spurious proof to experiment with unfolding our new
+definition of program semantics **)
+Lemma run_mcfg_with_memory_orig:
+  forall (n: nat),
+    run_mcfg_with_memory_tiered (program n) ≡ 
+                                Ret (DVALUE_I32  (Int32.repr 1%Z)).
+Proof.
+  intros.
+  unfold run_mcfg_with_memory_tiered.
+  unfold SST.init_state_tiered.
+  unfold SST.build_global_environment_tiered.
+  unfold SST.allocate_globals_tiered.
+  simpl.
+  euttnorm.
+
+  unfold SST.register_functions_tiered.
+  simpl.
+  euttnorm.
+
+  unfold SST.register_declaration_tiered.
+  simpl.
+  euttnorm.
+
+  M.forcememd.
+  euttnorm.
+  
+  unfold SST.initialize_globals_tiered. simpl.
+  euttnorm.
+
+  Opaque SST.execFunction.
+  
+  rewrite SST.force_step_sem_tiered.
+  simpl.
+  
+  rewrite @Trace.matchM with (i := SST.step_sem_tiered _ _ _ _ _ ).
+  simpl.
+  M.forcememd.
+  euttnorm.
+  
+  rewrite @Trace.matchM with (i := SST.step_sem_tiered _ _ _ _ _ ).
+  unfold SST.step_sem_tiered.
+  unfold SST.execInterpreter.
+  
 (* Lemma I care about *)
 Theorem looprev_same_semantics:
   forall (n: nat),
-    run_mcfg_with_memory (program n) ≡ run_mcfg_with_memory (program' n).
+    run_mcfg_with_memory_tiered (program n) ≡ run_mcfg_with_memory_tiered (program' n).
 Proof.
   intros.
-  unfold program.
-  unfold program'.
-  
-  unfold run_mcfg_with_memory.
-  simpl.
-  unfold SS.init_state.
-  simpl.
-  unfold SS.build_global_environment.
-  simpl.
-  unfold SS.allocate_globals.
-  simpl.
-
-  euttnorm.
-  unfold SS.register_functions.
-  simpl.
-  euttnorm.
-  unfold SS.register_declaration.
-  euttnorm.
-  Set Ltac debug.
-  forcetrace.
-  euttnorm.
-  unfold SS.initialize_globals.
-
-    repeat (  euttnorm ||
-        M.forcememd ||
-        SS.forcestepsem ||
-        unfold SS.cont;simpl).
-
-  unfold run_mcfg_with_memory.
-  simpl.
-  unfold SS.init_state.
-  unfold SS.build_global_environment.
-  unfold SS.allocate_globals.
-  simpl.
-  repeat progress euttnorm.
-  unfold SS.register_functions.
-  simpl.
-  repeat progress euttnorm.
-  unfold SS.register_declaration.
-  repeat progress (euttnorm).
-  repeat progress M.forcememd.
-  euttnorm.
-
-  unfold SS.initialize_globals.
-  simpl.
-  rewrite bindM_Ret.
-  rewrite bindM_Ret.
-  euttnorm.
-Qed.
+  unfold run_mcfg_with_memory_tiered.
+Abort.

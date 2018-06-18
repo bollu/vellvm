@@ -408,11 +408,13 @@ IRCall <function-to-call> <args> <instruction ID to write to> <instruction ID to
         Trace.Vis (Load (eval_typ tds t) dv)
                   (fun dv => Ret (IREnvEffect (add_env id dv e)))
                   
-   (**
     | IVoid _, INSTR_Store _ (t, val) (u, ptr) _ => 
-      'dv <- eval_exp ge e (Some (eval_typ t)) val; 
-        'v <- eval_exp ge e(Some (eval_typ u)) ptr;
+      'dv <- eval_exp tds ge e (Some (eval_typ tds t)) val; 
+        'v <- eval_exp tds ge e(Some (eval_typ tds u)) ptr;
         Trace.Vis (Store v dv) (fun _ => Ret IRNone)
+    | IId id, INSTR_Alloca t _ _ =>
+      Trace.Vis (Alloca (eval_typ tds t)) (fun (a:dvalue) =>  Ret (IREnvEffect (add_env id a e)))
+   (**
     | pt, INSTR_Call (t, f) args =>
       'fv <- eval_exp ge e None f;
         'dvs <-  map_monad (fun '(t, op) => (eval_exp ge e(Some (eval_typ t)) op)) args;
@@ -795,6 +797,17 @@ Definition init_state_tiered (MCFG: mcfg) (fname:string) :
   'g <- build_global_environment_tiered (m_type_defs MCFG)
      (m_globals MCFG)
      (declarations_in_module_tiered MCFG);
-  mret ((IREnterFunction (Name fname) []), g).
+    mret ((IREnterFunction (Name fname) []), g).
+
+(** Theorems and lemmas on properties of StepSemanticsTiered **)
+
+Lemma force_step_sem_tiered: forall (e: env) (ge: genv) (st: stack) (MCFG: mcfg)
+   (r: InterpreterResult),
+    (step_sem_tiered ge e st MCFG r) ≡
+                                        ('rnext <- execInterpreter ge e  st MCFG r ;
+                                           step_sem_tiered ge e  st MCFG rnext).
+Proof.
+Admitted.
+
 
 End StepSemanticsTiered.
