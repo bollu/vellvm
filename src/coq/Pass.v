@@ -11,7 +11,7 @@ Require Import Vellvm.Util.
 Require Import Vellvm.CFG.
 Require Import Vellvm.LLVMIO.
 Require Import Vellvm.DynamicValues.
-Require Import Vellvm.StepSemantics.
+Require Import Vellvm.StepSemanticsTiered.
 Require Import  Vellvm.Classes Vellvm.Util.
 Require Import Vellvm.LLVMAst.
 Require Import Vellvm.TypeUtil.
@@ -32,15 +32,6 @@ Set Contextual Implicit.
 
 Require Import Vellvm.Memory.
 
-
-(* 
-Definition InstrPass := Pass instr.
-Definition CodePass := Pass code.
-Definition BlockPass := Pass block.
-Definition CFGPass := Pass cfg.
-Definition DefinitionCFGPass := Pass (definition cfg).
-Definition MCFGPass := Pass mcfg.
-*)
 
 (* We can create fancy typeclass based machinery to lift passes to
 their correct embedding, similar to the way in which effect handlers
@@ -230,8 +221,8 @@ Module PASSTHEOREMS (A:MemoryAddress.ADDRESS) (LLVMIO:LLVM_INTERACTIONS(A)).
 Import FunctionalExtensionality.
 
 
-Module SS := StepSemantics A LLVMIO.
-Import SS.
+Module SST := StepSemanticsTiered A LLVMIO.
+Import SST.
 Import LLVMIO.
 
 (* Since
@@ -267,8 +258,8 @@ Qed.
 Hint Resolve bind_of_ret.
 Hint Rewrite -> bind_of_ret.
 
-Lemma  eval_type_I64: forall (cfg: mcfg),
-    eval_typ cfg (TYPE_I 64) = DTYPE_I 64.
+Lemma  eval_type_I64: forall (tds: typedefs),
+    eval_typ tds (TYPE_I 64) = DTYPE_I 64.
 Proof.
   intros.
   unfold eval_typ.
@@ -289,7 +280,7 @@ Definition preserves_types (p: MCFGPass): Prop :=
   forall (CFG: mcfg), m_type_defs (p CFG) = m_type_defs CFG.
 
 Definition preserves_eval_typ (p: MCFGPass) (t: typ): Prop :=
-  forall (CFG: mcfg), eval_typ (p CFG) t = eval_typ CFG t.
+  forall (CFG: mcfg), eval_typ (m_type_defs (p CFG)) t = eval_typ (m_type_defs CFG) t.
 
 Create HintDb passes.
 
@@ -297,12 +288,14 @@ Create HintDb passes.
 Lemma preserves_types_implies_preserves_eval_typ:
   forall (p: MCFGPass) (CFG: mcfg) (t: typ),
     preserves_types p ->
-    eval_typ (p CFG) t = eval_typ CFG t.
+    preserves_eval_typ p t.
 Proof.
   intros.
   repeat (unfold eval_typ).
+  repeat (unfold preserves_eval_typ).
 
   unfold preserves_types in H.
+  intros.
   rewrite H.
   repeat (rewrite normalize_type_equation).
   destruct t; auto.
@@ -570,27 +563,6 @@ Hint Resolve (rewrite_block_to_cmd_on_fetch_instr).
 
 
 
-Lemma preserves_types_implies_preserves_eval_expr: forall CFG g e t ex (pass: MCFGPass)
-  (PRESERVES_TYPES: preserves_types pass),
-  eval_exp (pass CFG) g e t ex =
-  eval_exp CFG g e t ex.
-Proof.
-  intros.
-  (* Use FunExt to make proof much shorter *)
-  assert (EVAL_TYP_EQ: eval_typ (pass CFG) = eval_typ CFG).
-  unfold eval_typ.
-  extensionality t0_ext.
-  unfold preserves_types in PRESERVES_TYPES.
-  rewrite PRESERVES_TYPES.
-  auto.
-  
-  intros.
-  unfold eval_exp.
-  rewrite EVAL_TYP_EQ.
-  reflexivity.
-Qed.
-
-Hint Resolve (preserves_types_implies_preserves_eval_expr).
 
 
 
@@ -611,27 +583,10 @@ Proof.
   unfold find_block_entry.
   repeat (unfold monomap; unfold monofunctor_chain).
   rewrite find_function_lifted_definition_pass; auto.
-  simpl.
-
-  destruct (find_function MCFG fid); auto.
-  simpl.
-
-
-  rewrite find_block; auto.
-  destruct (CFG.find_block (blks (df_instrs d)) bid); auto.
-
-  simpl.
-  unfold liftInstrPassToBlockPass.
-  unfold block_to_entry.
-  destruct b; simpl; auto.
-
-  repeat (destruct blk_code; simpl; auto).
-Qed.
+Admitted.
   
   
-  
-
-  
+(* 
 Lemma eq_jump: forall CFG fn  bk br g e s pass,
     preserves_types pass ->
     preserves_block_entry pass ->
@@ -661,6 +616,7 @@ Proof.
   repeat (rewrite PRESERVES_ENTRY).
   reflexivity.
 Qed.
+*)
 
 (* Helper function to run an InstrPass on the result of a find_instr. This
 is super kludgy.
@@ -695,7 +651,7 @@ Lemma findOverInstrPassLiftedToIdInstrPass:
     (c: code)
     (p: instr_id)
     (termid: instr_id),
-    find_instr (map (liftInstrPassToIdInstrPass pass) c) p termid =
+    find_instr (map (monomap pass) c) p termid =
     runInstrPassOnFindInstr pass (find_instr c p termid).
 Proof.
   intros until c.
@@ -704,33 +660,38 @@ Proof.
 
   destruct a; simpl.
   destruct (p == i); simpl.
+  (* 
   - unfold liftInstrPassToIdInstrPass. unfold fallthrough.
     destruct c; auto.
 
   - fold find_instr. apply IHc.
-Qed.
+   *)
+Admitted.
 
 Hint Resolve findOverInstrPassLiftedToIdInstrPass.
 
 Lemma InstrPassPreservesBlockToCmd: forall (pass: InstrPass)
                                       (b: block)
                                       pt,
-    block_to_cmd ((liftInstrPassToBlockPass pass) b) pt  =
+    block_to_cmd ((monomap pass) b) pt  =
     runInstrPassOnFindInstr pass (block_to_cmd b pt).
 Proof.
   intros.
   unfold block_to_cmd.
   simpl.
 
-  assert (PRESERVES_TERM: blk_term ((liftInstrPassToBlockPass pass) b) =
+  assert (PRESERVES_TERM: blk_term ((monomap pass) b) =
                           blk_term b).
   auto.
 
   unfold blk_term_id.
+  (* 
   rewrite PRESERVES_TERM.
 
   destruct (fst (blk_term b) == pt); auto.
 Qed.
+   *)
+Admitted.
   
 
 Definition preserves_function_entry (pass: MCFGPass): Prop :=
@@ -743,15 +704,13 @@ defined in terms of the ID OF THE FIRST INSTRUCTION.
 *)
 Lemma  lifted_instr_pass_preserves_function_entry:
   forall (pass: InstrPass),
-    preserves_function_entry (liftCFGDefinitionPassToMCFGPass
-                                (liftCFGPassToCFGDefinitionPass
-                                   (liftBlockPassToCFGPass
-                                      (liftInstrPassToBlockPass pass)))) .
+    preserves_function_entry (monomap pass).
 Proof.
   unfold preserves_function_entry.
   intros.
   unfold find_function_entry.
   simpl.
+  (*
   rewrite find_function_lifted_definition_pass; auto.
   destruct (find_function MCFG fnid); auto.
 
@@ -765,10 +724,45 @@ Proof.
 
   destruct (blk_code b); simpl; auto.
 Qed.
+   *)
+Admitted.
 
-      
-*)
+
+(** Preservation theorems: That is, if someone preserves property <X>, then all properties <Y> "above" <X> are preserved
+ **)
+
+Lemma preserve_inst_trace_implies_preserve_bb_trace:
+  forall (ip: InstrPass)
+    (PRESERVEINST: forall (tds: typedefs)(ge: genv) (e: env)
+                 (i: instr) (id: instr_id),
+                 execInst tds ge e id i = execInst tds ge e id (ip i))
+    (ge: genv)
+    (tds: typedefs)
+    (e: env)
+    (bb1 bb2: block)
+    (CFG: mcfg)
+    (BBMODIFIED: bb2 = monomap ip bb1)
+    (pt: instr_pt),
+    execBBInstrs tds ge e (blk_id bb1) (blk_code bb1) (snd (blk_term bb1))  pt = execBBInstrs tds ge e (blk_id bb2) (blk_code bb2) (snd (blk_term bb2)) pt.
+Proof.
+  intros.
+  unfold monomap in BBMODIFIED.
+  unfold instrToBlockFunctor in BBMODIFIED.
   
+  
+  unfold execBBInstrs.
+  induction (blk_code bb1) eqn:CODE.
+  - simpl in BBMODIFIED.
+    destruct bb2.
+    inversion BBMODIFIED.
+    simpl.
+    reflexivity.
+  - simpl.
+    destruct bb2.
+    simpl in *.
+    inversion BBMODIFIED.
+    simpl in *.
+Abort.
 End PASSTHEOREMS.
 
 

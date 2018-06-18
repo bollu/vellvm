@@ -45,3 +45,12 @@ Definition run_with_memory prog : option (Trace DV.dvalue) :=
   | Some mcfg => Some (run_mcfg_with_memory mcfg)
   end.
 
+
+
+Definition run_with_memory_tiered prog : option (Trace DV.dvalue) :=
+  let scfg := Vellvm.AstLib.modul_of_toplevel_entities prog in
+  match CFG.mcfg_of_modul scfg with
+  | None => None
+  | Some mcfg => Some (run_mcfg_with_memory_tiered mcfg)
+  end.
+
