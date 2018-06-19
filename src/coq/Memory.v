@@ -353,7 +353,7 @@ CoFixpoint mem_effect_1 {X} (m: memory) (tx: Trace X):
   | Trace.Vis Y io k => 
     match mem_step io m with
     | inr (m', v) => Trace.Tau (mem_effect_1 m' (k v))
-    | inl e => Trace.Vis io (fun y => mem_effect_1 m (k y))
+    | inl e => Trace.Vis io (fun y => Trace.mapM (fun x => (m, x)) (k y))
     end
   end.
   
@@ -368,7 +368,7 @@ CoFixpoint mem_effect_2 {X} (m: memory) (tx: Trace X):
   | Trace.Vis Y io k => 
     match mem_step io m with
     | inr (m', v) => Trace.Tau (mem_effect_2 m' (k v))
-    | inl e => Trace.Vis io (fun y => mem_effect_2 m (k y))
+    | inl e => Trace.Vis io (fun y => Trace.Ret (m, (k y)))
     end
   end.
                  
@@ -759,28 +759,38 @@ Proof.
     euttnorm.
     Guarded.
   - (* Vis *)
-    euttnorm.
+    rewrite (@Trace.matchM) with (i := memD _ _); simpl.
     rewrite (@Trace.matchM) with (i := mem_effect_1 _ _); simpl.
-    forcememd.
-    Guarded.
     destruct (mem_step e m) eqn:MEMSTEP.
     + euttnorm.
       constructor.
       intros.
+      rewrite (@Trace.matchM) with (i := mapM _ _).
       admit.
-      Guarded.
+
+      (* 
+      destruct (k y).
+      *  simpl.
+         rewrite (@Trace.matchM) with (i := bindM _ _); simpl.
+       *)
+
+      
     + destruct p.
-      Guarded.
       rewrite (@Trace.matchM) with (i := bindM (Tau _) _).
       Guarded.
       simpl.
-      Guarded.
       constructor.
+      apply CIH with (m := m0) (trx := (k y)) (f :=f).
       Guarded.
-      admit.
 
   - (* Tau *)
-    admit.
+      rewrite (@Trace.matchM) with (i := bindM (Tau _) _); simpl.
+      rewrite (@Trace.matchM) with (i := mem_effect_1 _ _); simpl.
+      rewrite (@Trace.matchM) with (i := bindM (Tau _) _); simpl.
+      rewrite (@Trace.matchM) with (i := memD _ _); simpl.
+      constructor.
+      apply CIH with (m := m) (trx := trx) (f :=f).
+      
 
   - euttnorm.
     Guarded.
