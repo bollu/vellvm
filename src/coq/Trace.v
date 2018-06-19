@@ -319,7 +319,7 @@ Proof.
   omega.
   rewrite N_PLUS_1.
   auto.
-Qed.
+Defined.
 
 
 Lemma tauN_untau:
@@ -339,7 +339,7 @@ Proof.
     rewrite tauN_destruct.
     constructor. auto.
     omega.
-Qed.
+Defined.
 
 
 Hint Resolve tauN_untau.
@@ -357,7 +357,7 @@ Proof.
     intros.
     rewrite <- IHn.
     auto.
-Qed.
+Defined.
 
 Lemma tauN_eutt: forall {E X}
                    (n: nat)
@@ -397,7 +397,7 @@ Proof.
     apply tauN_eutt.
     Guarded.
     omega.
-Qed.
+Defined.
 
 
 (* 
@@ -459,7 +459,7 @@ Proof.
   replace (Tau a) with (tauN 1 a).
   apply tauN_eutt.
   auto.
-Qed.
+Defined.
 
 
 (* Simple helpers for small applications of Tau *)
@@ -970,7 +970,7 @@ Proof.
   symmetry.
   apply tauN_eutt_1.
   Guarded.
-Qed.
+Defined.
 
 
 
@@ -1443,7 +1443,7 @@ Proof.
     simpl.
     reflexivity.
     Guarded.
-Qed.
+Defined.
 
 
 (* SAZ: 
@@ -1478,7 +1478,7 @@ Proof.
   intros.
   repeat (rewrite <- tauN_eutt_1).
   auto.
-Qed.
+Defined.
 
 
 Lemma bindM_Err: forall {X Y :Type} {E: Type -> Type} (e: String.string) (f: X -> M E Y),
@@ -1487,7 +1487,7 @@ Proof.
   intros.
   rewrite @matchM with (i := (bindM _ _)).
   auto.
-Qed.
+Defined.
 
 Create HintDb euttnormdb.
 Hint Rewrite (@bindM_assoc) : euttnormdb.

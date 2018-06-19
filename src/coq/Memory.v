@@ -353,7 +353,7 @@ CoFixpoint mem_effect_1 {X} (m: memory) (tx: Trace X):
   | Trace.Vis Y io k => 
     match mem_step io m with
     | inr (m', v) => Trace.Tau (mem_effect_1 m' (k v))
-    | inl e => Trace.Err "foo"
+    | inl e => Trace.Vis io (fun y => mem_effect_1 m (k y))
     end
   end.
   
@@ -368,7 +368,7 @@ CoFixpoint mem_effect_2 {X} (m: memory) (tx: Trace X):
   | Trace.Vis Y io k => 
     match mem_step io m with
     | inr (m', v) => Trace.Tau (mem_effect_2 m' (k v))
-    | inl e => Trace.Err "foo"
+    | inl e => Trace.Vis io (fun y => mem_effect_2 m (k y))
     end
   end.
                  
@@ -546,7 +546,7 @@ Proof.
   destruct (mem_step e mem).
   - reflexivity.
   - destruct p. reflexivity.
-Qed.
+Defined.
 
 
 Lemma force_memD_ret:
@@ -559,7 +559,7 @@ Proof.
   rewrite @Trace.matchM with (i := memD _ _).
   simpl.
   reflexivity.
-Qed.
+Defined.
 
 
 Lemma force_memD_err:
@@ -572,7 +572,7 @@ Proof.
   rewrite @Trace.matchM with (i := memD _ _).
   simpl.
   reflexivity.
-Qed.
+Defined.
 
 Ltac forcememd := do [rewrite force_memD_ret | rewrite force_memD_vis |
                      rewrite force_memD_err]; simpl; auto.
@@ -741,11 +741,60 @@ Qed.
 
 Check (Ret).
 
+Theorem memD_commutes_with_bind_mem_effect_1: forall {X Y: Type}
+                                 (trx: Trace X)
+                                 (f: X -> Trace Y)
+                                 (m: memory),
+    memD m (bindM trx f) ≡
+            bindM (mem_effect_1 m trx)
+            (fun out =>  memD (fst out) (bindM (Ret (snd out)) f)).
+Proof.
+  intros until Y.
+  cofix CIH.
+  intros.
+  destruct trx.
+  - (* ret *)
+    euttnorm.
+    rewrite (@Trace.matchM) with (i := mem_effect_1 _ _); simpl.
+    euttnorm.
+    Guarded.
+  - (* Vis *)
+    euttnorm.
+    rewrite (@Trace.matchM) with (i := mem_effect_1 _ _); simpl.
+    forcememd.
+    Guarded.
+    destruct (mem_step e m) eqn:MEMSTEP.
+    + euttnorm.
+      constructor.
+      intros.
+      admit.
+      Guarded.
+    + destruct p.
+      Guarded.
+      rewrite (@Trace.matchM) with (i := bindM (Tau _) _).
+      Guarded.
+      simpl.
+      Guarded.
+      constructor.
+      Guarded.
+      admit.
+
+  - (* Tau *)
+    admit.
+
+  - euttnorm.
+    Guarded.
+    rewrite (@Trace.matchM) with (i := mem_effect_1 _ _); simpl.
+    euttnorm.
+    forcememd.
+    Guarded.
+Abort.
+
 (**
 memD m (trx >>= f) ≡
     (mem_effect m trx) >>= \((m', trx') -> memD m' (trx' >>= f))
 **)
-Theorem memD_commutes_with_bind: forall {X Y: Type}
+Theorem memD_commutes_with_bind_mem_effect_2: forall {X Y: Type}
                                  (trx: Trace X)
                                  (f: X -> Trace Y)
                                  (m: memory),
@@ -845,15 +894,6 @@ Proof.
 Qed.
 
 
-Theorem rewrite_memD_as_memEffect: forall {X: Type}
-                             (trx: Trace X)
-                             (m: memory),
-    memD m trx ≡
-         bindM (mem_effect m trx)
-         (fun res => let '(mem', trx') := res in
-                  memD mem' trx').
-Proof.
-Abort.
 (*
 Definition run_with_memory prog : option (Trace dvalue) :=
   let scfg := Vellvm.AstLib.modul_of_toplevel_entities prog in
