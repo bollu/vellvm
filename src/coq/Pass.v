@@ -22,6 +22,7 @@ Require Import SetoidClass.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Equivalence.
 Require FunctionalExtensionality.
+Require Import Vellvm.Memory.
 
 Import ListNotations.
 Open Scope Z_scope.
@@ -30,7 +31,6 @@ Open Scope string_scope.
 Set Implicit Arguments.
 Set Contextual Implicit.
 
-Require Import Vellvm.Memory.
 
 
 (* We can create fancy typeclass based machinery to lift passes to
@@ -561,30 +561,6 @@ Qed.
     
 Hint Resolve (rewrite_block_to_cmd_on_fetch_instr).
 
-
-
-
-
-
-(* Jumps are defined with respect to the first instruction in the block.
-Create a definition that captures this notion *)
-Definition preserves_block_entry (pass: MCFGPass) : Prop :=
-  forall (MCFG: mcfg)
-    (fid: function_id)
-    (bid: block_id),
-    find_block_entry (pass MCFG) fid bid  = find_block_entry MCFG fid bid.
-
-Lemma lifted_instr_pass_to_MCFG_pass_preserves_block_entry:
-  forall (pass: InstrPass),
-    preserves_block_entry (monomap pass).
-Proof.
-  unfold preserves_block_entry.
-  intros.
-  unfold find_block_entry.
-  repeat (unfold monomap; unfold monofunctor_chain).
-  rewrite find_function_lifted_definition_pass; auto.
-Admitted.
-  
   
 (* 
 Lemma eq_jump: forall CFG fn  bk br g e s pass,
@@ -727,9 +703,43 @@ Qed.
    *)
 Admitted.
 
+End PASSTHEOREMS.
 
-(** Preservation theorems: That is, if someone preserves property <X>, then all properties <Y> "above" <X> are preserved
- **)
+
+Module IO := LLVMIO.Make(Memory.A).
+Module M := Memory.Make(IO).
+Module SST := StepSemanticsTiered(Memory.A)(IO).
+
+Import SST.
+Import Vellvm.Trace.MonadVerif.
+
+Check (SST.eval_exp).
+Ltac unfolder_for_exp := unfold eval_exp,
+                         IO.lift_err_d,
+                         lookup_id,
+                         raise,
+                         mret,
+                         IO.exn_trace.
+
+Ltac destruct_finite_trace_match :=
+  try unfolder_for_exp;
+  match goal with
+  | [ |- TraceFinite (match ?X with _ => _ end) ] =>
+    destruct X;
+    try unfolder_for_exp;
+    first [constructor | destruct_finite_trace_match]
+  end.
+
+Fixpoint eval_exp_has_finite_trace
+  (tds: typedefs)
+    (ge: genv)
+    (e: env)
+    (odtyp: option dtyp)
+    (ex: exp):
+    Trace.TraceFinite(SST.eval_exp tds ge e odtyp ex).
+Proof.
+  induction ex; try destruct_finite_trace_match.
+Admitted.
 
 Lemma preserve_inst_trace_implies_preserve_bb_trace:
   forall (ip: InstrPass)
@@ -740,30 +750,49 @@ Lemma preserve_inst_trace_implies_preserve_bb_trace:
     (tds: typedefs)
     (e: env)
     (bb1 bb2: block)
-    (CFG: mcfg)
     (BBMODIFIED: bb2 = monomap ip bb1)
-    (pt: instr_pt),
-    execBBInstrs tds ge e (blk_id bb1) (blk_code bb1) (snd (blk_term bb1))  pt = execBBInstrs tds ge e (blk_id bb2) (blk_code bb2) (snd (blk_term bb2)) pt.
+    (pt: instr_pt)
+    (minit: M.memory),
+    M.memD minit (execBBInstrs tds ge e (blk_id bb1) (blk_code bb1) (snd (blk_term bb1))  pt) ≡
+    M.memD minit (execBBInstrs tds ge e (blk_id bb2) (blk_code bb2) (snd (blk_term bb2)) pt).
 Proof.
   intros.
   unfold monomap in BBMODIFIED.
   unfold instrToBlockFunctor in BBMODIFIED.
   
   
-  unfold execBBInstrs.
-  induction (blk_code bb1) eqn:CODE.
-  - simpl in BBMODIFIED.
+  destruct bb1; simpl in *.
+  generalize dependent blk_id.
+  generalize dependent blk_phis.
+  generalize dependent bb2.
+  generalize dependent ge.
+  generalize dependent e.
+  generalize dependent minit.
+  generalize dependent pt.
+  induction blk_code.
+  
+  - intros.
+    simpl in BBMODIFIED.
     destruct bb2.
     inversion BBMODIFIED.
     simpl.
     reflexivity.
-  - simpl.
+    
+  - intros.
+    simpl.
     destruct bb2.
     simpl in *.
     inversion BBMODIFIED.
     simpl in *.
+    rewrite <- PRESERVEINST.
+    destruct a as [NAME  INST].
+    simpl in *.
+    erewrite M.memD_commutes_with_bind'.
+    rewrite 
+Admitted
+
+
 Abort.
-End PASSTHEOREMS.
 
 
 
