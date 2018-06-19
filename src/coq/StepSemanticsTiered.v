@@ -41,14 +41,17 @@ Open Scope Z_scope.
 Open Scope string_scope.
 
 (** This module refactors [StepSemantics], so that we express stepping through the
-LLVM IR in semantic increments, rather than having a single `step` function which steps
+LLVM IR in semantic increments, rather than having a single [step] function which steps
 over instructions, from which we try to recover higher level semantics
-**)
+*)
 Module StepSemanticsTiered(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A)).
+
   
   Import LLVMIO.
   
-  (* Environments ------------------------------------------------------------- *)
+  (**  *Environments *)
+  (** This is the same as the original [StepSemantics]. The delta starts
+      from "instruction execution" *)
   Module ENV := FMapAVL.Make(AstLib.RawIDOrd).
   Module ENVFacts := FMapFacts.WFacts_fun(AstLib.RawIDOrd)(ENV).
   Module ENVProps := FMapFacts.WProperties_fun(AstLib.RawIDOrd)(ENV).
@@ -179,8 +182,8 @@ Module StepSemanticsTiered(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A))
 Section IN_TYPEDEFS_CONTEXT.
   (** Note that we do not depend on the entire mcfg. Rather, we import in piecemeal exactly what we need,
       so that our proofs about these objects don't drag in the entire mcfg. This makes showing
-      semantic preservation at least theoretically cleaner
-  **)
+      semantic preservation at least theoretically cleaner.
+  *)
   Variable tds: typedefs.
 
 Definition eval_typ (t:typ) : dtyp :=
@@ -191,7 +194,7 @@ Section IN_LOCAL_ENVIRONMENT.
 Variable g : genv.
 Variable e : env.
 
-(** eval_exp is unchanged, except for the fact that it now takes `typedefs`, rather than `mcfg **)
+(** eval_exp is unchanged, except for the fact that it now takes [typedefs], rather than [mcfg] for typeinfo *)
 (*
   [eval_exp] is the main entry point for evaluating LLVM expressions.
   top : is the type at which the expression should be evaluated (if any)
@@ -391,36 +394,36 @@ Arguments eval_op _ : simpl nomatch.
 End IN_LOCAL_ENVIRONMENT.
 End IN_TYPEDEFS_CONTEXT.
 (** We split our semantics into instruction, basic block,function, and toplevel "interpreter"
-execution. Each of these follow the old model of returning a `result`, but this `result` is
-different between the different layers **)
+execution. Each of these follow the old model of returning a [result], but this [result] is different between the different layers *)
 
-(** Define the semantics of instruction execution **)
-
+(** * Semantics of instruction execution  *)
 Section INSTRUCTION.
   Inductive InstResult : Type :=
-  (** Represent calling a function.
-IRCall <function-to-call> <args> <instruction ID to write to>  <instruction ID to resume from> **)
-  | IRCall: function_id -> list (local_id*dvalue) -> instr_id -> instr_id -> InstResult
-  | IRCallVoid: function_id -> list (local_id*dvalue) -> instr_id -> InstResult
-  (** Represent modifying the environment **)
-  | IREnvEffect: env  -> InstResult
-  (** Is a Noop. Note that such instructions can still have memory
-   effects by recording against the trace **)
-  | IRNone.
+  | IRCall: function_id (**r function to call *)
+            -> list (local_id*dvalue) (**r parameters *)
+            -> instr_id (**r instruction to set return value to *)
+            -> instr_id (**r instruction to resume execution from *)
+            -> InstResult (**r call a function. *)
+  | IRCallVoid: function_id (**r function to call *)
+                -> list (local_id*dvalue) (**r parameters *)
+                -> instr_id (**r instruction to resume execution from *)
+                -> InstResult (**r call a function with void return *)
+  | IREnvEffect: env  -> InstResult (**r set the [env] **)
+  | IRNone (**r  noop *)
+  .
 
-  (** Note that we immediately get some payoff: reasoning about an
+(** Note that we immediately get some payoff: reasoning about an
   instruction execution is now a local process, since it is a
-  `Definition` that returns a predictable `InstResult.
+  [Definition] that returns a predictable [InstResult].
 
-  1. This is cleaner than `exec` having to handle both instructions
+- This is cleaner than [exec] having to handle both instructions
   and terminators, thereby mixing up issues of control flow with that
   of instruction execution.
 
-  2. Also note that we "bubble up" control flow of function calls
-     with a custom `InstResult`. This way, we can predictably reason
-     about the state transition which occurs during a function call,
-     rather than "magic() + change the pc"
-   **)
+- Note that we "bubble up" control flow of function calls
+  with a custom [InstResult]. This way, we can predictably reason
+  about the state transition which occurs during a function call,
+  rather than [magic() + change the pc] *)
   Definition execInst
              (tds: typedefs)
              (ge:  genv)
@@ -439,7 +442,6 @@ IRCall <function-to-call> <args> <instruction ID to write to>  <instruction ID t
         Trace.Vis (Store v dv) (fun _ => Ret IRNone)
     | IId id, INSTR_Alloca t _ _ =>
       Trace.Vis (Alloca (eval_typ tds t)) (fun (a:dvalue) =>  Ret (IREnvEffect (add_env id a e)))
-   (** TODO: should be re-enabled 
     | pt, INSTR_Call (t, f) args =>
       'fv <- eval_exp ge e None f;
         'dvs <-  map_monad (fun '(t, op) => (eval_exp ge e(Some (eval_typ t)) op)) args;
@@ -447,6 +449,15 @@ IRCall <function-to-call> <args> <instruction ID to write to>  <instruction ID t
         | DVALUE_Addr addr =>
           (* TODO: lookup fid given addr from global environment *)
           do fid <- reverse_lookup_function_id ge addr;
+            bs <- combine_lists_err ids dvs;
+            match pt with
+            | IVoid _ => Ret (IRCallVoid fid bs id)
+            |  _ => Err "foo"
+            (* cont (ge, pc_f, env, (KRet_void e pc_next::k)) *)
+            (* | IId _ => Ret (IRCall fid bs id id) *)
+                          (* cont (ge, pc_f, env, (KRet e id pc_next::k)) *)
+            end
+        (* 
             match (find_function_entry CFG fid) with
             | Some fnentry =>
               let 'FunctionEntry ids pc_f := fnentry in
@@ -466,24 +477,23 @@ IRCall <function-to-call> <args> <instruction ID to write to>  <instruction ID t
               | _ => raise ("step: no function " ++ (string_of fid))
               end
             end
+         *)
         | _ => Err  "call got non-function pointer"
         end
-    **)
     |  _, _ => Err "foo"
     end.
 End INSTRUCTION.
 
+(** *Semantics of Terminator execution *)
 Section TERMINATOR.
   Inductive TermResult : Type :=
-  (** Break from the current basic block into a new basic block **)
-  | TRBreak: block_id -> TermResult
-  (** Return from the function **)
-  | TRRet: dvalue -> TermResult
-  (** Return void from the function **)
-  | TRRetVoid: TermResult.
+  | TRBreak: block_id -> TermResult (**r Break from current BB into new BB *)
+  | TRRet: dvalue -> TermResult (**r Return from the function *)
+  | TRRetVoid: TermResult (**r Return void from the function *)
+  .
 
-  (** Once again, we exchange a `CoFixpoint` for a `Definition`,
-  which gives us some measure of local reasoning **)
+  (** Once again, we exchange a [CoFixpoint] for a [Definition],
+  which gives us some measure of local reasoning *)
   Definition execTerm
              (tds: typedefs)
              (ge: genv) (e: env)
@@ -510,17 +520,21 @@ Section TERMINATOR.
   end.
 End TERMINATOR.
 
-(** Define the semantics of basic block execution **)
-(** Location of the current instruction in the BB **)
+(** Location of the current instruction in the BB *)
 Definition instr_pt := nat.
+
+(** *Semantics of basic block execution *)
 Section BASICBLOCK.
   Inductive BBResult :=
-  | BBRBreak: block_id -> BBResult
-  | BBRRet: dvalue -> BBResult
-  | BBRRetVoid: BBResult
-  (** Call a function, given the function id, arguments,
-and point in the basic block to resume from **)
-  | BBRCall: function_id -> list (local_id * dvalue) -> instr_id -> instr_pt -> block_id -> BBResult
+  | BBRBreak: block_id -> BBResult (**r Break from the current BB to the next BB *)
+  | BBRRet: dvalue -> BBResult (**r Return from the function *)
+  | BBRRetVoid: BBResult  (**r Return void from the function *)
+  | BBRCall: function_id (**r function to call *)
+             -> list (local_id * dvalue) (**r parameters *)
+             -> instr_id (**r return value ID *)
+             -> instr_pt (**r instruction to resume execution from *)
+             -> block_id (**r BB to resume execution from *)
+             -> BBResult (**r Call a function *)
   | BBRCallVoid: function_id -> list (local_id * dvalue) -> instr_pt -> block_id -> BBResult
   .
 
@@ -531,31 +545,31 @@ and point in the basic block to resume from **)
     | TRRetVoid => BBRRetVoid
     end.
 
-  (** TODO: rewrite using `Foldable` or some such equivalent **)
+  (** TODO: rewrite using [Foldable] or some such equivalent *)
   (** TODO: meditate on this a little bit and try it on a couple
-  simple examples to make sure it does what I think it does **)
+  simple examples to make sure it does what I think it does *)
   (** This function executes a basic block.
 
     It tries to execute the current instruction if it exists.
-    If this was a function call, it creates a `BBRCall` to propogate
+    If this was a function call, it creates a [BBRCall] to propogate
     the function call information upwards.
     Otherwise, it recurses to execute the next instruction.
 
     If there is no current instruction, it executes the terminator of the
-    basic block **)
-  (** One advantage here is that again, we get a `Fixpoint` for the
+    basic block *)
+  (** One advantage here is that again, we get a [Fixpoint] for the
   execution of basic block, which are much nicer to deal with that
   CoFixpoint. The hope is that this makes expresing things about basic
   block execution cleaner.
 
-   We allow execution from some `instr_pt (type alias for nat)`
-   after the fashion of Steve's `better_pc` branch. This way,
-   we do not tie our emantics to that of the instruction name
-   in the basic block.
+- We allow execution from some [instr_pt] (type alias for nat)
+  after the fashion of Steve's [better_pc] branch. This way,
+  we do not tie our emantics to that of the instruction name
+  in the basic block.
 
-   We need the ability to restart computation from some point when we
-   re enter a basic block after a function call.
-   **)
+- We need the ability to restart computation from some point when we
+  re enter a basic block after a function call.
+  *)
   Fixpoint execBBInstrs
            (tds: typedefs)
            (ge: genv)
@@ -608,10 +622,10 @@ and point in the basic block to resume from **)
                                    (loc + 1)%nat.
                                    
 
-  (** TODO: add PHI nodes! **)
+  (** TODO: add PHI nodes! *)
   (** On adding PHI nodes, we will simply have another
   function call sequenced before the execBBInstrs which executes
-  the PHI nodes **)
+  the PHI nodes *)
   Definition execBB (tds: typedefs)
              (ge: genv)
              (e: env)
@@ -626,7 +640,7 @@ End BASICBLOCK.
 
 Definition pc : Type := instr_pt * block_id * function_id.
 
-(** Define semantics of executing a function **)
+(** *Semantics of Function execution *)
 Section FUNCTION.
   Inductive FunctionResult :=
   | FRReturn: dvalue -> FunctionResult
@@ -637,17 +651,17 @@ Section FUNCTION.
                 pc -> FunctionResult.
 
 
-  (** To execute a function, execute a basic block.
-  - If it is returning a value, return it upwards
-  - If it is performing control flow, execute the next BB
-  - If it is calling a function, push this information toplevel
+  (** To execute a function, execute the current basic block.
+- If the BB returns a value, return it upwards
+- If the BB performs control flow, execute the next BB
+- If the BB calls a function, push this information upwards
 
 
-   It is at function level execution that CoFixpoint enters back into
-   the game, since we can provide no guarantees about the termination
-   capabilities of a function call.
+It is at function level execution that [CoFixpoint] enters back into
+the game, since we can provide no guarantees about the termination
+capabilities of a function call.
    *)
-  CoFixpoint execFunctionAtBBId (tds: typedefs )(ge: genv) (e: env)
+  CoFixpoint execFunctionAtBBId (tds: typedefs)(ge: genv) (e: env)
     (CFG: cfg) (fnid: function_id) (bbid: block_id):
     Trace FunctionResult :=
     match find_block (blks CFG) bbid with
@@ -699,8 +713,9 @@ Section FUNCTION.
 End FUNCTION.
 
 
+(** *Semantics of interpreter execution *)
 Section INTERPRETER.
-  (** Stack frames, same as the old version **)
+  (** Stack frames, same as the old version *)
   Inductive frame : Type :=
   | KRet      (e:env) (retid: instr_id) (pc: pc)
   | KRet_void (e:env) (pc: pc)
@@ -710,27 +725,26 @@ Section INTERPRETER.
   Definition InterpreterState : Type := genv * env * stack.
   
   Inductive InterpreterResult :=
-  | IRDone (v: dvalue)
-  (** The state used to enter into a function **)
-  | IREnterFunction (fnid: function_id) (args: list (local_id *dvalue))
-  (** The state used to return from a function **)
-  | IRReturnFunction  (fres: FunctionResult)
-  (** the state used to resume execution of a given function **)
-  | IRResumeFunction  (pc: pc)
+  | IRDone (v: dvalue)  (**r Return a value to toplevel *)
+  | IREnterFunction (fnid: function_id) (args: list (local_id *dvalue)) (**r Enter into a function *)
+  | IRReturnFunction  (fres: FunctionResult) (**r Return from a function *)
+  | IRResumeFunction  (pc: pc) (**r Resume execution of a given function *)
   .
 
-  (** There is some trade off here, I feel. One possibility is to wrap
-       the `genv`, `env`, `stack`, and `pc` into a single State that is
-      passed within the different `InterpreterResult` values.
+(** There is some trade off here with respect to the definition of
+[InterpreterResult]. The choices are:
+- Wrap the [genv], [env], [stack], and [pc] into a single [State] that is
+  passed within the different [InterpreterResult] values.
 
-      The other is to make the `InterpreterResult` values carry
-      (That is the definition I chose here), and then explicitly
-      pass the `genv`, `env`, `stack`, and `pc` manually as parameters.
-      I do not understand this trade-off very well, and would greatly
-      appreciate comments about this **)
+- Make the [InterpreterResult] values carry
+  minimum semantic information required
+  (That is the definition I chose here), and then explicitly
+  pass the [genv], [env], [stack], and [pc] manually as parameters.
+  I do not understand this trade-off very well, and would greatly
+  appreciate comments about this *)
 
   (** TODO: the spurious tau nodes are possible a code smell,
-  so I need to think about this a little more carefully **)
+  so I need to think about this a little more carefully *)
   CoFixpoint execInterpreter (ge: genv)
              (e: env) (s: stack) (MCFG: mcfg)
              (ir: InterpreterResult) :
@@ -803,9 +817,9 @@ CoFixpoint step_sem_tiered
           step_sem_tiered ge e s MCFG rnext
   end.
 
-(** === INITIALIZING GLOBAL SECTION === **)
+(** *Initializing global section *)
 (** The rest of the file is the same as StepSemantics, except for
-some plumbing differences that are not very interesting **)
+some plumbing differences that are not very interesting *)
 
 Definition allocate_globals_tiered (tds: typedefs)(gs:list global) : Trace genv :=
   monad_fold_right
@@ -865,7 +879,7 @@ Definition init_state_tiered (MCFG: mcfg) (fname:string) :
 (** Theorems and lemmas on properties of StepSemanticsTiered **)
 (** Write some lemmas to allow simplification of CoFixpoints without
 having to unfold and force them manually. The proof terms are
- horrible if we unfold them **)
+ horrible if we unfold them *)
 
 Lemma force_step_sem_tiered:
   forall (e: env)
