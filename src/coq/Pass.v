@@ -722,7 +722,7 @@ Ltac unfolder_for_exp := unfold eval_exp,
                          IO.exn_trace.
 
 Ltac destruct_finite_trace_match :=
-  try unfolder_for_exp;
+  try unfolder_for_exp; try constructor;
   match goal with
   | [ |- TraceFinite (match ?X with _ => _ end) ] =>
     destruct X;
