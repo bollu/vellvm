@@ -400,12 +400,12 @@ execution. Each of these follow the old model of returning a [result], but this 
 Section INSTRUCTION.
   Inductive InstResult : Type :=
   | IRCall: function_id (**r function to call *)
-            -> list (local_id*dvalue) (**r parameters *)
+            -> list (dvalue) (**r parameters *)
             -> instr_id (**r instruction to set return value to *)
             -> instr_id (**r instruction to resume execution from *)
             -> InstResult (**r call a function. *)
   | IRCallVoid: function_id (**r function to call *)
-                -> list (local_id*dvalue) (**r parameters *)
+                -> list (dvalue) (**r parameters *)
                 -> instr_id (**r instruction to resume execution from *)
                 -> InstResult (**r call a function with void return *)
   | IREnvEffect: env  -> InstResult (**r set the [env] **)
@@ -443,16 +443,16 @@ Section INSTRUCTION.
     | IId id, INSTR_Alloca t _ _ =>
       Trace.Vis (Alloca (eval_typ tds t)) (fun (a:dvalue) =>  Ret (IREnvEffect (add_env id a e)))
     | pt, INSTR_Call (t, f) args =>
-      'fv <- eval_exp ge e None f;
-        'dvs <-  map_monad (fun '(t, op) => (eval_exp ge e(Some (eval_typ t)) op)) args;
+      'fv <- eval_exp tds ge e None f;
+        'dvs <-  map_monad (fun '(t, op) => (eval_exp tds ge e (Some (eval_typ tds t)) op)) args;
         match fv with
         | DVALUE_Addr addr =>
           (* TODO: lookup fid given addr from global environment *)
           do fid <- reverse_lookup_function_id ge addr;
-            bs <- combine_lists_err ids dvs;
             match pt with
-            | IVoid _ => Ret (IRCallVoid fid bs id)
-            |  _ => Err "foo"
+            | IVoid _ => Ret (IRCallVoid fid dvs id)
+            | IId _ => Ret (IRCall fid dvs pt id)
+                          (* cont (ge, pc_f, env, (KRet e id pc_next::k)) *)
             (* cont (ge, pc_f, env, (KRet_void e pc_next::k)) *)
             (* | IId _ => Ret (IRCall fid bs id id) *)
                           (* cont (ge, pc_f, env, (KRet e id pc_next::k)) *)
@@ -530,12 +530,12 @@ Section BASICBLOCK.
   | BBRRet: dvalue -> BBResult (**r Return from the function *)
   | BBRRetVoid: BBResult  (**r Return void from the function *)
   | BBRCall: function_id (**r function to call *)
-             -> list (local_id * dvalue) (**r parameters *)
+             -> list (dvalue) (**r parameters *)
              -> instr_id (**r return value ID *)
              -> instr_pt (**r instruction to resume execution from *)
              -> block_id (**r BB to resume execution from *)
              -> BBResult (**r Call a function *)
-  | BBRCallVoid: function_id -> list (local_id * dvalue) -> instr_pt -> block_id -> BBResult
+  | BBRCallVoid: function_id -> list (dvalue) -> instr_pt -> block_id -> BBResult
   .
 
   Definition BBResultFromTermResult (tr: TermResult): BBResult :=
@@ -645,9 +645,9 @@ Section FUNCTION.
   Inductive FunctionResult :=
   | FRReturn: dvalue -> FunctionResult
   | FRReturnVoid: FunctionResult
-  | FRCall: function_id -> list (local_id * dvalue) -> instr_id -> 
+  | FRCall: function_id -> list (dvalue) -> instr_id -> 
             pc -> FunctionResult
-  | FRCallVoid: function_id -> list (local_id * dvalue) ->
+  | FRCallVoid: function_id -> list (dvalue) ->
                 pc -> FunctionResult.
 
 
@@ -726,7 +726,7 @@ Section INTERPRETER.
   
   Inductive InterpreterResult :=
   | IRDone (v: dvalue)  (**r Return a value to toplevel *)
-  | IREnterFunction (fnid: function_id) (args: list (local_id *dvalue)) (**r Enter into a function *)
+  | IREnterFunction (fnid: function_id) (args: list dvalue) (**r Enter into a function *)
   | IRReturnFunction  (fres: FunctionResult) (**r Return from a function *)
   | IRResumeFunction  (pc: pc) (**r Resume execution of a given function *)
   .
@@ -762,10 +762,12 @@ Section INTERPRETER.
       | None => Err "unable to find function"
       end
       
-    | IREnterFunction fnid args =>
+    | IREnterFunction fnid fn_arg_dvs =>
       match find_function MCFG fnid with
       | Some CFGDefn =>
-        let fn_env := env_of_assoc args in
+        let fn_arg_ids := df_args CFGDefn in
+        do fn_args <- combine_lists_err fn_arg_ids fn_arg_dvs;
+        let fn_env := env_of_assoc fn_args in
         'fres <- execFunction tds ge fn_env (df_instrs CFGDefn) fnid;
           Ret (IRReturnFunction fres)
                            
@@ -787,13 +789,13 @@ Section INTERPRETER.
                              Tau (execInterpreter ge e s' MCFG (IRResumeFunction pc))
                            | _ => Err "incorrect stack frame"
                            end
+          | FRCall callfnid argvals retinstid pc =>
             
-          | FRCall callfnid args retinstid pc =>
-            Tau (execInterpreter ge
-                            e
-                            (cons (KRet e retinstid pc) s)
-                            MCFG
-                            (IREnterFunction callfnid args))
+                               Tau (execInterpreter ge
+                                                    e
+                                                    (cons (KRet e retinstid pc) s)
+                                                    MCFG
+                                                    (IREnterFunction callfnid argvals))
           | FRCallVoid callfnid args pc =>
             Tau (execInterpreter ge
                             e
