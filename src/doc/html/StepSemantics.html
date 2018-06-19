@@ -552,8 +552,8 @@
 <span class="kwd">Import</span> <span class="id">Trace.MonadVerif</span>.<br/>
 <span class="kwd">Lemma</span> <span class="id">force_step_sem_step</span>: <span class="kwd">forall</span> (<span class="id">p</span>: <span class="id">mcfg</span>) (<span class="id">s</span>: <span class="id">state</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">step_sem</span> <span class="id">p</span> (<span class="id">Step</span> <span class="id">s</span>) ≡ <span class="id">bindM</span> (<span class="id">step</span> <span class="id">p</span> <span class="id">s</span>) (<span class="id">step_sem</span> <span class="id">p</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof227')">Proof.</div>
-<div class="proofscript" id="proof227">
+<div class="toggleproof" onclick="toggleDisplay('proof226')">Proof.</div>
+<div class="proofscript" id="proof226">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">p</span>.<br/>
 &nbsp;&nbsp;<span class="id">cofix</span>.<br/>
 <br/>
@@ -576,8 +576,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">force_step_sem_done</span>: <span class="kwd">forall</span> (<span class="id">p</span>: <span class="id">mcfg</span>) (<span class="id">r</span>:<span class="id">dvalue</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">step_sem</span> <span class="id">p</span> (<span class="id">Done</span> <span class="id">r</span>) ≡ <span class="id">Ret</span> <span class="id">r</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof228')">Proof.</div>
-<div class="proofscript" id="proof228">
+<div class="toggleproof" onclick="toggleDisplay('proof227')">Proof.</div>
+<div class="proofscript" id="proof227">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">Trace.matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">step_sem</span> <span class="id">_</span> <span class="id">_</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>

@@ -86,6 +86,17 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">i2</span>).<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
 Qed.</div>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">TraceFinite</span> {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} {<span class="id">X</span>: <span class="kwd">Type</span>}: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span> -&gt; <span class="kwd">Type</span> :=<br/>
+| <span class="id">TFRet</span>: <span class="kwd">forall</span> (<span class="id">x</span>: <span class="id">X</span>), <span class="id">TraceFinite</span> (<span class="id">Ret</span> <span class="id">x</span>)<br/>
+| <span class="id">TFErr</span>: <span class="kwd">forall</span> (<span class="id">s</span>: <span class="id">String.string</span>), <span class="id">TraceFinite</span> (<span class="id">Err</span> <span class="id">s</span>)<br/>
+| <span class="id">TFTau</span>: <span class="kwd">forall</span> (<span class="id">mex</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) (<span class="id">FIN</span>: <span class="id">TraceFinite</span> <span class="id">mex</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">TraceFinite</span> (<span class="id">Tau</span> <span class="id">mex</span>)<br/>
+| <span class="id">TFVis</span>: <span class="kwd">forall</span> {<span class="id">Y</span>: <span class="kwd">Type</span>} (<span class="id">e</span>: <span class="id">E</span> <span class="id">Y</span>) (<span class="id">k</span>: <span class="id">Y</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">FINK</span>: <span class="kwd">forall</span> (<span class="id">y</span>: <span class="id">Y</span>), <span class="id">TraceFinite</span> (<span class="id">k</span> <span class="id">y</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">TraceFinite</span> (<span class="id">Vis</span> <span class="id">e</span> <span class="id">k</span>)<br/>
+.<br/>
+<br/>
 &nbsp;&nbsp;<br/>
 <br/>
 <div class="doc"><span class="bracket"><span class="id">M</span> <span class="id">E</span></span> forms a <span class="bracket"><span class="id">Monad</span></span> </div>
@@ -626,17 +637,9 @@ Qed.</div>
 <br/>
 <span class="kwd">Import</span> <span class="id">Logic.ProofIrrelevance</span>.<br/>
 <br/>
-<span class="kwd">Lemma</span> <span class="id">vis_inj</span> :<br/>
-&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> <span class="id">Y</span> (<span class="id">e</span> <span class="id">e</span>' : <span class="id">E</span> <span class="id">Y</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">k</span> : <span class="id">Y</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) (<span class="id">k</span>' : <span class="id">Y</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Vis</span> <span class="id">e</span> <span class="id">k</span> = <span class="id">Vis</span> <span class="id">e</span>' <span class="id">k</span>' -&gt; <span class="id">e</span> = <span class="id">e</span>'.<br/>
+<span class="kwd">Lemma</span> <span class="id">eutt_err_t</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> <span class="id">s1</span> <span class="id">s2</span> (<span class="id">t</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) , <span class="id">EquivUpToTau</span> (<span class="id">Err</span> <span class="id">s1</span>) <span class="id">t</span> -&gt; <span class="id">EquivUpToTau</span> (<span class="id">Err</span> <span class="id">s2</span>) <span class="id">t</span>.<br/>
 <div class="toggleproof" onclick="toggleDisplay('proof193')">Proof.</div>
 <div class="proofscript" id="proof193">
-Admitted.</div>
-<br/>
-<span class="kwd">Lemma</span> <span class="id">eutt_err_t</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> <span class="id">s1</span> <span class="id">s2</span> (<span class="id">t</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) , <span class="id">EquivUpToTau</span> (<span class="id">Err</span> <span class="id">s1</span>) <span class="id">t</span> -&gt; <span class="id">EquivUpToTau</span> (<span class="id">Err</span> <span class="id">s2</span>) <span class="id">t</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof194')">Proof.</div>
-<div class="proofscript" id="proof194">
 &nbsp;&nbsp;<span class="id">cofix</span> <span class="id">eutt_err_t</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">E</span> <span class="id">X</span> <span class="id">s1</span> <span class="id">s2</span> <span class="id">t</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">H</span>. <span class="tactic">subst</span>.<br/>
@@ -646,8 +649,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_trans</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">t</span> <span class="id">u</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EquivUpToTau</span> <span class="id">s</span> <span class="id">t</span> -&gt; <span class="id">EquivUpToTau</span> <span class="id">t</span> <span class="id">u</span> -&gt; <span class="id">EquivUpToTau</span> <span class="id">s</span> <span class="id">u</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof195')">Proof.</div>
-<div class="proofscript" id="proof195">
+<div class="toggleproof" onclick="toggleDisplay('proof194')">Proof.</div>
+<div class="proofscript" id="proof194">
 &nbsp;&nbsp;<span class="id">cofix</span> <span class="id">eutt_trans</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">E</span> <span class="id">X</span> <span class="id">s</span> <span class="id">t</span> <span class="id">u</span> <span class="id">H1</span> <span class="id">H2</span>.<br/>
 <br/>
@@ -779,8 +782,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_bindM_through_tauN</span>: <span class="kwd">forall</span> {<span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>} (<span class="id">n</span>: <span class="id">nat</span>) (<span class="id">x</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) (<span class="id">f</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EquivUpToTau</span> (<span class="id">bindM</span> (<span class="id">tauN</span> <span class="id">n</span> <span class="id">x</span>) <span class="id">f</span>)  (<span class="id">bindM</span> <span class="id">x</span> <span class="id">f</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof196')">Proof.</div>
-<div class="proofscript" id="proof196">
+<div class="toggleproof" onclick="toggleDisplay('proof195')">Proof.</div>
+<div class="proofscript" id="proof195">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">Y</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">n</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">n</span>.<br/>
@@ -810,8 +813,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">eutt_bindM_through_unTau</span>: <span class="kwd">forall</span> {<span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>}  (<span class="id">t</span> <span class="id">t</span>': <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) (<span class="id">f</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">UnTau</span> <span class="id">t</span> <span class="id">t</span>' -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EquivUpToTau</span> (<span class="id">bindM</span> <span class="id">t</span> <span class="id">f</span>)  (<span class="id">bindM</span> <span class="id">t</span>' <span class="id">f</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof197')">Proof.</div>
-<div class="proofscript" id="proof197">
+<div class="toggleproof" onclick="toggleDisplay('proof196')">Proof.</div>
+<div class="proofscript" id="proof196">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">T_TAU</span>: <span class="id">exists</span> <span class="id">n</span>: <span class="id">nat</span>, <span class="id">t</span> = <span class="id">tauN</span> <span class="id">n</span> <span class="id">t</span>').<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">untau_count_layers</span>; <span class="tactic">auto</span>.<br/>
@@ -824,8 +827,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">untau_bindM</span>: <span class="kwd">forall</span> {<span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>} (<span class="id">t</span> <span class="id">t</span>': <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) (<span class="id">f</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> <span class="id">x</span>: <span class="id">X</span>, <span class="id">t</span>' &lt;&gt; <span class="id">Ret</span> <span class="id">x</span>) -&gt; <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">UnTau</span> <span class="id">t</span> <span class="id">t</span>' -&gt; <span class="id">UnTau</span> (<span class="id">bindM</span> <span class="id">t</span> <span class="id">f</span>) (<span class="id">bindM</span> <span class="id">t</span>' <span class="id">f</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof198')">Proof.</div>
-<div class="proofscript" id="proof198">
+<div class="toggleproof" onclick="toggleDisplay('proof197')">Proof.</div>
+<div class="proofscript" id="proof197">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">f</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">T</span>'<span class="id">_NOT_RET</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">UNTAU</span>.<br/>
@@ -857,8 +860,8 @@ Qed.</div>
 &nbsp;&nbsp;<br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">reflexive_eutt</span> {<span class="id">E</span>} <span class="id">X</span> : <span class="id">Reflexive</span> (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof199')">Proof.</div>
-<div class="proofscript" id="proof199">
+<div class="toggleproof" onclick="toggleDisplay('proof198')">Proof.</div>
+<div class="proofscript" id="proof198">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Reflexive</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_refl</span>.<br/>
@@ -866,8 +869,8 @@ Qed.</div>
 <br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">symmetric_eutt</span>{<span class="id">E</span>} <span class="id">X</span> : <span class="id">Symmetric</span> (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof200')">Proof.</div>
-<div class="proofscript" id="proof200">
+<div class="toggleproof" onclick="toggleDisplay('proof199')">Proof.</div>
+<div class="proofscript" id="proof199">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Symmetric</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_sym</span>; <span class="tactic">auto</span>.<br/>
@@ -875,8 +878,8 @@ Qed.</div>
 <br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">transitive_eutt</span>{<span class="id">E</span>} <span class="id">X</span> : <span class="id">Transitive</span> (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof201')">Proof.</div>
-<div class="proofscript" id="proof201">
+<div class="toggleproof" onclick="toggleDisplay('proof200')">Proof.</div>
+<div class="proofscript" id="proof200">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Transitive</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">eutt_trans</span>; <span class="tactic">eauto</span>.<br/>
@@ -885,8 +888,8 @@ Qed.</div>
 &nbsp;&nbsp;<br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">equivalence_eutt</span> {<span class="id">E</span>} <span class="id">X</span>: <span class="id">Equivalence</span> (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof202')">Proof.</div>
-<div class="proofscript" id="proof202">
+<div class="toggleproof" onclick="toggleDisplay('proof201')">Proof.</div>
+<div class="proofscript" id="proof201">
 &nbsp;&nbsp;<span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">reflexive_eutt</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">symmetric_eutt</span>.<br/>
@@ -901,8 +904,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">a</span> <span class="id">b</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EQ</span>: <span class="id">UnTau</span> <span class="id">a</span> <span class="id">b</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EquivUpToTau</span> <span class="id">a</span> (<span class="id">tauN</span> <span class="id">n</span> <span class="id">b</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof203')">Proof.</div>
-<div class="proofscript" id="proof203">
+<div class="toggleproof" onclick="toggleDisplay('proof202')">Proof.</div>
+<div class="proofscript" id="proof202">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">EQ_A_B</span>: <span class="id">EquivUpToTau</span> <span class="id">a</span> <span class="id">b</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_untau_3</span>. <span class="tactic">auto</span>.<br/>
@@ -916,8 +919,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">bindM_Ret</span>: <span class="kwd">forall</span> (<span class="id">A</span> <span class="id">B</span>: <span class="kwd">Type</span>) (<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span> ) (<span class="id">a</span>: <span class="id">A</span>) (<span class="id">f</span>: <span class="id">A</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">B</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">bindM</span> (<span class="id">Ret</span> <span class="id">a</span>) <span class="id">f</span> ≡ <span class="id">f</span> <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof204')">Proof.</div>
-<div class="proofscript" id="proof204">
+<div class="toggleproof" onclick="toggleDisplay('proof203')">Proof.</div>
+<div class="proofscript" id="proof203">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> (@<span class="id">matchM</span>) <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">bindM</span> (<span class="id">_</span>) <span class="id">_</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
@@ -932,8 +935,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">bindM_proper_wrt_eutt</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> {<span class="id">A</span> <span class="id">B</span>: <span class="kwd">Type</span>} {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} (<span class="id">a</span> <span class="id">a</span>': <span class="id">M</span> <span class="id">E</span> <span class="id">A</span>) (<span class="id">f</span>: <span class="id">A</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">B</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">a</span> ≡ <span class="id">a</span>' -&gt; <span class="id">bindM</span> <span class="id">a</span> <span class="id">f</span> ≡ <span class="id">bindM</span> <span class="id">a</span>' <span class="id">f</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof205')">Proof.</div>
-<div class="proofscript" id="proof205">
+<div class="toggleproof" onclick="toggleDisplay('proof204')">Proof.</div>
+<div class="proofscript" id="proof204">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">A</span> <span class="id">B</span>.<br/>
 &nbsp;&nbsp;<span class="id">cofix</span>.<br/>
 <br/>
@@ -1213,8 +1216,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">bindM_rewrite_fn</span>: <br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span> } {<span class="id">X</span> <span class="id">Y</span>: <span class="kwd">Type</span>} (<span class="id">f</span> <span class="id">g</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>)<br/>
 &nbsp;&nbsp;(<span class="id">EXT</span>: <span class="kwd">forall</span> (<span class="id">x</span>: <span class="id">X</span>), <span class="id">f</span> <span class="id">x</span> ≡ <span class="id">g</span> <span class="id">x</span>) (<span class="id">ex</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>), <span class="id">bindM</span> <span class="id">ex</span> <span class="id">f</span> ≡ <span class="id">bindM</span> <span class="id">ex</span> <span class="id">g</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof206')">Proof.</div>
-<div class="proofscript" id="proof206">
+<div class="toggleproof" onclick="toggleDisplay('proof205')">Proof.</div>
+<div class="proofscript" id="proof205">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">g</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">EXT</span>.<br/>
 &nbsp;&nbsp;<span class="id">cofix</span>.<br/>
@@ -1257,8 +1260,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Instance</span> <span class="id">bindm_eutt_proper</span> {<span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>}:<br/>
 &nbsp;&nbsp;<span class="id">Proper</span> ((@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>) ==&gt; <span class="id">eq</span> ==&gt; (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">Y</span>)) (@<span class="id">bindM</span> <span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof207')">Proof.</div>
-<div class="proofscript" id="proof207">
+<div class="toggleproof" onclick="toggleDisplay('proof206')">Proof.</div>
+<div class="proofscript" id="proof206">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">MEX</span> <span class="id">MEX</span>'.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">MEX_EQ_MEX</span>'.<br/>
@@ -1274,8 +1277,8 @@ Qed.</div>
 <span class="kwd">Check</span> (@<span class="id">bindM</span>).<br/>
 <span class="kwd">Add</span> <span class="id">Parametric</span> <span class="id">Morphism</span> (<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>) (<span class="id">X</span> <span class="id">Y</span> : <span class="kwd">Type</span>) : (@<span class="id">bindM</span> <span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>) <span class="kwd">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">signature</span> ((@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>) ==&gt; <span class="id">eq</span> ==&gt; (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">Y</span>)) <span class="kwd">as</span> <span class="id">bind</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof208')">Proof.</div>
-<div class="proofscript" id="proof208">
+<div class="toggleproof" onclick="toggleDisplay('proof207')">Proof.</div>
+<div class="proofscript" id="proof207">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
@@ -1298,8 +1301,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ERR</span>: <span class="kwd">forall</span> <span class="id">t1</span> <span class="id">t2</span> <span class="id">s</span> , <span class="id">t1</span> = <span class="id">Err</span> (<span class="id">Event</span>:=<span class="id">E</span>) (<span class="id">X</span>:=<span class="id">X</span>) <span class="id">s</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> <span class="id">s</span>', <span class="id">t2</span> = <span class="id">Err</span> (<span class="id">Event</span>:=<span class="id">E</span>) (<span class="id">X</span>:=<span class="id">X</span>) <span class="id">s</span>'),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> (<span class="id">t1</span> <span class="id">t2</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>), <span class="id">P</span> <span class="id">t1</span> <span class="id">t2</span> -&gt; <span class="id">EquivUpToTau</span> <span class="id">t1</span> <span class="id">t2</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof209')">Proof.</div>
-<div class="proofscript" id="proof209">
+<div class="toggleproof" onclick="toggleDisplay('proof208')">Proof.</div>
+<div class="proofscript" id="proof208">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">P</span>.<br/>
 &nbsp;&nbsp;<span class="id">cofix</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">t2</span>.<br/>
@@ -1338,8 +1341,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">bindM_Vis</span>: <span class="kwd">forall</span> {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} {<span class="id">A</span> <span class="id">B</span> <span class="id">Y</span>: <span class="kwd">Type</span>} (<span class="id">e</span>: <span class="id">E</span> <span class="id">Y</span>) (<span class="id">f</span>: <span class="id">A</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">B</span>) (<span class="id">k</span>: <span class="id">Y</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">A</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">bindM</span> (<span class="id">Vis</span> <span class="id">e</span> <span class="id">k</span>) <span class="id">f</span> ≡ <span class="id">Vis</span> <span class="id">e</span> (<span class="kwd">fun</span> <span class="id">y</span> =&gt; <span class="id">bindM</span> (<span class="id">k</span> <span class="id">y</span>) <span class="id">f</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof210')">Proof.</div>
-<div class="proofscript" id="proof210">
+<div class="toggleproof" onclick="toggleDisplay('proof209')">Proof.</div>
+<div class="proofscript" id="proof209">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">Y</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">k</span>.<br/>
 &nbsp;&nbsp;<span class="id">cofix</span>.<br/>
@@ -1404,15 +1407,9 @@ Qed.</div>
 Qed.</div>
 <br/>
 <br/>
-<br/>
-<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-<br/>
-<br/>
 <span class="kwd">Instance</span> <span class="id">M_functor_eutt_laws</span> {<span class="id">E</span>} : (@<span class="id">FunctorLaws</span> (<span class="id">M</span> <span class="id">E</span>)) (@<span class="id">mapM</span> <span class="id">E</span>) (@<span class="id">equiv_eutt</span> <span class="id">E</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof211')">Proof.</div>
-<div class="proofscript" id="proof211">
+<div class="toggleproof" onclick="toggleDisplay('proof210')">Proof.</div>
+<div class="proofscript" id="proof210">
 Admitted.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">bindM_assoc</span>: <span class="kwd">forall</span> {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} {<span class="id">A</span> <span class="id">B</span> <span class="id">C</span>: <span class="kwd">Type</span>} (<span class="id">a</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">A</span>) (<span class="id">f</span>: <span class="id">A</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">B</span>)<br/>
@@ -1421,14 +1418,14 @@ Admitted.</div>
 Admitted.</div>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">M_monad_eutt_laws</span> {<span class="id">E</span>} : (@<span class="id">MonadLaws</span> (<span class="id">M</span> <span class="id">E</span>)) (@<span class="id">functor_M</span> <span class="id">E</span>) (@<span class="id">monad_M</span> <span class="id">E</span>) <span class="id">_</span> <span class="id">_</span> <span class="id">_</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof211')">Next Obligation.</div>
+<div class="proofscript" id="proof211">
+&nbsp;&nbsp;Admitted.</div>
 <div class="toggleproof" onclick="toggleDisplay('proof212')">Next Obligation.</div>
 <div class="proofscript" id="proof212">
 &nbsp;&nbsp;Admitted.</div>
 <div class="toggleproof" onclick="toggleDisplay('proof213')">Next Obligation.</div>
 <div class="proofscript" id="proof213">
-&nbsp;&nbsp;Admitted.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof214')">Next Obligation.</div>
-<div class="proofscript" id="proof214">
 Admitted.</div>
 <br/>
 <span class="kwd">Check</span> (<span class="id">M_monad_eutt_laws</span>).<br/>
@@ -1436,8 +1433,8 @@ Admitted.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">remove_tau</span>: <span class="kwd">forall</span> {<span class="id">X</span>: <span class="kwd">Type</span>} {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} (<span class="id">x</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>), <span class="id">Tau</span> <span class="id">x</span> ≡ <span class="id">x</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof215')">Proof.</div>
-<div class="proofscript" id="proof215">
+<div class="toggleproof" onclick="toggleDisplay('proof214')">Proof.</div>
+<div class="proofscript" id="proof214">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> &lt;- <span class="id">tauN_eutt_1</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
@@ -1446,8 +1443,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">bindM_Err</span>: <span class="kwd">forall</span> {<span class="id">X</span> <span class="id">Y</span> :<span class="kwd">Type</span>} {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} (<span class="id">e</span>: <span class="id">String.string</span>) (<span class="id">f</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>),<br/>
 &nbsp;&nbsp;<span class="id">bindM</span> (<span class="id">Err</span> <span class="id">e</span>) <span class="id">f</span> ≡ <span class="id">Err</span> <span class="id">e</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof216')">Proof.</div>
-<div class="proofscript" id="proof216">
+<div class="toggleproof" onclick="toggleDisplay('proof215')">Proof.</div>
+<div class="proofscript" id="proof215">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := (<span class="id">bindM</span> <span class="id">_</span> <span class="id">_</span>)).<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
@@ -1465,8 +1462,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Add</span> <span class="id">Parametric</span> <span class="id">Morphism</span> (<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>) (<span class="id">X</span> : <span class="kwd">Type</span>) : (@<span class="id">Tau</span> <span class="id">E</span> <span class="id">X</span>) <span class="kwd">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">signature</span> ((@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>) ==&gt;(@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>)) <span class="kwd">as</span> <span class="id">Tau</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof217')">Proof.</div>
-<div class="proofscript" id="proof217">
+<div class="toggleproof" onclick="toggleDisplay('proof216')">Proof.</div>
+<div class="proofscript" id="proof216">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="id">constructor</span>. <span class="tactic">auto</span>.<br/>
 Qed.</div>

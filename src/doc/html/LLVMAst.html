@@ -137,6 +137,7 @@ Qed.</div>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">Integers.Int.eq_dec</span>.<br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">Z.eq_dec</span>.<br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">Bool.bool_dec</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">Float.eq_dec</span>.<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eq_dec_raw_id</span>: <span class="kwd">forall</span> (<span class="id">r1</span> <span class="id">r2</span>: <span class="id">raw_id</span>), {<span class="id">r1</span> = <span class="id">r2</span>} + {<span class="id">r1</span> &lt;&gt; <span class="id">r2</span>}.<br/>
 <div class="toggleproof" onclick="toggleDisplay('proof4')">Proof.</div>
@@ -446,59 +447,13 @@ Qed.</div>
 | <span class="id">OP_Select</span>           (<span class="id">cnd</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">v1</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">v2</span>:(<span class="id">typ</span> * <span class="id">exp</span>)) <br/>
 .<br/>
 <br/>
-<br/>
-<span class="kwd">Section</span> <span class="id">exp_nested_ind</span>.<br/>
-&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">P</span>: <span class="id">exp</span> -&gt; <span class="kwd">Type</span>.<br/>
-&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">Q</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>) -&gt; <span class="kwd">Type</span>.<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">IDENT</span>: <span class="kwd">forall</span> (<span class="id">id</span>: <span class="id">ident</span>), <span class="id">P</span> (<span class="id">EXP_Ident</span> <span class="id">id</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">INTEGER</span>: <span class="kwd">forall</span> (<span class="id">x</span>: <span class="id">int</span>), <span class="id">P</span> (<span class="id">EXP_Integer</span> <span class="id">x</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">FLOAT</span>: <span class="kwd">forall</span> (<span class="id">f</span>: <span class="id">float</span>), <span class="id">P</span> (<span class="id">EXP_Float</span> <span class="id">f</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">HEX</span>: <span class="kwd">forall</span> (<span class="id">f</span>: <span class="id">float</span>), <span class="id">P</span> (<span class="id">EXP_Hex</span> <span class="id">f</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">BOOL</span>: <span class="kwd">forall</span> (<span class="id">b</span>: <span class="id">bool</span>), <span class="id">P</span> (<span class="id">EXP_Bool</span> <span class="id">b</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">NULL</span>: <span class="id">P</span> (<span class="id">EXP_Null</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">ZERO_INITIALIZER</span>: <span class="id">P</span> (<span class="id">EXP_Zero_initializer</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">CSTRING</span>: <span class="kwd">forall</span> (<span class="id">s</span>: <span class="id">string</span>), <span class="id">P</span> (<span class="id">EXP_Cstring</span> <span class="id">s</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">UNDEF</span>: <span class="id">P</span> (<span class="id">EXP_Undef</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">STRUCT</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> <span class="id">tes</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Q</span> <span class="id">tes</span> -&gt; <span class="id">P</span> (<span class="id">EXP_Struct</span> <span class="id">tes</span>)) -&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Q</span> <span class="id">nil</span>) -&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> (<span class="id">tes</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)) (<span class="id">e</span>: <span class="id">exp</span>) (<span class="id">t</span>: <span class="id">typ</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> <span class="id">e</span> -&gt; <span class="id">Q</span> <span class="id">tes</span> -&gt; <span class="id">Q</span> (<span class="id">cons</span> (<span class="id">t</span>, <span class="id">e</span>) <span class="id">tes</span>)) -&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">tes</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)), <span class="id">P</span> (<span class="id">EXP_Struct</span> <span class="id">tes</span>).<br/>
-<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">PACKED_STRUCT</span>: <span class="kwd">forall</span> (<span class="id">tes</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> (<span class="id">EXP_Packed_struct</span> <span class="id">tes</span>).<br/>
-<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">EXP_Array</span>: <span class="kwd">forall</span> (<span class="id">elts</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> (<span class="id">EXP_Array</span> <span class="id">elts</span>).<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">EXP_Vector</span>: <span class="kwd">forall</span>         (<span class="id">elts</span>: <span class="id">list</span> (<span class="id">typ</span> * <span class="id">exp</span>)),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> (<span class="id">EXP_Vector</span> <span class="id">elts</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">OP_IBinop</span>: <span class="kwd">forall</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">t</span>:<span class="id">typ</span>) (<span class="id">v1</span>:<span class="id">exp</span>) (<span class="id">v2</span>:<span class="id">exp</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> <span class="id">v1</span> -&gt; <span class="id">P</span> <span class="id">v2</span> -&gt; <span class="id">P</span> (<span class="id">OP_IBinop</span> <span class="id">iop</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span>).<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">OP_ICmp</span>: <span class="kwd">forall</span> (<span class="id">cmp</span>:<span class="id">icmp</span>)   (<span class="id">t</span>:<span class="id">typ</span>) (<span class="id">v1</span>:<span class="id">exp</span>) (<span class="id">v2</span>:<span class="id">exp</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> <span class="id">v1</span> -&gt; <span class="id">P</span> <span class="id">v2</span> -&gt; <span class="id">P</span> (<span class="id">OP_ICmp</span> <span class="id">cmp</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span>).<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">OP_FBinop</span>: <span class="kwd">forall</span>(<span class="id">fop</span>:<span class="id">fbinop</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fm</span>:<span class="id">list</span> <span class="id">fast_math</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">t</span>:<span class="id">typ</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">v1</span>:<span class="id">exp</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">v2</span>:<span class="id">exp</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> <span class="id">v1</span> -&gt; <span class="id">P</span> <span class="id">v2</span> -&gt; <span class="id">P</span> (<span class="id">OP_FBinop</span> <span class="id">fop</span> <span class="id">fm</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="kwd">Hypothesis</span> <span class="id">OP_FCmp</span>: <span class="kwd">forall</span> (<span class="id">cmp</span>:<span class="id">fcmp</span>)   (<span class="id">t</span>:<span class="id">typ</span>) (<span class="id">v1</span>:<span class="id">exp</span>) (<span class="id">v2</span>:<span class="id">exp</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> <span class="id">v1</span> -&gt; <span class="id">P</span> <span class="id">v2</span> -&gt; <span class="id">P</span> (<span class="id">OP_FCmp</span> <span class="id">cmp</span> <span class="id">t</span> <span class="id">v1</span> <span class="id">v2</span>).<br/>
-<span class="kwd">End</span> <span class="id">exp_nested_ind</span>.<br/>
-<br/>
-<br/>
-<span class="kwd">Lemma</span> <span class="id">exp_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">e1</span> <span class="id">e2</span>: <span class="id">exp</span>), {<span class="id">e1</span> = <span class="id">e2</span>} + {<span class="id">e1</span> &lt;&gt; <span class="id">e2</span>}.<br/>
+<span class="kwd">Fixpoint</span> <span class="id">exp_eq_dec</span> (<span class="id">e1</span> <span class="id">e2</span>: <span class="id">exp</span>): {<span class="id">e1</span> = <span class="id">e2</span>} + {<span class="id">e1</span> &lt;&gt; <span class="id">e2</span>}.<br/>
 <div class="toggleproof" onclick="toggleDisplay('proof12')">Proof.</div>
 <div class="proofscript" id="proof12">
-Admitted.</div>
+&nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>; <span class="tactic">do</span> 2 <span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
+Qed.</div>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">exp_eq_dec</span>.<br/>
+<br/>
 <br/>
 <span class="kwd">Definition</span> <span class="id">texp</span> : <span class="kwd">Set</span> := <span class="id">typ</span> * <span class="id">exp</span>.<br/>
 <span class="kwd">Lemma</span> <span class="id">texp_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">te1</span> <span class="id">te2</span>: <span class="id">texp</span>), {<span class="id">te1</span> = <span class="id">te2</span>} + {<span class="id">te1</span> &lt;&gt; <span class="id">te2</span>}.<br/>
@@ -506,7 +461,7 @@ Admitted.</div>
 <div class="proofscript" id="proof13">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;Qed.</div>
+Qed.</div>
 &nbsp;&nbsp;<br/>
 <br/>
 <span class="kwd">Inductive</span> <span class="id">instr_id</span> : <span class="kwd">Set</span> :=<br/>
@@ -670,13 +625,16 @@ Qed.</div>
 <br/>
 <span class="kwd">Definition</span> <span class="id">toplevel_entities</span> (<span class="id">FnBody</span>:<span class="kwd">Set</span>) : <span class="kwd">Set</span> := <span class="id">list</span> (<span class="id">toplevel_entity</span> <span class="id">FnBody</span>).<br/>
 <br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">typedefs</span> := <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>).<br/>
+<br/>
 <span class="kwd">Record</span> <span class="id">modul</span> (<span class="id">FnBody</span>:<span class="kwd">Set</span>) : <span class="kwd">Set</span> :=<br/>
 &nbsp;&nbsp;<span class="id">mk_modul</span><br/>
 &nbsp;&nbsp;{<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_name</span>: <span class="id">option</span> <span class="id">string</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_target</span>: <span class="id">option</span> <span class="id">string</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_datalayout</span>: <span class="id">option</span> <span class="id">string</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_type_defs</span>: <span class="id">list</span> (<span class="id">ident</span> * <span class="id">typ</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_type_defs</span>: <span class="id">typedefs</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_globals</span>: <span class="id">list</span> <span class="id">global</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_declarations</span>: <span class="id">list</span> <span class="id">declaration</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_definitions</span>: <span class="id">list</span> (<span class="id">definition</span> <span class="id">FnBody</span>);<br/>

@@ -16,11 +16,13 @@
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Classes</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMIO</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.StepSemantics</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.StepSemanticsTiered</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Memory</span>.<br/>
 <br/>
 <span class="kwd">Module</span> <span class="id">IO</span> := <span class="id">LLVMIO.Make</span>(<span class="id">Memory.A</span>).<br/>
 <span class="kwd">Module</span> <span class="id">M</span> := <span class="id">Memory.Make</span>(<span class="id">IO</span>).<br/>
 <span class="kwd">Module</span> <span class="id">SS</span> := <span class="id">StepSemantics</span>(<span class="id">Memory.A</span>)(<span class="id">IO</span>).<br/>
+<span class="kwd">Module</span> <span class="id">SST</span> := <span class="id">StepSemanticsTiered</span>(<span class="id">Memory.A</span>)(<span class="id">IO</span>).<br/>
 <br/>
 <span class="kwd">Import</span> <span class="id">IO</span>.<br/>
 <span class="kwd">Export</span> <span class="id">IO.DV</span>.<br/>
@@ -33,11 +35,28 @@
 <span class="kwd">Check</span> (<span class="id">run_mcfg_with_memory</span>).<br/>
 <br/>
 <br/>
+<span class="kwd">Definition</span> <span class="id">run_mcfg_with_memory_tiered</span> (<span class="id">mcfg</span>: <span class="id">CFG.mcfg</span>) : <span class="id">Trace</span> <span class="id">DV.dvalue</span> :=<br/>
+&nbsp;&nbsp;<span class="id">M.memD</span> <span class="id">M.empty</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Trace.bindM</span> (<span class="id">SST.init_state_tiered</span> <span class="id">mcfg</span> "<span class="id">main</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="kwd">let</span> '(<span class="id">ir</span>, <span class="id">ge</span>) := <span class="id">x</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.step_sem_tiered</span> <span class="id">ge</span> (@<span class="id">SST.ENV.empty</span> <span class="id">dvalue</span>) <span class="id">nil</span> <span class="id">mcfg</span> <span class="id">ir</span>))).<br/>
+<br/>
+<br/>
+<br/>
 <span class="kwd">Definition</span> <span class="id">run_with_memory</span> <span class="id">prog</span> : <span class="id">option</span> (<span class="id">Trace</span> <span class="id">DV.dvalue</span>) :=<br/>
 &nbsp;&nbsp;<span class="kwd">let</span> <span class="id">scfg</span> := <span class="id">Vellvm.AstLib.modul_of_toplevel_entities</span> <span class="id">prog</span> <span class="kwd">in</span><br/>
 &nbsp;&nbsp;<span class="kwd">match</span> <span class="id">CFG.mcfg_of_modul</span> <span class="id">scfg</span> <span class="kwd">with</span><br/>
 &nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">None</span><br/>
 &nbsp;&nbsp;| <span class="id">Some</span> <span class="id">mcfg</span> =&gt; <span class="id">Some</span> (<span class="id">run_mcfg_with_memory</span> <span class="id">mcfg</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">run_with_memory_tiered</span> <span class="id">prog</span> : <span class="id">option</span> (<span class="id">Trace</span> <span class="id">DV.dvalue</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">scfg</span> := <span class="id">Vellvm.AstLib.modul_of_toplevel_entities</span> <span class="id">prog</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">CFG.mcfg_of_modul</span> <span class="id">scfg</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">None</span><br/>
+&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">mcfg</span> =&gt; <span class="id">Some</span> (<span class="id">run_mcfg_with_memory_tiered</span> <span class="id">mcfg</span>)<br/>
 &nbsp;&nbsp;<span class="kwd">end</span>.<br/>
 <br/>
 </div>

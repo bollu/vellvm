@@ -24,7 +24,7 @@
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.CFG</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMIO</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.DynamicValues</span>.<br/>
-<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.StepSemantics</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.StepSemanticsTiered</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span>  <span class="id">Vellvm.Classes</span> <span class="id">Vellvm.Util</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.TypeUtil</span>.<br/>
@@ -45,61 +45,186 @@
 <br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Memory</span>.<br/>
 <br/>
-<span class="kwd">Definition</span> <span class="id">Pass</span> (<span class="id">A</span>: <span class="kwd">Type</span>) := <span class="id">A</span> -&gt; <span class="id">A</span>.<br/>
 <br/>
-<span class="kwd">Definition</span> <span class="id">InstrPass</span> := <span class="id">Pass</span> <span class="id">instr</span>.<br/>
-<span class="kwd">Definition</span> <span class="id">CodePass</span> := <span class="id">Pass</span> <span class="id">code</span>.<br/>
-<span class="kwd">Definition</span> <span class="id">BlockPass</span> := <span class="id">Pass</span> <span class="id">block</span>.<br/>
-<span class="kwd">Definition</span> <span class="id">CFGPass</span> := <span class="id">Pass</span> <span class="id">cfg</span>.<br/>
-<span class="kwd">Definition</span> <span class="id">CFGDefinitionPass</span> := <span class="id">Pass</span> (<span class="id">definition</span> <span class="id">cfg</span>).<br/>
-<span class="kwd">Definition</span> <span class="id">MCFGPass</span> := <span class="id">Pass</span> <span class="id">mcfg</span>.<br/>
+<div class="doc">Fancy typeclass machinery *</div>
+<br/>
+<div class="doc">a pass P is anything that can act on Unit *</div>
+<span class="kwd">Definition</span> <span class="id">Pass</span> (<span class="id">U</span>: <span class="kwd">Type</span>) := <span class="id">U</span> -&gt; <span class="id">U</span>.<br/>
+<br/>
+<span class="kwd">Notation</span> <span class="id">InstrPass</span> := (<span class="id">Pass</span> <span class="id">instr</span>).<br/>
+<span class="kwd">Notation</span> <span class="id">CodePass</span> := (<span class="id">Pass</span> <span class="id">code</span>).<br/>
+<span class="kwd">Notation</span> <span class="id">BlockPass</span> := (<span class="id">Pass</span> <span class="id">block</span>).<br/>
+<span class="kwd">Notation</span> <span class="id">CFGPass</span> := (<span class="id">Pass</span> <span class="id">cfg</span>).<br/>
+<span class="kwd">Notation</span> <span class="id">DefinitionCFGPass</span> := (<span class="id">Pass</span> (<span class="id">definition</span> <span class="id">cfg</span>)).<br/>
+<span class="kwd">Notation</span> <span class="id">MCFGPass</span> := (<span class="id">Pass</span> <span class="id">mcfg</span>).<br/>
+<div class="doc">Define a functorial structure that can transform a small transformation into a
+    larger one *</div>
+<span class="kwd">Class</span> <span class="id">MonoFunctor</span> (<span class="id">Out</span>: <span class="kwd">Type</span>) (<span class="id">In</span>: <span class="kwd">Type</span>) : <span class="kwd">Type</span> :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">monomap</span>: (<span class="id">In</span> -&gt; <span class="id">In</span>) -&gt; (<span class="id">Out</span> -&gt; <span class="id">Out</span>);<br/>
+<div class="doc">Note that on having functional extensionality,
+     we have equality at the function level *</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">monomap_functorial</span>: <span class="kwd">forall</span> <span class="id">f</span> <span class="id">g</span> <span class="id">i</span>, (<span class="id">monomap</span> <span class="id">f</span> ∘ <span class="id">monomap</span> <span class="id">g</span>) <span class="id">i</span> = <span class="id">monomap</span> (<span class="id">f</span> ∘ <span class="id">g</span>) <span class="id">i</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;}.<br/>
 <br/>
 <br/>
+<span class="kwd">Instance</span> <span class="id">instrToIdInstrFunctor</span>: <span class="id">MonoFunctor</span> (<span class="id">instr_id</span> * <span class="id">instr</span>) <span class="id">instr</span> :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">monomap</span> (<span class="id">p</span>: <span class="id">instr</span> -&gt; <span class="id">instr</span>) (<span class="id">iid</span>: <span class="id">instr_id</span> * <span class="id">instr</span>) := (<span class="id">fst</span> <span class="id">iid</span>, <span class="id">p</span> (<span class="id">snd</span> <span class="id">iid</span>));<br/>
+&nbsp;&nbsp;}.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof270')">Proof.</div>
+<div class="proofscript" id="proof270">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+Defined.</div>
 <br/>
-<span class="kwd">Definition</span> <span class="id">liftInstrPassToIdInstrPass</span> (<span class="id">pass</span>: <span class="id">InstrPass</span>):<br/>
-&nbsp;&nbsp;<span class="id">Pass</span> (<span class="id">instr_id</span> * <span class="id">instr</span>) :=<br/>
-&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">x</span> =&gt; (<span class="id">fst</span> <span class="id">x</span>, <span class="id">pass</span> (<span class="id">snd</span> <span class="id">x</span>)).<br/>
+<span class="kwd">Check</span> (<span class="id">instrToIdInstrFunctor</span>).<br/>
+<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">instrToBlockFunctor</span>: <span class="id">MonoFunctor</span> <span class="id">block</span> <span class="id">instr</span> :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">monomap</span> (<span class="id">pass</span>: <span class="id">instr</span> -&gt; <span class="id">instr</span>) (<span class="id">b</span>: <span class="id">block</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mk_block</span> (<span class="id">blk_id</span> <span class="id">b</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">blk_phis</span> <span class="id">b</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">List.map</span> (<span class="id">monomap</span> <span class="id">pass</span>) (<span class="id">blk_code</span> <span class="id">b</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">blk_term</span> <span class="id">b</span>);<br/>
+&nbsp;&nbsp;}.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof271')">Proof.</div>
+<div class="proofscript" id="proof271">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<br/>
-<br/>
-<br/>
-<br/>
-<span class="kwd">Definition</span> <span class="id">liftInstrPassToBlockPass</span> (<span class="id">pass</span>: <span class="id">InstrPass</span>): <span class="id">BlockPass</span> :=<br/>
-&nbsp;&nbsp;<span class="kwd">fun</span> (<span class="id">b</span>: <span class="id">block</span>) =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mk_block</span> (<span class="id">blk_id</span> <span class="id">b</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">blk_phis</span> <span class="id">b</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">List.map</span> (<span class="id">liftInstrPassToIdInstrPass</span> <span class="id">pass</span>) (<span class="id">blk_code</span> <span class="id">b</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">blk_term</span> <span class="id">b</span>).<br/>
-<br/>
+&nbsp;&nbsp;<span class="id">Opaque</span> <span class="id">monomap</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">i</span>; <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">MAP_EQ</span>: <span class="id">map</span> (<span class="id">monomap</span> <span class="id">f</span>) (<span class="id">map</span> (<span class="id">monomap</span> <span class="id">g</span>) <span class="id">blk_code</span>) =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">map</span> (<span class="id">monomap</span> (<span class="id">f</span> ∘ <span class="id">g</span>)) <span class="id">blk_code</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">blk_code</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">rewrite</span> <span class="id">map_cons</span>.<br/>
 &nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">replace</span> (<span class="id">monomap</span> (<span class="id">f</span> ∘ <span class="id">g</span>) <span class="id">a</span>) <span class="kwd">with</span> ((<span class="id">monomap</span> <span class="id">f</span> ∘ <span class="id">monomap</span> <span class="id">g</span>) <span class="id">a</span> ).<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">IHblk_code</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">monomap_functorial</span>.<br/>
 <br/>
-<span class="kwd">Definition</span> <span class="id">liftBlockPassToCFGPass</span> (<span class="id">pass</span>: <span class="id">BlockPass</span>): <span class="id">CFGPass</span>:=<br/>
-&nbsp;&nbsp;<span class="kwd">fun</span> (<span class="id">c</span>: <span class="id">cfg</span>) =&gt;<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">MAP_EQ</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;<span class="id">Transparent</span> <span class="id">monomap</span>.<br/>
+Defined.</div>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">map_map</span>': <span class="kwd">forall</span> {<span class="id">A</span> <span class="id">B</span> <span class="id">C</span>: <span class="kwd">Type</span>} (<span class="id">f</span>: <span class="id">B</span> -&gt; <span class="id">C</span>) (<span class="id">g</span>: <span class="id">A</span> -&gt; <span class="id">B</span>) (<span class="id">x</span>: <span class="id">list</span> <span class="id">A</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">map</span> <span class="id">f</span> ((<span class="id">map</span> <span class="id">g</span>) <span class="id">x</span>) = <span class="id">map</span> (<span class="id">f</span> ∘ <span class="id">g</span>) <span class="id">x</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof272')">Proof.</div>
+<div class="proofscript" id="proof272">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">x</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">x</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">rewrite</span> <span class="id">map_cons</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">IHx</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Defined.</div>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">map_map</span>'.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">blockToCFGFunctor</span> : <span class="id">MonoFunctor</span> <span class="id">cfg</span> <span class="id">block</span> :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">monomap</span> (<span class="id">pass</span>: <span class="id">block</span> -&gt; <span class="id">block</span>) (<span class="id">c</span>: <span class="id">cfg</span>) :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{|<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">init</span> := <span class="id">init</span> <span class="id">c</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blks</span> := <span class="id">map</span> <span class="id">pass</span> (<span class="id">blks</span> <span class="id">c</span>);<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">args</span> := <span class="id">args</span> <span class="id">c</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;|}.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;|}<br/>
 <br/>
-<span class="kwd">Definition</span> <span class="id">liftCFGPassToCFGDefinitionPass</span> (<span class="id">pass</span>: <span class="id">CFGPass</span>): <span class="id">CFGDefinitionPass</span> :=<br/>
-&nbsp;&nbsp;<span class="kwd">fun</span> (<span class="id">d</span>: <span class="id">definition</span> <span class="id">cfg</span>) =&gt;<br/>
+&nbsp;&nbsp;}.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof273')">Proof.</div>
+<div class="proofscript" id="proof273">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">map_map</span>'.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Defined.</div>
+<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">CFGToDefinitionCFGFunctor</span>:<br/>
+&nbsp;&nbsp;<span class="id">MonoFunctor</span> (<span class="id">definition</span> <span class="id">cfg</span>) <span class="id">cfg</span> :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">monomap</span> (<span class="id">pass</span>: <span class="id">cfg</span> -&gt; <span class="id">cfg</span>) (<span class="id">defn</span>: <span class="id">definition</span> <span class="id">cfg</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mk_definition</span> <span class="id">cfg</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">df_prototype</span> <span class="id">d</span>) <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">df_args</span> <span class="id">d</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">pass</span> (<span class="id">df_instrs</span> <span class="id">d</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">df_prototype</span> <span class="id">defn</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">df_args</span> <span class="id">defn</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">pass</span> (<span class="id">df_instrs</span> <span class="id">defn</span>));<br/>
+<br/>
+&nbsp;&nbsp;}.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof274')">Proof.</div>
+<div class="proofscript" id="proof274">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">constructor</span>.<br/>
+Defined.</div>
 <br/>
 <br/>
-<span class="kwd">Definition</span> <span class="id">liftCFGDefinitionPassToMCFGPass</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">pass</span>: <span class="id">CFGDefinitionPass</span>): <span class="id">MCFGPass</span> :=<br/>
-&nbsp;&nbsp;<span class="kwd">fun</span> (<span class="id">m</span>: <span class="id">mcfg</span>) =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;{| <span class="id">m_name</span> := <span class="id">m_name</span> <span class="id">m</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_target</span>:= <span class="id">m_target</span> <span class="id">m</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_datalayout</span> := <span class="id">m_datalayout</span> <span class="id">m</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_type_defs</span> := <span class="id">m_type_defs</span> <span class="id">m</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_globals</span> := <span class="id">m_globals</span> <span class="id">m</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_declarations</span> := <span class="id">m_declarations</span> <span class="id">m</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_definitions</span> := <span class="id">map</span> <span class="id">pass</span> (<span class="id">m_definitions</span> <span class="id">m</span>);<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;|}.<br/>
+<span class="kwd">Instance</span> <span class="id">DefinitionCFGPassToMCFGFunctor</span>:<br/>
+&nbsp;&nbsp;<span class="id">MonoFunctor</span>  <span class="id">mcfg</span>  (<span class="id">definition</span> <span class="id">cfg</span>) :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">monomap</span> (<span class="id">pass</span>: <span class="id">definition</span> <span class="id">cfg</span> -&gt; <span class="id">definition</span> <span class="id">cfg</span>) (<span class="id">m</span>: <span class="id">mcfg</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{| <span class="id">m_name</span> := <span class="id">m_name</span> <span class="id">m</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_target</span>:= <span class="id">m_target</span> <span class="id">m</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_datalayout</span> := <span class="id">m_datalayout</span> <span class="id">m</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_type_defs</span> := <span class="id">m_type_defs</span> <span class="id">m</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_globals</span> := <span class="id">m_globals</span> <span class="id">m</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_declarations</span> := <span class="id">m_declarations</span> <span class="id">m</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_definitions</span> := <span class="id">map</span> <span class="id">pass</span> (<span class="id">m_definitions</span> <span class="id">m</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|};<br/>
+&nbsp;&nbsp;}.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof275')">Proof.</div>
+<div class="proofscript" id="proof275">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">map_map</span>'; <span class="tactic">auto</span>.<br/>
+Defined.</div>
 <br/>
+<br/>
+<br/>
+<div class="doc">NOTE: I needed funext *</div>
+<span class="kwd">Instance</span> <span class="id">monofunctor_chain</span> (<span class="id">A</span>: <span class="kwd">Type</span>) (<span class="id">B</span>: <span class="kwd">Type</span>) (<span class="id">C</span>: <span class="kwd">Type</span>) `{<span class="id">MonoFunctor</span> <span class="id">B</span> <span class="id">A</span>} `{<span class="id">MonoFunctor</span> <span class="id">C</span> <span class="id">B</span>}:<br/>
+&nbsp;&nbsp;<span class="id">MonoFunctor</span> <span class="id">C</span> <span class="id">A</span> :=<br/>
+&nbsp;&nbsp;{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">monomap</span> (<span class="id">pass</span>: <span class="id">A</span> -&gt; <span class="id">A</span>) (<span class="id">c</span>: <span class="id">C</span>) := <span class="id">monomap</span> (<span class="id">monomap</span> <span class="id">pass</span>) <span class="id">c</span>;<br/>
+&nbsp;&nbsp;}.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof276')">Proof.</div>
+<div class="proofscript" id="proof276">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Check</span> (<span class="id">monomap_functorial</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">MONO_EQ</span>: <span class="id">monomap</span> (<span class="id">f</span> ∘ <span class="id">g</span>) = (<span class="id">monomap</span> <span class="id">f</span> ∘ <span class="id">monomap</span> <span class="id">g</span>)).<br/>
+&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">x</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">monomap_functorial</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">MONO_EQ</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- <span class="id">monomap_functorial</span> <span class="kwd">with</span> (<span class="id">f0</span> := <span class="id">monomap</span> <span class="id">f</span>) (<span class="id">g0</span> := <span class="id">monomap</span> <span class="id">g</span>) (<span class="id">i0</span> := <span class="id">i</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+Defined.</div>
+&nbsp;&nbsp;<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">f_instr</span> (<span class="id">i</span>: <span class="id">instr</span>): <span class="id">instr</span> := <span class="id">id</span> <span class="id">i</span>.<br/>
+<span class="kwd">Check</span> (<span class="id">f_instr</span>).<br/>
+<br/>
+<div class="doc">NICE! I can automatically lift instances using monomap *</div>
+<span class="kwd">Definition</span> <span class="id">map_f_instr_on_block</span> (<span class="id">b</span>: <span class="id">block</span>): <span class="id">block</span> :=  <span class="id">monomap</span> (<span class="id">f_instr</span>) <span class="id">b</span>.<br/>
+<div class="doc">This just hangs because of from the looks of it, instance resolution *</div>
+<br/>
+<span class="kwd">Set</span> <span class="kwd">Typeclasses</span> <span class="id">Debug</span>.<br/>
+<span class="kwd">Set</span> <span class="kwd">Typeclasses</span> <span class="id">Debug</span> <span class="id">Verbosity</span> 2.<br/>
+<span class="kwd">Definition</span> <span class="id">map_f_instr_on_cfg</span> (<span class="id">c</span>: <span class="id">cfg</span>): <span class="id">cfg</span> :=<br/>
+&nbsp;&nbsp;<span class="id">monomap</span> (<span class="id">f_instr</span>) <span class="id">c</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">map_f_instr_on_definion_cfg</span> (<span class="id">d</span>: <span class="id">definition</span> <span class="id">cfg</span>):<br/>
+&nbsp;&nbsp;<span class="id">definition</span> <span class="id">cfg</span> :=  <span class="id">monomap</span> (<span class="id">f_instr</span>) <span class="id">d</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">map_f_instr_on_mcfg</span> (<span class="id">m</span>: <span class="id">mcfg</span>): <span class="id">mcfg</span> :=  <span class="id">monomap</span> (<span class="id">f_instr</span>) <span class="id">m</span>.<br/>
 <br/>
 <br/>
 <br/>
@@ -111,15 +236,15 @@
 <span class="kwd">Import</span> <span class="id">FunctionalExtensionality</span>.<br/>
 <br/>
 <br/>
-<span class="kwd">Module</span> <span class="id">SS</span> := <span class="id">StepSemantics</span> <span class="id">A</span> <span class="id">LLVMIO</span>.<br/>
-<span class="kwd">Import</span> <span class="id">SS</span>.<br/>
+<span class="kwd">Module</span> <span class="id">SST</span> := <span class="id">StepSemanticsTiered</span> <span class="id">A</span> <span class="id">LLVMIO</span>.<br/>
+<span class="kwd">Import</span> <span class="id">SST</span>.<br/>
 <span class="kwd">Import</span> <span class="id">LLVMIO</span>.<br/>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">bindM_Ret</span>: <span class="kwd">forall</span> (<span class="id">A</span> <span class="id">B</span>: <span class="kwd">Type</span>) (<span class="id">a</span>: <span class="id">A</span>) (<span class="id">f</span>: <span class="id">A</span> -&gt; <span class="id">Trace</span> <span class="id">B</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">bindM</span> (<span class="id">Ret</span> <span class="id">a</span>) <span class="id">f</span> ≡  <span class="id">f</span> <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof263')">Proof.</div>
-<div class="proofscript" id="proof263">
+<div class="toggleproof" onclick="toggleDisplay('proof277')">Proof.</div>
+<div class="proofscript" id="proof277">
 Admitted.</div>
 <br/>
 <span class="kwd">Check</span> (@<span class="id">bindM</span>).<br/>
@@ -127,18 +252,18 @@ Admitted.</div>
 <br/>
 <span class="kwd">Example</span> <span class="id">bind_of_ret</span>: <br/>
 &nbsp;&nbsp;(<span class="id">mbind</span> (<span class="id">F</span> := <span class="id">M</span> <span class="id">IO</span>)) (<span class="id">mret</span> (<span class="id">DVALUE_I64</span> (<span class="id">Int64.repr</span> 2)))  (<span class="kwd">fun</span> <span class="id">v</span> =&gt; <span class="id">mret</span> <span class="id">v</span>)  ≡  <span class="id">mret</span> (<span class="id">DVALUE_I64</span> (<span class="id">Int64.repr</span> 2)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof264')">Proof.</div>
-<div class="proofscript" id="proof264">
+<div class="toggleproof" onclick="toggleDisplay('proof278')">Proof.</div>
+<div class="proofscript" id="proof278">
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">mret_mbind</span>.<br/>
 Qed.</div>
 <br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">bind_of_ret</span>.<br/>
 <span class="kwd">Hint</span> <span class="id">Rewrite</span> -&gt; <span class="id">bind_of_ret</span>.<br/>
 <br/>
-<span class="kwd">Lemma</span>  <span class="id">eval_type_I64</span>: <span class="kwd">forall</span> (<span class="id">cfg</span>: <span class="id">mcfg</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_typ</span> <span class="id">cfg</span> (<span class="id">TYPE_I</span> 64) = <span class="id">DTYPE_I</span> 64.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof265')">Proof.</div>
-<div class="proofscript" id="proof265">
+<span class="kwd">Lemma</span>  <span class="id">eval_type_I64</span>: <span class="kwd">forall</span> (<span class="id">tds</span>: <span class="id">typedefs</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_typ</span> <span class="id">tds</span> (<span class="id">TYPE_I</span> 64) = <span class="id">DTYPE_I</span> 64.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof279')">Proof.</div>
+<div class="proofscript" id="proof279">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_typ</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
@@ -148,51 +273,65 @@ Qed.</div>
 <br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">eval_type_I64</span>.<br/>
 <br/>
+<br/>
 <span class="kwd">Definition</span> <span class="id">preserves_types</span> (<span class="id">p</span>: <span class="id">MCFGPass</span>): <span class="kwd">Prop</span> :=<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>), <span class="id">m_type_defs</span> (<span class="id">p</span> <span class="id">CFG</span>) = <span class="id">m_type_defs</span> <span class="id">CFG</span>.<br/>
 <br/>
-<span class="kwd">Definition</span> <span class="id">preserves_eval_typ</span> (<span class="id">p</span>: <span class="id">MCFGPass</span>) (<span class="id">MCFG</span>: <span class="id">mcfg</span>) (<span class="id">t</span>: <span class="id">typ</span>): <span class="kwd">Prop</span> :=<br/>
-&nbsp;&nbsp;<span class="id">eval_typ</span> (<span class="id">p</span> <span class="id">MCFG</span>) <span class="id">t</span> = <span class="id">eval_typ</span> <span class="id">MCFG</span> <span class="id">t</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">preserves_eval_typ</span> (<span class="id">p</span>: <span class="id">MCFGPass</span>) (<span class="id">t</span>: <span class="id">typ</span>): <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>), <span class="id">eval_typ</span> (<span class="id">m_type_defs</span> (<span class="id">p</span> <span class="id">CFG</span>)) <span class="id">t</span> = <span class="id">eval_typ</span> (<span class="id">m_type_defs</span> <span class="id">CFG</span>) <span class="id">t</span>.<br/>
+<br/>
+<span class="id">Create</span> <span class="id">HintDb</span> <span class="id">passes</span>.<br/>
+<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">preserves_types_implies_preserves_eval_typ</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">p</span>: <span class="id">MCFGPass</span>) (<span class="id">CFG</span>: <span class="id">mcfg</span>) (<span class="id">t</span>: <span class="id">typ</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_types</span> <span class="id">p</span> -&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_typ</span> (<span class="id">p</span> <span class="id">CFG</span>) <span class="id">t</span> = <span class="id">eval_typ</span> <span class="id">CFG</span> <span class="id">t</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof266')">Proof.</div>
-<div class="proofscript" id="proof266">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_eval_typ</span> <span class="id">p</span> <span class="id">t</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof280')">Proof.</div>
+<div class="proofscript" id="proof280">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">unfold</span> <span class="id">eval_typ</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">unfold</span> <span class="id">preserves_eval_typ</span>).<br/>
 <br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_types</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">t</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
-<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">preserves_types_implies_preserves_eval_typ</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">preserves_types_implies_preserves_eval_typ</span> : <span class="id">passes</span>.<br/>
 <br/>
-<span class="kwd">Definition</span> <span class="id">preserves_ident_definition</span> (<span class="id">g</span>: <span class="id">CFGDefinitionPass</span>): <span class="kwd">Prop</span> :=<br/>
-&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">fn</span>: <span class="id">definition</span> <span class="id">cfg</span>), <span class="id">ident_of</span> (<span class="id">g</span> <span class="id">fn</span>) = <span class="id">ident_of</span> <span class="id">fn</span>.<br/>
 <br/>
-<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">preserves_ident_definition</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">preserves_ident_definition</span> (<span class="id">p</span>: <span class="id">DefinitionCFGPass</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">fn</span>: <span class="id">definition</span> <span class="id">cfg</span>), <span class="id">ident_of</span> (<span class="id">p</span> <span class="id">fn</span>) = <span class="id">ident_of</span> <span class="id">fn</span>.<br/>
 <br/>
-<span class="kwd">Lemma</span> <span class="id">lifted_cfg_pass_preserves_ident_definition</span>: <span class="kwd">forall</span> (<span class="id">pass</span>: <span class="id">CFGPass</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_ident_definition</span> (<span class="id">liftCFGPassToCFGDefinitionPass</span> <span class="id">pass</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof267')">Proof.</div>
-<div class="proofscript" id="proof267">
-&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">preserves_ident_definition</span>: <span class="id">pass</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+<div class="doc">TODO: Phrase `monomap` in terms of lifting `Pass`, not just lifting
+functions of the form A -&gt; A *</div>
+<span class="kwd">Lemma</span> <span class="id">lifted_cfg_pass_preserves_ident_definition</span>:<br/>
+&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">p</span>: <span class="id">CFGPass</span>), <span class="id">preserves_ident_definition</span> (<span class="id">monomap</span> <span class="id">p</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof281')">Proof.</div>
+<div class="proofscript" id="proof281">
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">monomap</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">CFGToDefinitionCFGFunctor</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_ident_definition</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
 Qed.</div>
 <br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">lifted_cfg_pass_preserves_ident_definition</span>.<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">preserves_ident_definition_commutes_with_find_defn</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">fnid</span>: <span class="id">function_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">CFGDefinitionPass</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">DefinitionCFGPass</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_ident_definition</span> <span class="id">g</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">agress_on_filter</span> (<span class="id">find_defn</span> <span class="id">fnid</span>) <span class="id">g</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof268')">Proof.</div>
-<div class="proofscript" id="proof268">
+<div class="toggleproof" onclick="toggleDisplay('proof282')">Proof.</div>
+<div class="proofscript" id="proof282">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">g</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">PRESERVES_IDENT</span>.<br/>
 &nbsp;&nbsp;<br/>
@@ -232,17 +371,18 @@ Qed.</div>
 <br/>
 <br/>
 <br/>
-<span class="kwd">Lemma</span> <span class="id">find_definition_some</span>: <span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fnid</span>: <span class="id">function_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">oldfn</span>: <span class="id">definition</span> <span class="id">cfg</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">CFGDefinitionPass</span>),<br/>
+<span class="kwd">Lemma</span> <span class="id">find_definition_some</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fnid</span>: <span class="id">function_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">oldfn</span>: <span class="id">definition</span> <span class="id">cfg</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">DefinitionCFGPass</span>),<br/>
 <br/>
 &nbsp;&nbsp;<span class="id">preserves_ident_definition</span> <span class="id">g</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fnid</span> = <span class="id">Some</span> <span class="id">oldfn</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">find_map</span> (<span class="id">find_defn</span> <span class="id">fnid</span>) (<span class="id">map</span> <span class="id">g</span> (<span class="id">m_definitions</span> <span class="id">CFG</span>)) =<br/>
 &nbsp;&nbsp;<span class="id">Some</span> (<span class="id">g</span> <span class="id">oldfn</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof269')">Proof.</div>
-<div class="proofscript" id="proof269">
+<div class="toggleproof" onclick="toggleDisplay('proof283')">Proof.</div>
+<div class="proofscript" id="proof283">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">g</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">PRESERVES_IDENT</span> <span class="id">FINDOLD</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">FIND_ON_MAP</span>: <span class="id">exists</span> <span class="id">old_old_fn</span>, <span class="id">Some</span> <span class="id">oldfn</span> = (<span class="id">find_defn</span> <span class="id">fnid</span> <span class="id">old_old_fn</span>) /\<br/>
@@ -273,30 +413,30 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">CFG</span>: <span class="id">mcfg</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fnid</span>: <span class="id">function_id</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">oldfn</span>: <span class="id">definition</span> <span class="id">cfg</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">CFGDefinitionPass</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">DefinitionCFGPass</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">PRESERVES_DEFN_IDENT</span>: <span class="id">preserves_ident_definition</span> <span class="id">g</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fnid</span> = <span class="id">Some</span> <span class="id">oldfn</span> -&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function</span> ((<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">g</span>) <span class="id">CFG</span>) <span class="id">fnid</span> = <span class="id">Some</span> (<span class="id">g</span> <span class="id">oldfn</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof270')">Proof.</div>
-<div class="proofscript" id="proof270">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function</span> ((<span class="id">monomap</span> <span class="id">g</span>) <span class="id">CFG</span>) <span class="id">fnid</span> = <span class="id">Some</span> (<span class="id">g</span> <span class="id">oldfn</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof284')">Proof.</div>
+<div class="proofscript" id="proof284">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">monomap</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">DefinitionCFGPassToMCFGFunctor</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">find_function</span> <span class="kwd">in</span> *.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">find_definition_some</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
-<br/>
-<br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">find_function_some</span>.<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">find_function_none</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fnid</span>: <span class="id">function_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">CFGDefinitionPass</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">DefinitionCFGPass</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">PRESERVES_DEFN_IDENT</span>: <span class="id">preserves_ident_definition</span> <span class="id">g</span>), <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fnid</span> = <span class="id">None</span> -&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function</span> ((<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">g</span>) <span class="id">CFG</span>) <span class="id">fnid</span> = <span class="id">None</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof271')">Proof.</div>
-<div class="proofscript" id="proof271">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function</span> ((<span class="id">monomap</span> <span class="id">g</span>) <span class="id">CFG</span>) <span class="id">fnid</span> = <span class="id">None</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof285')">Proof.</div>
+<div class="proofscript" id="proof285">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">find_function</span> <span class="kwd">in</span> *.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
@@ -304,22 +444,23 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
-<br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span>  (<span class="id">find_function_none</span>).<br/>
-<span class="kwd">Hint</span> <span class="id">Rewrite</span>  (<span class="id">find_function_none</span>).<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">find_function_lifted_definition_pass</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fnid</span>: <span class="id">function_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">CFGDefinitionPass</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">g</span>: <span class="id">DefinitionCFGPass</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">PRESERVES_DEFN_IDENT</span>: <span class="id">preserves_ident_definition</span> <span class="id">g</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function</span>  ((<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">g</span>) <span class="id">CFG</span>) <span class="id">fnid</span> =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function</span>  ((<span class="id">monomap</span> <span class="id">g</span>) <span class="id">CFG</span>) <span class="id">fnid</span> =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">option_map</span> <span class="id">g</span> (<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fnid</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof272')">Proof.</div>
-<div class="proofscript" id="proof272">
+<div class="toggleproof" onclick="toggleDisplay('proof286')">Proof.</div>
+<div class="proofscript" id="proof286">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="id">Opaque</span> <span class="id">monomap</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="id">remember</span> (<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fnid</span>) <span class="kwd">as</span> <span class="id">FIND_F</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">FIND_F</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="id">Transparent</span> <span class="id">monomap</span>.<br/>
 Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span>(<span class="id">find_function_lifted_definition_pass</span>).<br/>
@@ -334,8 +475,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">find_block</span>: <span class="kwd">forall</span> <span class="id">blks</span> <span class="id">blkid</span> (<span class="id">g</span>: <span class="id">BlockPass</span>) ,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_ident_block</span> <span class="id">g</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_block</span> (<span class="id">map</span> <span class="id">g</span> <span class="id">blks</span>) <span class="id">blkid</span> = <span class="id">option_map</span>  <span class="id">g</span> (<span class="id">find_block</span> <span class="id">blks</span> <span class="id">blkid</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof273')">Proof.</div>
-<div class="proofscript" id="proof273">
+<div class="toggleproof" onclick="toggleDisplay('proof287')">Proof.</div>
+<div class="proofscript" id="proof287">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">g</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">PRESERVES_IDENT</span>.<br/>
 <br/>
@@ -373,9 +514,9 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">lifted_instr_pass_to_block_pass_preserves_block_terminator</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">pass</span>: <span class="id">InstrPass</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_block_terminator</span> (<span class="id">liftInstrPassToBlockPass</span> <span class="id">pass</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof274')">Proof.</div>
-<div class="proofscript" id="proof274">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_block_terminator</span> (<span class="id">monomap</span> <span class="id">pass</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof288')">Proof.</div>
+<div class="proofscript" id="proof288">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_block_terminator</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
@@ -388,8 +529,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_term_id</span> <span class="id">b</span> = <span class="id">pt</span> -&gt; <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_block_terminator</span> <span class="id">g</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">block_to_cmd</span> (<span class="id">g</span> <span class="id">b</span>) <span class="id">pt</span> = <span class="id">block_to_cmd</span> <span class="id">b</span> <span class="id">pt</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof275')">Proof.</div>
-<div class="proofscript" id="proof275">
+<div class="toggleproof" onclick="toggleDisplay('proof289')">Proof.</div>
+<div class="proofscript" id="proof289">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span>  <span class="id">pt</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">ACCESSING_TERMINATOR</span> <span class="id">PRESERVES_TERMINATOR</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_block_terminator</span> <span class="kwd">in</span> <span class="id">PRESERVES_TERMINATOR</span>.<br/>
@@ -411,8 +552,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_term_id</span> <span class="id">b</span> &lt;&gt; <span class="id">pt</span> -&gt; <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_block_terminator</span> <span class="id">g</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">block_to_cmd</span> (<span class="id">g</span> <span class="id">b</span>) <span class="id">pt</span> = <span class="id">find_instr</span> (<span class="id">blk_code</span> (<span class="id">g</span> <span class="id">b</span>)) <span class="id">pt</span> (<span class="id">fst</span> (<span class="id">blk_term</span> <span class="id">b</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof276')">Proof.</div>
-<div class="proofscript" id="proof276">
+<div class="toggleproof" onclick="toggleDisplay('proof290')">Proof.</div>
+<div class="proofscript" id="proof290">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span>  <span class="id">pt</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">NOT_ACCESSING_TERMINATOR</span> <span class="id">PRESERVES_TERMINATOR</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_block_terminator</span> <span class="kwd">in</span> <span class="id">PRESERVES_TERMINATOR</span>.<br/>
@@ -430,27 +571,6 @@ Qed.</div>
 <br/>
 <br/>
 <br/>
-<span class="kwd">Lemma</span> <span class="id">preserves_types_implies_preserves_eval_expr</span>: <span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">t</span> <span class="id">ex</span> (<span class="id">pass</span>: <span class="id">MCFGPass</span>)<br/>
-&nbsp;&nbsp;(<span class="id">PRESERVES_TYPES</span>: <span class="id">preserves_types</span> <span class="id">pass</span>),<br/>
-&nbsp;&nbsp;<span class="id">eval_exp</span> (<span class="id">pass</span> <span class="id">CFG</span>) <span class="id">g</span> <span class="id">e</span> <span class="id">t</span> <span class="id">ex</span> =<br/>
-&nbsp;&nbsp;<span class="id">eval_exp</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">t</span> <span class="id">ex</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof277')">Proof.</div>
-<div class="proofscript" id="proof277">
-&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-&nbsp;Use&nbsp;FunExt&nbsp;to&nbsp;make&nbsp;proof&nbsp;much&nbsp;shorter&nbsp;*)</span>&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">EVAL_TYP_EQ</span>: <span class="id">eval_typ</span> (<span class="id">pass</span> <span class="id">CFG</span>) = <span class="id">eval_typ</span> <span class="id">CFG</span>).<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_typ</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">t0_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_types</span> <span class="kwd">in</span> <span class="id">PRESERVES_TYPES</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">PRESERVES_TYPES</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_exp</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">EVAL_TYP_EQ</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
-Qed.</div>
-<br/>
-<span class="kwd">Hint</span> <span class="kwd">Resolve</span> (<span class="id">preserves_types_implies_preserves_eval_expr</span>).<br/>
 <br/>
 <br/>
 <br/>
@@ -462,67 +582,17 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">lifted_instr_pass_to_MCFG_pass_preserves_block_entry</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">pass</span>: <span class="id">InstrPass</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_block_entry</span> (<span class="id">liftCFGDefinitionPassToMCFGPass</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftCFGPassToCFGDefinitionPass</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftBlockPassToCFGPass</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftInstrPassToBlockPass</span> <span class="id">pass</span>)))).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof278')">Proof.</div>
-<div class="proofscript" id="proof278">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_block_entry</span> (<span class="id">monomap</span> <span class="id">pass</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof291')">Proof.</div>
+<div class="proofscript" id="proof291">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_block_entry</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">find_block_entry</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">unfold</span> <span class="id">monomap</span>; <span class="tactic">unfold</span> <span class="id">monofunctor_chain</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">find_function_lifted_definition_pass</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">find_function</span> <span class="id">MCFG</span> <span class="id">fid</span>); <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">find_block</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">CFG.find_block</span> (<span class="id">blks</span> (<span class="id">df_instrs</span> <span class="id">d</span>)) <span class="id">bid</span>); <span class="tactic">auto</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">liftInstrPassToBlockPass</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">block_to_entry</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">b</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">destruct</span> <span class="id">blk_code</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>).<br/>
-Qed.</div>
+Admitted.</div>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<br/>
-<br/>
-&nbsp;&nbsp;<br/>
-<span class="kwd">Lemma</span> <span class="id">eq_jump</span>: <span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">fn</span>  <span class="id">bk</span> <span class="id">br</span> <span class="id">g</span> <span class="id">e</span> <span class="id">s</span> <span class="id">pass</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_types</span> <span class="id">pass</span> -&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_block_entry</span> <span class="id">pass</span> -&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">jump</span> (<span class="id">pass</span> <span class="id">CFG</span>) <span class="id">fn</span> <span class="id">bk</span> <span class="id">br</span> <span class="id">g</span> <span class="id">e</span> <span class="id">s</span> =<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">jump</span> (<span class="id">CFG</span>) <span class="id">fn</span> <span class="id">bk</span> <span class="id">br</span> <span class="id">g</span> <span class="id">e</span> <span class="id">s</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof279')">Proof.</div>
-<div class="proofscript" id="proof279">
-&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">pass</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">PRESRVES_TYPES</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">PRESERVES_ENTRY</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">jump</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">EQ_EVAL_TYP</span>: <span class="id">eval_typ</span> (<span class="id">pass</span> <span class="id">CFG</span>) = <span class="id">eval_typ</span> <span class="id">CFG</span>).<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_typ</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">typ</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">preserves_types_implies_preserves_eval_typ</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">EQ_EVAL_TYP</span>).<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">assert</span>(<span class="id">EQ_EVAL_EXPR</span>: <span class="id">eval_exp</span> (<span class="id">pass</span> <span class="id">CFG</span>) = <span class="id">eval_exp</span> (<span class="id">CFG</span>)).<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">g_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">e_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">typ_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">expr_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">repeat</span>(<span class="tactic">rewrite</span> <span class="id">EQ_EVAL_EXPR</span>).<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">PRESERVES_ENTRY</span>).<br/>
-&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
-Qed.</div>
 <br/>
 <span class="kwd">Definition</span> <span class="id">runInstrPassOnFindInstr</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">pass</span>: <span class="id">InstrPass</span>)<br/>
@@ -540,44 +610,47 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">c</span>: <span class="id">code</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">p</span>: <span class="id">instr_id</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">termid</span>: <span class="id">instr_id</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_instr</span> (<span class="id">map</span> (<span class="id">liftInstrPassToIdInstrPass</span> <span class="id">pass</span>) <span class="id">c</span>) <span class="id">p</span> <span class="id">termid</span> =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_instr</span> (<span class="id">map</span> (<span class="id">monomap</span> <span class="id">pass</span>) <span class="id">c</span>) <span class="id">p</span> <span class="id">termid</span> =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">runInstrPassOnFindInstr</span> <span class="id">pass</span> (<span class="id">find_instr</span> <span class="id">c</span> <span class="id">p</span> <span class="id">termid</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof280')">Proof.</div>
-<div class="proofscript" id="proof280">
+<div class="toggleproof" onclick="toggleDisplay('proof292')">Proof.</div>
+<div class="proofscript" id="proof292">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">c</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">c</span>; <span class="tactic">intros</span>; <span class="tactic">unfold</span> <span class="id">find_instr</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
 <br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>; <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">p</span> == <span class="id">i</span>); <span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;- <span class="tactic">unfold</span> <span class="id">liftInstrPassToIdInstrPass</span>. <span class="tactic">unfold</span> <span class="id">fallthrough</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">c</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;<br/>
+&nbsp;&nbsp;-&nbsp;unfold&nbsp;liftInstrPassToIdInstrPass.&nbsp;unfold&nbsp;fallthrough.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;destruct&nbsp;c;&nbsp;auto.<br/>
 <br/>
-&nbsp;&nbsp;- <span class="id">fold</span> <span class="id">find_instr</span>. <span class="tactic">apply</span> <span class="id">IHc</span>.<br/>
-Qed.</div>
+&nbsp;&nbsp;-&nbsp;fold&nbsp;find_instr.&nbsp;apply&nbsp;IHc.<br/>
+&nbsp;&nbsp;&nbsp;*)</span>Admitted.</div>
 <br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">findOverInstrPassLiftedToIdInstrPass</span>.<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">InstrPassPreservesBlockToCmd</span>: <span class="kwd">forall</span> (<span class="id">pass</span>: <span class="id">InstrPass</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">b</span>: <span class="id">block</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">pt</span>,<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">block_to_cmd</span> ((<span class="id">liftInstrPassToBlockPass</span> <span class="id">pass</span>) <span class="id">b</span>) <span class="id">pt</span>  =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">block_to_cmd</span> ((<span class="id">monomap</span> <span class="id">pass</span>) <span class="id">b</span>) <span class="id">pt</span>  =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">runInstrPassOnFindInstr</span> <span class="id">pass</span> (<span class="id">block_to_cmd</span> <span class="id">b</span> <span class="id">pt</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof281')">Proof.</div>
-<div class="proofscript" id="proof281">
+<div class="toggleproof" onclick="toggleDisplay('proof293')">Proof.</div>
+<div class="proofscript" id="proof293">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">block_to_cmd</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 <br/>
-&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">PRESERVES_TERM</span>: <span class="id">blk_term</span> ((<span class="id">liftInstrPassToBlockPass</span> <span class="id">pass</span>) <span class="id">b</span>) =<br/>
+&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">PRESERVES_TERM</span>: <span class="id">blk_term</span> ((<span class="id">monomap</span> <span class="id">pass</span>) <span class="id">b</span>) =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_term</span> <span class="id">b</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
 <br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">blk_term_id</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">PRESERVES_TERM</span>.<br/>
+&nbsp;<br/>
+&nbsp;&nbsp;rewrite&nbsp;PRESERVES_TERM.<br/>
 <br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">fst</span> (<span class="id">blk_term</span> <span class="id">b</span>) == <span class="id">pt</span>); <span class="tactic">auto</span>.<br/>
-Qed.</div>
+&nbsp;&nbsp;destruct&nbsp;(fst&nbsp;(blk_term&nbsp;b)&nbsp;==&nbsp;pt);&nbsp;auto.<br/>
+Qed.<br/>
+&nbsp;&nbsp;&nbsp;*)</span>Admitted.</div>
 &nbsp;&nbsp;<br/>
 <br/>
 <span class="kwd">Definition</span> <span class="id">preserves_function_entry</span> (<span class="id">pass</span>: <span class="id">MCFGPass</span>): <span class="kwd">Prop</span> :=<br/>
@@ -586,32 +659,66 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span>  <span class="id">lifted_instr_pass_preserves_function_entry</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">pass</span>: <span class="id">InstrPass</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_function_entry</span> (<span class="id">liftCFGDefinitionPassToMCFGPass</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftCFGPassToCFGDefinitionPass</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftBlockPassToCFGPass</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftInstrPassToBlockPass</span> <span class="id">pass</span>)))) .<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof282')">Proof.</div>
-<div class="proofscript" id="proof282">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">preserves_function_entry</span> (<span class="id">monomap</span> <span class="id">pass</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof294')">Proof.</div>
+<div class="proofscript" id="proof294">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_function_entry</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">find_function_entry</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">find_function_lifted_definition_pass</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">find_function</span> <span class="id">MCFG</span> <span class="id">fnid</span>); <span class="tactic">auto</span>.<br/>
 <br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">find_block</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">CFG.find_block</span> (<span class="id">blks</span> (<span class="id">df_instrs</span> <span class="id">d</span>)) (<span class="id">init</span> (<span class="id">df_instrs</span> <span class="id">d</span>))); <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;rewrite&nbsp;find_function_lifted_definition_pass;&nbsp;auto.<br/>
+&nbsp;&nbsp;destruct&nbsp;(find_function&nbsp;MCFG&nbsp;fnid);&nbsp;auto.<br/>
 <br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">blk_entry_id</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;simpl.<br/>
+&nbsp;&nbsp;rewrite&nbsp;find_block;&nbsp;auto.<br/>
+&nbsp;&nbsp;destruct&nbsp;(CFG.find_block&nbsp;(blks&nbsp;(df_instrs&nbsp;d))&nbsp;(init&nbsp;(df_instrs&nbsp;d)));&nbsp;auto.<br/>
+&nbsp;&nbsp;simpl.<br/>
 <br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">blk_code</span> <span class="id">b</span>); <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-Qed.</div>
+&nbsp;&nbsp;unfold&nbsp;blk_entry_id.<br/>
+&nbsp;&nbsp;simpl.<br/>
 <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;destruct&nbsp;(blk_code&nbsp;b);&nbsp;simpl;&nbsp;auto.<br/>
+Qed.<br/>
+&nbsp;&nbsp;&nbsp;*)</span>Admitted.</div>
+<br/>
+<br/>
+<div class="doc">Preservation theorems: That is, if someone preserves property &lt;X&gt;, then all properties &lt;Y&gt; "above" &lt;X&gt; are preserved
+ *</div>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">preserve_inst_trace_implies_preserve_bb_trace</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">ip</span>: <span class="id">InstrPass</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">PRESERVEINST</span>: <span class="kwd">forall</span> (<span class="id">tds</span>: <span class="id">typedefs</span>)(<span class="id">ge</span>: <span class="id">genv</span>) (<span class="id">e</span>: <span class="id">env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">i</span>: <span class="id">instr</span>) (<span class="id">id</span>: <span class="id">instr_id</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">execInst</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">id</span> <span class="id">i</span> = <span class="id">execInst</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">id</span> (<span class="id">ip</span> <span class="id">i</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bb1</span> <span class="id">bb2</span>: <span class="id">block</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">CFG</span>: <span class="id">mcfg</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">BBMODIFIED</span>: <span class="id">bb2</span> = <span class="id">monomap</span> <span class="id">ip</span> <span class="id">bb1</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">pt</span>: <span class="id">instr_pt</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">execBBInstrs</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">blk_id</span> <span class="id">bb1</span>) (<span class="id">blk_code</span> <span class="id">bb1</span>) (<span class="id">snd</span> (<span class="id">blk_term</span> <span class="id">bb1</span>))  <span class="id">pt</span> = <span class="id">execBBInstrs</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">blk_id</span> <span class="id">bb2</span>) (<span class="id">blk_code</span> <span class="id">bb2</span>) (<span class="id">snd</span> (<span class="id">blk_term</span> <span class="id">bb2</span>)) <span class="id">pt</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof295')">Proof.</div>
+<div class="proofscript" id="proof295">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">monomap</span> <span class="kwd">in</span> <span class="id">BBMODIFIED</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">instrToBlockFunctor</span> <span class="kwd">in</span> <span class="id">BBMODIFIED</span>.<br/>
 &nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">execBBInstrs</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">induction</span> (<span class="id">blk_code</span> <span class="id">bb1</span>) <span class="id">eqn</span>:<span class="id">CODE</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">BBMODIFIED</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">bb2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">BBMODIFIED</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">bb2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span> <span class="kwd">in</span> *.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">BBMODIFIED</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span> <span class="kwd">in</span> *.<br/>
+Abort.</div>
 <span class="kwd">End</span> <span class="id">PASSTHEOREMS</span>.<br/>
 <br/>
 <br/>

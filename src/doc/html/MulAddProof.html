@@ -62,16 +62,16 @@
 <br/>
 <span class="kwd">Example</span> <span class="id">bind_of_ret</span>: <br/>
 &nbsp;&nbsp;(<span class="id">mbind</span> (<span class="id">F</span> := <span class="id">M</span> <span class="id">IO</span>)) (<span class="id">mret</span> (<span class="id">DVALUE_I64</span> (<span class="id">Int64.repr</span> 2)))  (<span class="kwd">fun</span> <span class="id">v</span> =&gt; <span class="id">mret</span> <span class="id">v</span>)  ≡ <span class="id">mret</span> (<span class="id">DVALUE_I64</span> (<span class="id">Int64.repr</span> 2)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof283')">Proof.</div>
-<div class="proofscript" id="proof283">
+<div class="toggleproof" onclick="toggleDisplay('proof323')">Proof.</div>
+<div class="proofscript" id="proof323">
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">mret_mbind</span>.<br/>
 Qed.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span>  <span class="id">eval_type_I64</span>: <span class="kwd">forall</span> (<span class="id">cfg</span>: <span class="id">mcfg</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_typ</span> <span class="id">cfg</span> (<span class="id">TYPE_I</span> 64) = <span class="id">DTYPE_I</span> 64.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof284')">Proof.</div>
-<div class="proofscript" id="proof284">
+<div class="toggleproof" onclick="toggleDisplay('proof324')">Proof.</div>
+<div class="proofscript" id="proof324">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_typ</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
@@ -80,21 +80,21 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eval_typ_rewrite_mcfg</span>: <span class="kwd">forall</span> (<span class="id">mcfg</span>: <span class="id">mcfg</span>) (<span class="id">t</span>: <span class="id">typ</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_typ</span> (<span class="id">rewrite_mcfg</span> <span class="id">mcfg</span>) <span class="id">t</span> = <span class="id">eval_typ</span> <span class="id">mcfg</span> <span class="id">t</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof285')">Proof.</div>
-<div class="proofscript" id="proof285">
+<div class="toggleproof" onclick="toggleDisplay('proof325')">Proof.</div>
+<div class="proofscript" id="proof325">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">unfold</span> <span class="id">eval_typ</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>).<br/>
 <br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">t</span>; <span class="tactic">auto</span>.<br/>
-Qed.</div>
+Admitted.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">transform_correct</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">i</span>: <span class="id">Z</span>),<br/>
 &nbsp;(<span class="id">Int64.mul</span> (<span class="id">Int64.repr</span> <span class="id">i</span>) (<span class="id">Int64.repr</span> 2))<br/>
 &nbsp;&nbsp;= (<span class="id">Int64.add</span> (<span class="id">Int64.repr</span> <span class="id">i</span>) (<span class="id">Int64.repr</span> <span class="id">i</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof286')">Proof.</div>
-<div class="proofscript" id="proof286">
+<div class="toggleproof" onclick="toggleDisplay('proof326')">Proof.</div>
+<div class="proofscript" id="proof326">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Int64.mul</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Int64.add</span>.<br/>
@@ -120,8 +120,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">is_exp_equal_ints_inv</span>: <span class="kwd">forall</span> (<span class="id">o1</span> <span class="id">o2</span>: <span class="id">exp</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">is_exp_equal_ints</span> <span class="id">o1</span> <span class="id">o2</span> = <span class="id">true</span> -&gt; <span class="id">o1</span> = <span class="id">o2</span> /\<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> (<span class="id">x</span>: <span class="id">int</span>),  <span class="id">o1</span> = (<span class="id">EXP_Integer</span> <span class="id">x</span>) .<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof287')">Proof.</div>
-<div class="proofscript" id="proof287">
+<div class="toggleproof" onclick="toggleDisplay('proof327')">Proof.</div>
+<div class="proofscript" id="proof327">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">o1</span>; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">destruct</span> <span class="id">o2</span>; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Z.eqb_eq</span> <span class="kwd">in</span> <span class="id">H1</span>.<br/>
@@ -143,8 +143,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">mx</span> &lt;- <span class="id">f</span> <span class="id">x</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">mxs</span> &lt;- <span class="id">map_monad</span> <span class="id">f</span> <span class="id">xs</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mret</span> (<span class="id">mx</span> ::<span class="id">mxs</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof288')">Proof.</div>
-<div class="proofscript" id="proof288">
+<div class="toggleproof" onclick="toggleDisplay('proof328')">Proof.</div>
+<div class="proofscript" id="proof328">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
@@ -165,8 +165,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">top</span>: <span class="id">option</span> <span class="id">dtyp</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exists</span> <span class="id">x</span>, <span class="id">eval_exp</span> <span class="id">MCFG</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">top</span> <span class="id">expr</span> ≡ <span class="id">Ret</span> <span class="id">x</span>) \/<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exists</span> <span class="id">err</span>, <span class="id">eval_exp</span> <span class="id">MCFG</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">top</span> <span class="id">expr</span> ≡ <span class="id">Err</span> <span class="id">err</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof289')">Proof.</div>
-<div class="proofscript" id="proof289">
+<div class="toggleproof" onclick="toggleDisplay('proof329')">Proof.</div>
+<div class="proofscript" id="proof329">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">expr</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">expr</span>; <span class="tactic">intros</span>; <span class="tactic">simpl</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">try</span> (<span class="tactic">destruct</span> <span class="id">top</span>; <span class="tactic">try</span> <span class="id">unfold_fail</span>;<br/>
@@ -204,307 +204,12 @@ Qed.</div>
 &nbsp;&nbsp;- <span class="id">admit</span> .<br/>
 &nbsp;&nbsp;- <span class="id">edestruct</span> <span class="id">IHexpr1</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">admit</span>.<br/>
-Admitted.</div>
+Abort.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<br/>
 <br/>
-<span class="kwd">Lemma</span> <span class="id">eval_exp_equal</span>: <span class="kwd">forall</span> (<span class="id">mcfg</span> : <span class="id">mcfg</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">genv</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">env</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">top</span>: <span class="id">option</span> <span class="id">dtyp</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">o</span>: <span class="id">exp</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_exp</span> (<span class="id">rewrite_mcfg</span> <span class="id">mcfg</span>) <span class="id">ge</span> <span class="id">e</span> <span class="id">top</span> (<span class="id">rewrite_exp</span> <span class="id">o</span>) ≡<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_exp</span> <span class="id">mcfg</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">top</span> <span class="id">o</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof290')">Proof.</div>
-<div class="proofscript" id="proof290">
-&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">o</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">iop</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">t</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">nuw</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">nsw</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">sz</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>);<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>).<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> (<span class="tactic">apply</span> <span class="id">MonadVerif.eutt_refl</span>).<br/>
-&nbsp;&nbsp;<span class="id">remember</span> (<span class="id">is_exp_equal_ints</span> <span class="id">o1</span> <span class="id">o2</span>) <span class="kwd">as</span> <span class="id">ISEQ</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">ISEQ_CASES</span>: {<span class="id">ISEQ</span> = <span class="id">true</span>} + {<span class="id">ISEQ</span> &lt;&gt; <span class="id">true</span>}).<br/>
-&nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">ISEQ_CASES</span> <span class="kwd">as</span> [<span class="id">ISEQ_TRUE</span> | <span class="id">ISEQ_FALSE</span>]; <span class="tactic">subst</span>.<br/>
-<br/>
-&nbsp;&nbsp;--  <span class="tactic">rewrite</span> <span class="id">ISEQ_TRUE</span>.<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">EXPLOIT_EQ_INT</span>: <span class="id">o1</span> = <span class="id">o2</span> /\ <span class="id">exists</span> <span class="id">x</span>, <span class="id">o1</span> = <span class="id">EXP_Integer</span> <span class="id">x</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">is_exp_equal_ints_inv</span>; <span class="tactic">auto</span>.<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">EXPLOIT_EQ_INT</span> <span class="kwd">as</span> [<span class="id">EQ_INT</span>  <span class="id">INT_DESCRIPTION</span>].<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">INT_DESCRIPTION</span> <span class="kwd">as</span> [<span class="id">i</span> <span class="id">O2_AS_INT</span>].<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_typ_rewrite_mcfg</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">eval_type_I64</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">bindM_Ret</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">transform_correct</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
 <br/>
 <br/>
-<br/>
-&nbsp;&nbsp;-- <span class="tactic">rewrite</span> <span class="id">Bool.not_true_iff_false</span> <span class="kwd">in</span> <span class="id">ISEQ_FALSE</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">ISEQ_FALSE</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_refl</span>.<br/>
-Qed.</div>
-<br/>
-<br/>
-<span class="kwd">Lemma</span> <span class="id">lifted_instruction_pass_preserves_block_term_id</span>:<br/>
-&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">b</span> : <span class="id">LLVMAst.block</span>),<br/>
-&nbsp;&nbsp;<span class="id">blk_term_id</span> (<span class="id">liftInstrPassToBlockPass</span> <span class="id">rewrite_instr</span> <span class="id">b</span>) =<br/>
-&nbsp;&nbsp;<span class="id">blk_term_id</span> <span class="id">b</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof291')">Proof.</div>
-<div class="proofscript" id="proof291">
-&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-Qed.</div>
-<br/>
-<span class="kwd">Hint</span> <span class="kwd">Resolve</span> (<span class="id">lifted_instruction_pass_preserves_block_term_id</span>).<br/>
-<span class="kwd">Hint</span> <span class="id">Rewrite</span> (<span class="id">lifted_instruction_pass_preserves_block_term_id</span>).<br/>
-&nbsp;&nbsp;<br/>
-<br/>
-<br/>
-<span class="kwd">Lemma</span> <span class="id">bindm_eval_exp_equal</span>: <span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">op</span> <span class="id">fn</span> <span class="id">bk</span> <span class="id">a</span> <span class="id">s</span> <span class="id">id</span>,<br/>
-&nbsp;&nbsp;<span class="id">bindM</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">eval_exp</span> (<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">rewrite_cfg_definition</span> <span class="id">CFG</span>) <span class="id">g</span> <span class="id">e</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">None</span> (<span class="id">rewrite_exp</span> <span class="id">op</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">dv</span> : <span class="id">dvalue</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">cont</span> (<span class="id">g</span>, {| <span class="id">fn</span> := <span class="id">fn</span>; <span class="id">bk</span> := <span class="id">bk</span>; <span class="id">pt</span> := <span class="id">a</span> |}, <span class="id">add_env</span> <span class="id">id</span> <span class="id">dv</span> <span class="id">e</span>, <span class="id">s</span>))<br/>
-&nbsp;&nbsp;≡ <span class="id">bindM</span> (<span class="id">eval_exp</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">None</span> <span class="id">op</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">dv</span> : <span class="id">dvalue</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">cont</span> (<span class="id">g</span>, {| <span class="id">fn</span> := <span class="id">fn</span>; <span class="id">bk</span> := <span class="id">bk</span>; <span class="id">pt</span> := <span class="id">a</span> |}, <span class="id">add_env</span> <span class="id">id</span> <span class="id">dv</span> <span class="id">e</span>, <span class="id">s</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof292')">Proof.</div>
-<div class="proofscript" id="proof292">
-&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">CFG</span>.<br/>
-&nbsp;&nbsp;<span class="id">cofix</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-<br/>
-&nbsp;I&nbsp;do&nbsp;it&nbsp;this&nbsp;way&nbsp;because&nbsp;somehow,&nbsp;applying&nbsp;`symmetry`&nbsp;breaks<br/>
-&nbsp;&nbsp;the&nbsp;guardedness&nbsp;condition.&nbsp;TODO:&nbsp;Figure&nbsp;this&nbsp;out,&nbsp;the&nbsp;correct&nbsp;way&nbsp;*)</span>&nbsp;&nbsp;<span class="tactic">rewrite</span> (@<span class="id">Trace.matchM</span>) <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">bindM</span> (<span class="id">eval_exp</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">None</span> <span class="id">op</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">dv</span> : <span class="id">dvalue</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">cont</span> (<span class="id">g</span>, {| <span class="id">fn</span> := <span class="id">fn</span>; <span class="id">bk</span> := <span class="id">bk</span>; <span class="id">pt</span> := <span class="id">a</span> |}, <span class="id">add_env</span> <span class="id">id</span> <span class="id">dv</span> <span class="id">e</span>, <span class="id">s</span>))).<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Trace.matchM</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">EVAL_EXP_EQ</span>: <span class="id">eval_exp</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">rewrite_cfg_definition</span> <span class="id">CFG</span>) <span class="id">g</span> <span class="id">e</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">None</span> (<span class="id">rewrite_exp</span> <span class="id">op</span>) ≡<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_exp</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">None</span> <span class="id">op</span>).<br/>
-&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="id">remember</span> (<span class="id">eval_exp</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">None</span> (<span class="id">rewrite_exp</span> <span class="id">op</span>)) <span class="kwd">as</span> <span class="id">EVAL_EXP_ORIG</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">EVAL_EXP_ORIG</span>); <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-Abort.</div>
-<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<br/>
-<span class="kwd">Lemma</span> <span class="id">muladd_step</span>: <span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>) (<span class="id">s</span>: <span class="id">state</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">step</span> (<span class="id">rewrite_mcfg</span> <span class="id">CFG</span>) <span class="id">s</span> ≡ <span class="id">step</span> <span class="id">CFG</span> <span class="id">s</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof293')">Proof.</div>
-<div class="proofscript" id="proof293">
-&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">step</span>.<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">s</span>.<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>.<br/>
-<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">fetch</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">rewrite_mcfg</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">find_function_lifted_definition_pass</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="id">remember</span> (<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fn</span>) <span class="kwd">as</span> <span class="id">CURFN</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">CURFN</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> <span class="tactic">reflexivity</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">find_block</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="id">remember</span> (<span class="id">CFG.find_block</span> (<span class="id">blks</span> (<span class="id">df_instrs</span> <span class="id">d</span>)) <span class="id">bk</span>) <span class="kwd">as</span> <span class="id">CURBLOCK</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">CURBLOCK</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> <span class="tactic">reflexivity</span>.<br/>
-<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">rewrite_block</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">InstrPassPreservesBlockToCmd</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="id">remember</span> (<span class="id">block_to_cmd</span> <span class="id">b</span> <span class="id">pt</span>) <span class="kwd">as</span> <span class="id">CURCMD</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">CURCMD</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">FNEQ</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">rewrite_cfg_definition</span> <span class="id">CFG</span>) =<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">fnid</span> =&gt; <span class="id">option_map</span> <span class="id">rewrite_cfg_definition</span> (<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fnid</span>)).<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">fid_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">find_function_lifted_definition_pass</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">EVAL_TYP_EQ</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">eval_typ</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">rewrite_cfg_definition</span> <span class="id">CFG</span>) =<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_typ</span> <span class="id">CFG</span>)).<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_typ</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">typ_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">preserves_types_implies_preserves_eval_typ</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_types</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">EVAL_EXP_EQ</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_exp</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">rewrite_cfg_definition</span>) <span class="id">CFG</span>) =<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_exp</span> <span class="id">CFG</span>).<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">g_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">e_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">t_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">expr_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">preserves_types_implies_preserves_eval_expr</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_types</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">EVAL_JUMP_EQ</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">jump</span> (<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">rewrite_cfg_definition</span> <span class="id">CFG</span>) =<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">jump</span> <span class="id">CFG</span>).<br/>
-&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">jump</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">fid_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">bid_src_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">bid_tgt_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">g_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">e_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">k_ext</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eq_jump</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">preserves_types</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">lifted_instr_pass_to_MCFG_pass_preserves_block_entry</span>.<br/>
-&nbsp;&nbsp;<br/>
-<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">EVAL_FIND_FUNCTION_EQ</span>:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_function_entry</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">rewrite_cfg_definition</span> <span class="id">CFG</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="id">find_function_entry</span> <span class="id">CFG</span>).<br/>
-&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">extensionality</span> <span class="id">fid</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">lifted_instr_pass_preserves_function_entry</span>.<br/>
-<br/>
-&nbsp;<br/>
-&nbsp;&nbsp;assert&nbsp;(EVAL_OP_EQ:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eval_op<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(liftCFGDefinitionPassToMCFGPass&nbsp;rewrite_cfg_definition&nbsp;CFG)&nbsp;≡<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eval_op&nbsp;CFG).<br/>
-&nbsp;&nbsp;unfold&nbsp;eval_op.<br/>
-&nbsp;&nbsp;extensionality&nbsp;g_ext.<br/>
-&nbsp;&nbsp;extensionality&nbsp;e_ext.<br/>
-&nbsp;&nbsp;extensionality&nbsp;o_ext.<br/>
-&nbsp;&nbsp;apply&nbsp;eval_exp_equal.<br/>
-&nbsp;&nbsp;*)</span><br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">c</span>; <span class="tactic">auto</span>; <span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;- <span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">EVAL_TYP_EQ</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">EVAL_EXP_EQ</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">FNEQ</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">EVAL_JUMP_EQ</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">EVAL_FIND_FUNCTION_EQ</span>).<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fn</span>); <span class="tactic">auto</span>; <span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">find_block</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">CFG.find_block</span> (<span class="id">blks</span> (<span class="id">df_instrs</span> <span class="id">d0</span>)) <span class="id">bk</span>); <span class="tactic">auto</span>; <span class="tactic">simpl</span>.<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">rewrite_block</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> (<span class="id">InstrPassPreservesBlockToCmd</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">block_to_cmd</span> <span class="id">b0</span> <span class="id">pt</span>); <span class="tactic">auto</span>; <span class="tactic">simpl</span>.<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">p</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">a</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;++ <span class="tactic">induction</span> <span class="id">b1</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">pt</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** <span class="tactic">induction</span> <span class="id">i</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_op</span>.<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">CUR_REWRITE</span>: <span class="id">eval_exp</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">liftCFGDefinitionPassToMCFGPass</span> <span class="id">rewrite_cfg_definition</span> <span class="id">CFG</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">g</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">e</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">None</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">rewrite_exp</span> <span class="id">op</span>) ≡ <span class="id">eval_exp</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">None</span> <span class="id">op</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_equal</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
-&nbsp;Why&nbsp;can't&nbsp;I&nbsp;rewrite&nbsp;here?&nbsp;Because&nbsp;it's&nbsp;inside&nbsp;a&nbsp;cofix?&nbsp;*)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">admit</span>.<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** <span class="tactic">induction</span> <span class="id">i</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;++ <span class="tactic">induction</span> <span class="id">b1</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">pt</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** <span class="tactic">induction</span> <span class="id">i</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_op</span>.<br/>
-&nbsp;Again,&nbsp;why&nbsp;can't&nbsp;I&nbsp;rewrite?&nbsp;*)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">admit</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** <span class="tactic">induction</span> <span class="id">i</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;&nbsp;- <span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">EVAL_TYP_EQ</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">EVAL_EXP_EQ</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">FNEQ</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">EVAL_JUMP_EQ</span>).<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
-<br/>
-&nbsp;&nbsp;-  <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;-  <span class="tactic">auto</span>. <br/>
-<br/>
-Admitted.</div>
-<br/>
-<br/>
-&nbsp;&nbsp;<br/>
-<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
-&nbsp;<br/>
-<span class="kwd">Lemma</span> <span class="id">step_sem_unfold_once</span>: <span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>) (<span class="id">s</span>: <span class="id">state</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">step_sem</span> <span class="id">CFG</span> (<span class="id">Step</span> <span class="id">s</span>) ≡ ('<span class="id">x</span> &lt;- (<span class="id">step</span> <span class="id">CFG</span> <span class="id">s</span>); (<span class="id">step_sem</span> <span class="id">CFG</span> <span class="id">x</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof294')">Proof.</div>
-<div class="proofscript" id="proof294">
-&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">step_sem</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Trace.matchM</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-<br/>
-&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">step</span> <span class="id">CFG</span> <span class="id">s</span>).<br/>
-&nbsp;&nbsp;- <span class="tactic">rewrite</span> <span class="id">bindM_Ret</span>.<br/>
-Abort.</div>
-<br/>
-<span class="kwd">Lemma</span> <span class="id">muladd_step_sem</span> : <span class="kwd">forall</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">r</span>:<span class="id">result</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">step_sem</span> (<span class="id">rewrite_mcfg</span> <span class="id">CFG</span>) <span class="id">r</span>) ≡ (<span class="id">step_sem</span> <span class="id">CFG</span> <span class="id">r</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof295')">Proof.</div>
-<div class="proofscript" id="proof295">
-Abort.</div>
 &nbsp;&nbsp;<br/>
 <span class="kwd">End</span> <span class="id">MULADDPROOF</span>.<br/>
 </div>
