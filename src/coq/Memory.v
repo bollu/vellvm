@@ -673,6 +673,26 @@ Proof.
       euttnorm.
 Qed.
 
+
+Theorem memD_commutes_with_bind': forall {X Y: Type}
+                                 (trx: Trace X)
+                                 (FINTRX: Trace.TraceFinite trx)
+                                 (f: X -> Trace Y)
+                                 (m: memory),
+    memD m (bindM trx f) ≡
+            memD (fst (mem_effect m FINTRX)) (bindM (snd (mem_effect m FINTRX)) f).
+Proof.
+  intros.
+  assert (
+    let (m', trx') := mem_effect m FINTRX
+    in memD m (bindM trx f) ≡
+            memD m' (bindM trx' f)).
+  apply memD_commutes_with_bind.
+  destruct (mem_effect m FINTRX) eqn:EFF.
+  simpl in *.
+  auto.
+Qed.
+
 Check (Ret).
 
 
