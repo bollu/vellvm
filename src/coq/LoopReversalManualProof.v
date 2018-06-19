@@ -287,6 +287,7 @@ Proof.
   unfold SST.execFunction.
   simpl.
   unfold simpleProgramInitBBId.
+  (** universe stuff goes wrong
   rewrite SST.force_exec_function_at_bb_id
     with (tds:=[])
          (ge:=(SST.ENV.add (Name "main") (DVALUE_Addr (M.size M.empty, 0))
@@ -295,23 +296,39 @@ Proof.
          (CFG:=mainCFG n)
          (fnid:= (Name "main"))
          (bbid:=Name "init").
-  
-  SST.forcesst.
+   **)
 Abort.
 
 (** tiered semantics is already paying off, I can look at what happens
 when I execute a function **)
-Lemma exec_main_function_orig: forall (n: nat),
-  (SST.execFunction []
+Lemma exec_main_function_orig: forall (n: nat) (initmem: M.memory),
+  M.memD initmem (SST.execFunction []
               (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
                  (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
               (mainCFG n) (Name "main")) ≡ Ret (SST.FRReturn (DVALUE_I32  (Int32.repr 1%Z))).
 Proof.
-  Opaque SST.execBB.
   Opaque SST.step_sem_tiered.
-  Opaque SST.execFunction.
+  Opaque SST.execBBInstrs.
+  Opaque SST.execBBAfterLoc.
+  Opaque SST.execFunctionAtBBId.
   Opaque Trace.bindM.
   intros.
+  unfold SST.execFunction.
+  simpl.
+
+  (* Force function evaluation *)
+  unfold simpleProgramInitBBId.
+  rewrite SST.force_exec_function_at_bb_id with (bb := bbInit n); auto.
+
+  
+
+  (* force BB evaluation *)
+  Transparent SST.execBB.
+  unfold SST.execBB.
+
+  rewrite SST.force_exec_bb_instrs.
+  euttnorm.
+  euttnorm.
 Abort.
   
 

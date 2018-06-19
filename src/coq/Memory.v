@@ -326,26 +326,72 @@ Definition pairMemToTrace {X}
                              (m: memory)
                              (d: Trace X): Trace (memory * X) :=
   Trace.mapM (fun t => (m, t)) d.
+
+(** From haskell's Control.Arrow.Second **)
+Definition arrowSecond {A P Q: Type} (f: P -> Q) (tuple: A * P): A * Q :=
+  match tuple with
+    (a, p) => (a, f p)
+  end.
+
+Definition traceJoin {X: Type} (trtrx: Trace (Trace X)): Trace X :=
+  Trace.bindM (trtrx) id.
+
+Definition arrowSecondTrace {A P Q: Type} (f: P -> Trace Q) (tuple: Trace (A * P)): Trace  (A * Q) :=
+  Trace.bindM tuple (fun t => match t with
+                             (a, p) => Trace.mapM (fun t' => (a, t')) (f p)
+                           end).
+
+            
+
+CoFixpoint mem_effect_1 {X} (m: memory) (tx: Trace X):
+  Trace (memory * X) :=
+  (* (Trace memory) * (Trace X) := *)
+  match tx with
+  | Trace.Ret x => (Trace.Ret (m,  x))
+  | Trace.Err e => Trace.Err e
+  | Trace.Tau x' =>  Trace.Tau (mem_effect_1 m x')
+  | Trace.Vis Y io k => 
+    match mem_step io m with
+    | inr (m', v) => Trace.Tau (mem_effect_1 m' (k v))
+    | inl e => Trace.Err "foo"
+    end
+  end.
+  
+
+CoFixpoint mem_effect_2 {X} (m: memory) (tx: Trace X):
+  Trace (memory * Trace X) :=
+  (* (Trace memory) * (Trace X) := *)
+  match tx with
+  | Trace.Ret x => (Trace.Ret (m, Trace.Ret x))
+  | Trace.Err e => Trace.Err e
+  | Trace.Tau x' =>  Trace.Tau (mem_effect_2 m x')
+  | Trace.Vis Y io k => 
+    match mem_step io m with
+    | inr (m', v) => Trace.Tau (mem_effect_2 m' (k v))
+    | inl e => Trace.Err "foo"
+    end
+  end.
+                 
                                                                
 (** Tear down the finite trace to record effects that happened on memory **)
-Fixpoint mem_effect {X} (m: memory) (d: Trace X) (FIN: Trace.TraceFinite d)
+Fixpoint mem_effect_fin {X} (m: memory) (d: Trace X) (FIN: Trace.TraceFinite d)
   {struct FIN}: memory *Trace X :=
   match FIN with
   | Trace.TFRet _ => (m, d)
   | Trace.TFErr  _ => (m, d)
-  | Trace.TFTau mex' FIN' => let (m, t) := mem_effect m FIN'
+  | Trace.TFTau mex' FIN' => let (m, t) := mem_effect_fin m FIN'
                             in (m, Trace.Tau t)
   | Trace.TFVis Y io k FINK => match (mem_step io m) with
                               | inr (m', v) =>
                                 (* Is this correct..?*)
-                                let (m'', t) := mem_effect m' (FINK v)
+                                let (m'', t) := mem_effect_fin m' (FINK v)
                                 in  (m'', Trace.Tau t)
                               | inl e => (m, (Trace.Vis io k))
                               end
   end.
 
-Check (mem_effect).
-Print mem_effect.
+Check (mem_effect_fin).
+Print mem_effect_fin.
     
                              
                              
@@ -625,12 +671,12 @@ y
 z
 x >>= \f -> ....
 **)
-Theorem memD_commutes_with_bind: forall {X Y: Type}
+Theorem memD_commutes_with_bind_fin: forall {X Y: Type}
                                  (trx: Trace X)
                                  (FINTRX: Trace.TraceFinite trx)
                                  (f: X -> Trace Y)
                                  (m: memory),
-    let (m', trx') := mem_effect m FINTRX
+    let (m', trx') := mem_effect_fin m FINTRX
     in memD m (bindM trx f) ≡
             memD m' (bindM trx' f).
 Proof.
@@ -646,7 +692,7 @@ Proof.
 
   - (* Tau *)
     simpl.
-    destruct (mem_effect m FINTRX) eqn:EFF.
+    destruct (mem_effect_fin m FINTRX) eqn:EFF.
     euttnorm.
     specialize IHFINTRX with (f:= f) (m:=m).
     rewrite EFF in IHFINTRX.
@@ -660,12 +706,12 @@ Proof.
     + euttnorm.
       destruct p eqn:P.
       subst.
-      destruct (mem_effect m0 (FINK y)) eqn:EFF.
+      destruct (mem_effect_fin m0 (FINK y)) eqn:EFF.
       subst.
       specialize H with (f := f).
       specialize H with (m := m0).
       specialize H with (y := y).
-      destruct (mem_effect m0 (FINK y)) eqn:EFF'.
+      destruct (mem_effect_fin m0 (FINK y)) eqn:EFF'.
       inversion EFF; subst.
       euttnorm.
       forcememd.
@@ -674,26 +720,56 @@ Proof.
 Qed.
 
 
-Theorem memD_commutes_with_bind': forall {X Y: Type}
+Theorem memD_commutes_with_bind_fin': forall {X Y: Type}
                                  (trx: Trace X)
                                  (FINTRX: Trace.TraceFinite trx)
                                  (f: X -> Trace Y)
                                  (m: memory),
     memD m (bindM trx f) ≡
-            memD (fst (mem_effect m FINTRX)) (bindM (snd (mem_effect m FINTRX)) f).
+            memD (fst (mem_effect_fin m FINTRX)) (bindM (snd (mem_effect_fin m FINTRX)) f).
 Proof.
   intros.
   assert (
-    let (m', trx') := mem_effect m FINTRX
+    let (m', trx') := mem_effect_fin m FINTRX
     in memD m (bindM trx f) ≡
             memD m' (bindM trx' f)).
-  apply memD_commutes_with_bind.
-  destruct (mem_effect m FINTRX) eqn:EFF.
+  apply memD_commutes_with_bind_fin.
+  destruct (mem_effect_fin m FINTRX) eqn:EFF.
   simpl in *.
   auto.
 Qed.
 
 Check (Ret).
+
+(**
+memD m (trx >>= f) ≡
+    (mem_effect m trx) >>= \((m', trx') -> memD m' (trx' >>= f))
+**)
+Theorem memD_commutes_with_bind: forall {X Y: Type}
+                                 (trx: Trace X)
+                                 (f: X -> Trace Y)
+                                 (m: memory),
+    memD m (bindM trx f) ≡
+            bindM (mem_effect_2 m trx)
+            (fun out =>  memD (fst out) (bindM (snd out) f)).
+Proof.
+  intros until f.
+  cofix CIH.
+  intros.
+  destruct trx.
+  - (* ret *)
+    euttnorm.
+    rewrite (@Trace.matchM) with (i := mem_effect_2 _ _); simpl; repeat progress euttnorm.
+  - (* vis *)
+    euttnorm.
+    rewrite (@Trace.matchM) with (i := mem_effect_2 _ _); simpl; repeat progress euttnorm.
+    forcememd.
+    destruct (mem_step e m) eqn:STEP.
+    + euttnorm.
+      admit.
+    + destruct p eqn:P.
+      euttnorm.
+Abort.
 
 
 Lemma bind_ret_is_identity: forall {X: Type} (trx: Trace X),
@@ -726,11 +802,11 @@ Proof.
 Qed.
     
 
-Theorem rewrite_memD_as_memEffect: forall {X: Type}
+Theorem rewrite_memD_as_memEffect_fin: forall {X: Type}
                              (trx: Trace X)
                              (FINTRX: Trace.TraceFinite trx)
                              (m: memory),
-    let (m', trx') := mem_effect m FINTRX
+    let (m', trx') := mem_effect_fin m FINTRX
     in memD m trx ≡
             memD m' (bindM trx' (Ret (Event:=IO) (X:=X))).
 Proof.
@@ -738,13 +814,13 @@ Proof.
   assert (BIND_RET: memD m trx ≡ memD m (bindM trx (Ret (X:=X)))).
   rewrite bind_ret_is_identity.
   reflexivity.
-  destruct (mem_effect m FINTRX) eqn:MEMEFF.
+  destruct (mem_effect_fin m FINTRX) eqn:MEMEFF.
   rewrite BIND_RET.
 
-  assert (M_EFFECT: let (m', trx') := mem_effect m FINTRX in
+  assert (M_EFFECT: let (m', trx') := mem_effect_fin m FINTRX in
       memD m (bindM trx (Ret (X:=X))) ≡
            memD m' (bindM trx' (Ret (X:=X)))).
-  apply memD_commutes_with_bind.
+  apply memD_commutes_with_bind_fin.
 
   rewrite MEMEFF in M_EFFECT.
   auto.
@@ -752,23 +828,32 @@ Qed.
 
 
 (** Easier version without let in hypothesis **)
-Theorem rewrite_memD_as_memEffect': forall {X: Type}
+Theorem rewrite_memD_as_memEffect_fin': forall {X: Type}
                              (trx: Trace X)
                              (FINTRX: Trace.TraceFinite trx)
                              (m: memory),
      memD m trx ≡
-            memD (fst (mem_effect m FINTRX)) (bindM (snd (mem_effect m FINTRX)) (Ret (Event:=IO) (X:=X))).
+            memD (fst (mem_effect_fin m FINTRX)) (bindM (snd (mem_effect_fin m FINTRX)) (Ret (Event:=IO) (X:=X))).
 Proof.
   intros.
   assert (
-    let (m', trx') := mem_effect m FINTRX
+    let (m', trx') := mem_effect_fin m FINTRX
     in memD m trx ≡
             memD m' (bindM trx' (Ret (Event:=IO) (X:=X)))).
-  apply rewrite_memD_as_memEffect.
-  destruct (mem_effect m FINTRX); auto.
+  apply rewrite_memD_as_memEffect_fin.
+  destruct (mem_effect_fin m FINTRX); auto.
 Qed.
 
 
+Theorem rewrite_memD_as_memEffect: forall {X: Type}
+                             (trx: Trace X)
+                             (m: memory),
+    memD m trx ≡
+         bindM (mem_effect m trx)
+         (fun res => let '(mem', trx') := res in
+                  memD mem' trx').
+Proof.
+Abort.
 (*
 Definition run_with_memory prog : option (Trace dvalue) :=
   let scfg := Vellvm.AstLib.modul_of_toplevel_entities prog in
