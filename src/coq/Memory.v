@@ -304,7 +304,7 @@ CoFixpoint memD {X} (m:memory) (d:Trace X) : Trace X :=
   | Trace.Vis _ io k =>
     match mem_step io m with
     | inr (m', v) => Trace.Tau (memD m' (k v))
-    | inl e => Trace.Vis io k
+    | inl e => Trace.Err "uninterpretiable IO call" (* Trace.Vis io k *)
     end
   | Trace.Ret x => d
   | Trace.Err x => d
@@ -347,13 +347,13 @@ CoFixpoint mem_effect_1 {X} (m: memory) (tx: Trace X):
   Trace (memory * X) :=
   (* (Trace memory) * (Trace X) := *)
   match tx with
-  | Trace.Ret x => (Trace.Ret (m,  x))
+  | Trace.Ret x => (Trace.Ret ( m,  x))
   | Trace.Err e => Trace.Err e
   | Trace.Tau x' =>  Trace.Tau (mem_effect_1 m x')
   | Trace.Vis Y io k => 
     match mem_step io m with
     | inr (m', v) => Trace.Tau (mem_effect_1 m' (k v))
-    | inl e => Trace.Vis io (fun y => Trace.mapM (fun x => (m, x)) (k y))
+    | inl e => Trace.Err "uninterpretiable IO call "
     end
   end.
   
@@ -386,7 +386,7 @@ Fixpoint mem_effect_fin {X} (m: memory) (d: Trace X) (FIN: Trace.TraceFinite d)
                                 (* Is this correct..?*)
                                 let (m'', t) := mem_effect_fin m' (FINK v)
                                 in  (m'', Trace.Tau t)
-                              | inl e => (m, (Trace.Vis io k))
+                              | inl e => (m, Trace.Err "uninterpretiable IO call")
                               end
   end.
 
@@ -536,7 +536,7 @@ Lemma force_memD_vis:
     (mem: memory),
     memD mem  (Trace.Vis e k) ≡
     match mem_step e mem with
-    | inl _ => Trace.Vis e k
+    | inl _ => Trace.Err "uninterpretiable IO call"
     | inr (m', v) => Trace.Tau (memD m' (k v))
     end.
 Proof.
@@ -703,6 +703,10 @@ Proof.
     simpl.
     destruct (mem_step e m) eqn:MEMSTEP.
     + euttnorm.
+      forcememd.
+      rewrite MEMSTEP.
+      forcememd.
+      
     + euttnorm.
       destruct p eqn:P.
       subst.
@@ -747,7 +751,9 @@ Theorem memD_commutes_with_bind_mem_effect_1: forall {X Y: Type}
                                  (m: memory),
     memD m (bindM trx f) ≡
             bindM (mem_effect_1 m trx)
-            (fun out =>  memD (fst out) (bindM (Ret (snd out)) f)).
+            (fun out =>  match out with
+                      | (m', x) => memD m' (bindM (Ret x) f)
+                      end).
 Proof.
   intros until Y.
   cofix CIH.
@@ -764,22 +770,11 @@ Proof.
     destruct (mem_step e m) eqn:MEMSTEP.
     + euttnorm.
       constructor.
-      intros.
-      rewrite (@Trace.matchM) with (i := mapM _ _).
-      admit.
-
-      (* 
-      destruct (k y).
-      *  simpl.
-         rewrite (@Trace.matchM) with (i := bindM _ _); simpl.
-       *)
-
-      
     + destruct p.
-      rewrite (@Trace.matchM) with (i := bindM (Tau _) _).
+      rewrite (@Trace.matchM) with (i := bindM _ _); simpl.
+      constructor.
       Guarded.
       simpl.
-      constructor.
       apply CIH with (m := m0) (trx := (k y)) (f :=f).
       Guarded.
 
@@ -798,68 +793,8 @@ Proof.
     euttnorm.
     forcememd.
     Guarded.
-Abort.
-
-(**
-memD m (trx >>= f) ≡
-    (mem_effect m trx) >>= \((m', trx') -> memD m' (trx' >>= f))
-**)
-Theorem memD_commutes_with_bind_mem_effect_2: forall {X Y: Type}
-                                 (trx: Trace X)
-                                 (f: X -> Trace Y)
-                                 (m: memory),
-    memD m (bindM trx f) ≡
-            bindM (mem_effect_2 m trx)
-            (fun out =>  memD (fst out) (bindM (snd out) f)).
-Proof.
-  intros until f.
-  cofix CIH.
-  intros.
-  destruct trx.
-  - (* ret *)
-    euttnorm.
-    rewrite (@Trace.matchM) with (i := mem_effect_2 _ _); simpl; repeat progress euttnorm.
-  - (* vis *)
-    euttnorm.
-    rewrite (@Trace.matchM) with (i := mem_effect_2 _ _); simpl; repeat progress euttnorm.
-    forcememd.
-    destruct (mem_step e m) eqn:STEP.
-    + euttnorm.
-      admit.
-    + destruct p eqn:P.
-      euttnorm.
-Abort.
-
-
-Lemma bind_ret_is_identity: forall {X: Type} (trx: Trace X),
-    bindM trx (Ret (Event:=IO) (X:=X)) ≡ trx.
-Proof.
-  intros X.
-  cofix CIH.
-
-  intros.
-  rewrite @Trace.matchM with (i := bindM _ _).
-
-  destruct trx; simpl.
-
-  - euttnorm.
-    Guarded.
-
-  - (* Vis *)
-    constructor.
-    intros. apply CIH.
-    Guarded.
-
-
-  - (* Tau*)
-    constructor.
-    apply CIH.
-    Guarded.
-
-  - euttnorm.
-    Guarded.
 Qed.
-    
+
 
 Theorem rewrite_memD_as_memEffect_fin: forall {X: Type}
                              (trx: Trace X)
