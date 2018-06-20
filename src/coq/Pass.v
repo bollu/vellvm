@@ -199,8 +199,6 @@ Check (f_instr).
 Definition map_f_instr_on_block (b: block): block :=  monomap (f_instr) b.
 (** This just hangs because of from the looks of it, instance resolution **)
 
-Set Typeclasses Debug.
-Set Typeclasses Debug Verbosity 2.
 Definition map_f_instr_on_cfg (c: cfg): cfg :=
   monomap (f_instr) c.
 
@@ -742,12 +740,14 @@ Proof.
 Admitted.
 
 
+
+
 (** I need Proper instances of functions with bindM and MemD for stuff to work.
 Once again, I shall admit the instances and ask steve if this makes sense *)
 
 Lemma preserve_inst_trace_implies_preserve_bb_trace:
   forall (ip: InstrPass)
-    (PRESERVEINST: forall (tds: typedefs)(ge: genv) (e: env)
+    (PRESERVE_INST_TRACE: forall (tds: typedefs)(ge: genv) (e: env)
                  (i: instr) (id: instr_id),
                  execInst tds ge e id i = execInst tds ge e id (ip i))
     (ge: genv)
@@ -795,7 +795,7 @@ Proof.
 
     assert (MEM_EFFECT_SAME: M.mem_effect_1 minit (execInst tds ge e NAME INST) =
                              M.mem_effect_1 minit (execInst tds ge e NAME (ip INST))).
-    rewrite PRESERVEINST.
+    rewrite PRESERVE_INST_TRACE.
     reflexivity.
 
     rewrite MEM_EFFECT_SAME.
@@ -844,7 +844,7 @@ Proof.
                blk_term := blk_term |}) (blk_phis := blk_phis) (blk_id0 := blk_id); reflexivity.
 
 
-    assert (OUTER_EQ:
+    assert (OUTER_EQ: Trace.MonadVerif.PointwiseEUTT
               (fun out : M.memory * InstResult =>
      let (m', x) := out in
      M.memD m'
@@ -855,7 +855,7 @@ Proof.
            | IRCallVoid fnid args _ => Ret (BBRCallVoid fnid args pt blk_id)
            | IREnvEffect _ => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
            | IRNone => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
-           end))) ≡ (fun out : M.memory * InstResult =>
+           end))) (fun out : M.memory * InstResult =>
        let (m', x) := out in
        M.memD m'
          (bindM (Ret x)
@@ -871,12 +871,16 @@ Proof.
                  execBBInstrs tds ge e blk_id
                    (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code)
                    (snd blk_term) (pt + 1)%nat
-             end)))).
-    extensionality xy.
+             end)))) .
+    unfold PointwiseEUTT.
+    intros.
+    destruct x.
+    rewrite MEMD_INNER_EQ.
+    reflexivity.
 
-    setoid_rewrite MEMD_INNER_EQ.
-
-Admitted
+    setoid_rewrite OUTER_EQ.
+    reflexivity.
+Qed.
 
 
 Abort.
