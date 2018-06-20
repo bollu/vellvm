@@ -7,6 +7,7 @@ Require Import Integers.
 Require Coq.Structures.OrderedTypeEx.
 Require Import ZMicromega.
 Import ListNotations.
+Require Import Setoid Morphisms Relations.
 
 
 From mathcomp Require ssreflect ssrbool ssrfun bigop.
@@ -822,6 +823,35 @@ Proof.
   apply rewrite_memD_as_memEffect_fin.
   destruct (mem_effect_fin m FINTRX); auto.
 Qed.
+
+(** Rewrite memD in terms of mem effect. Useful to reason about
+ memory effects of arbitrary traces, or to chop a trace at a given point *)
+Theorem rewrite_memD_as_memEffect: forall {X: Type}
+                                     (trx: Trace X)
+                                     (m: memory),
+    memD m trx ≡ bindM (memEffect m trx)
+      (fun out : memory * X => memD (fst out) (Ret (snd out))).
+Proof.
+  intros.
+  assert (TRX_AS_BIND: memD m trx ≡ memD m (bindM trx (Ret (X:=X)))).
+  euttnorm.
+
+  rewrite TRX_AS_BIND.
+  rewrite memD_commutes_with_bind_memEffect.
+
+  assert (FNEQ: PointwiseEUTT
+            (fun out : memory * X => let (m', x) := out in memD m' (bindM (Ret x) (Ret (X:=X))))
+            (fun out : memory * X => memD (fst out) (Ret (snd out)))).
+  unfold PointwiseEUTT.
+  intros.
+  destruct x; euttnorm.
+  rewrite FNEQ.
+  reflexivity.
+Qed.
+            
+                        
+
+
 
 
 (*

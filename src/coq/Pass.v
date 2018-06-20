@@ -1028,6 +1028,69 @@ Proof.
     reflexivity.
 Qed.
 
+(** declarations in module returns the same value on a CFG pass **)
+Lemma declarations_in_module_after_cfg_pass_eq: forall (MCFG: mcfg) (cfgp: CFGPass),
+  (declarations_in_module_tiered (monomap cfgp MCFG)) = 
+  (declarations_in_module_tiered MCFG).
+Proof.
+  intros.
+  unfold declarations_in_module_tiered.
+  simpl.
+
+  assert (PROTOS_EQ: map df_prototype (m_definitions MCFG) =
+                     map df_prototype (m_definitions (monomap cfgp MCFG))).
+  destruct MCFG; simpl.
+  induction m_definitions; simpl in *; auto.
+  rewrite IHm_definitions; auto.
+  
+  rewrite PROTOS_EQ.
+  destruct MCFG; simpl; auto.
+Qed.
+
+  
+
+(** init_state returns the same value after cfg pass **)
+Lemma init_state_tiered_after_cfg_pass_eq: forall (MCFG: mcfg) (cfgp: CFGPass),
+    (init_state_tiered (monomap cfgp MCFG) "main") =
+    (init_state_tiered MCFG "main").
+Proof.
+  intros.
+  unfold init_state_tiered.
+  rewrite declarations_in_module_after_cfg_pass_eq with (cfgp := cfgp).
+  reflexivity.
+Qed.
+
+(*
+
+       (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] MCFG ir))
+  ≡ M.memD M.empty
+      (bindM (init_state_tiered MCFG "main")
+         (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] (monomap cfgp MCFG) ir))
+*)
+Lemma cfg_preservation_implies_step_sem_preservation:
+  forall (cfgp: CFGPass)
+    (PRESERVE_CFG_EFFECT: forall
+             (tds: typedefs)
+             (ge: genv)
+             (e: env)
+             (CFG: cfg)
+             (fnid: function_id)
+             (m: M.memory),
+        M.memEffect m (execFunction tds ge e CFG fnid) ≡
+        M.memEffect m (execFunction tds ge e (cfgp CFG) fnid))
+    (ge: genv)
+    (e: env)
+    (s: stack)
+    (MCFG: mcfg)
+    (r:InterpreterResult)
+    (m: M.memory),
+    M.memEffect m (step_sem_tiered ge e s MCFG r) ≡
+                M.memEffect m (step_sem_tiered ge e s (monomap cfgp MCFG) r).
+Proof.
+  intros.
+Admitted.
+
+
 Lemma cfg_preservation_implies_program_preservation:
   forall (cfgp: CFGPass)
     (PRESERVE_CFG_EFFECT: forall
@@ -1042,7 +1105,11 @@ Lemma cfg_preservation_implies_program_preservation:
     (MCFG: CFG.mcfg),
     TopLevel.run_mcfg_with_memory_tiered MCFG ≡ run_mcfg_with_memory_tiered (monomap cfgp MCFG).
 Proof.
-Admitted.
+  intros.
+  unfold run_mcfg_with_memory_tiered.
+  rewrite init_state_tiered_after_cfg_pass_eq with (cfgp := cfgp).
+  simpl.
+Abort.
 
 
 
