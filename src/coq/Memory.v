@@ -806,8 +806,7 @@ Theorem rewrite_memD_as_memEffect_fin: forall {X: Type}
 Proof.
   intros.
   assert (BIND_RET: memD m trx ≡ memD m (bindM trx (Ret (X:=X)))).
-  rewrite bind_ret_is_identity.
-  reflexivity.
+  euttnorm.
   destruct (mem_effect_fin m FINTRX) eqn:MEMEFF.
   rewrite BIND_RET.
 

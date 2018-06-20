@@ -741,6 +741,10 @@ Proof.
   induction ex; try destruct_finite_trace_match.
 Admitted.
 
+
+(** I need Proper instances of functions with bindM and MemD for stuff to work.
+Once again, I shall admit the instances and ask steve if this makes sense *)
+
 Lemma preserve_inst_trace_implies_preserve_bb_trace:
   forall (ip: InstrPass)
     (PRESERVEINST: forall (tds: typedefs)(ge: genv) (e: env)
@@ -782,13 +786,96 @@ Proof.
     simpl.
     destruct bb2.
     simpl in *.
-    inversion BBMODIFIED.
-    simpl in *.
-    rewrite <- PRESERVEINST.
+
     destruct a as [NAME  INST].
     simpl in *.
-    erewrite M.memD_commutes_with_bind'.
-    rewrite 
+    inversion BBMODIFIED.
+    simpl in *.
+    repeat rewrite M.memD_commutes_with_bind_mem_effect_1.
+
+    assert (MEM_EFFECT_SAME: M.mem_effect_1 minit (execInst tds ge e NAME INST) =
+                             M.mem_effect_1 minit (execInst tds ge e NAME (ip INST))).
+    rewrite PRESERVEINST.
+    reflexivity.
+
+    rewrite MEM_EFFECT_SAME.
+    clear MEM_EFFECT_SAME.
+    clear H0 H1 H2 H3.
+
+
+    assert (MEMD_INNER_EQ: forall m' x,
+           M.memD m'
+       (bindM (Ret x)
+          (fun iresult : InstResult =>
+           match iresult with
+           | IRCall fnid args retinstid _ => Ret (BBRCall fnid args retinstid pt blk_id)
+           | IRCallVoid fnid args _ => Ret (BBRCallVoid fnid args pt blk_id)
+           | IREnvEffect _ => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
+           | IRNone => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
+           end)) ≡
+           M.memD m'
+         (bindM (Ret x)
+            (fun iresult : InstResult =>
+             match iresult with
+             | IRCall fnid args retinstid _ => Ret (BBRCall fnid args retinstid pt blk_id)
+             | IRCallVoid fnid args _ => Ret (BBRCallVoid fnid args pt blk_id)
+             | IREnvEffect _ =>
+                 execBBInstrs tds ge e blk_id
+                   (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code)
+                   (snd blk_term) (pt + 1)%nat
+             | IRNone =>
+                 execBBInstrs tds ge e blk_id
+                   (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code)
+                   (snd blk_term) (pt + 1)%nat
+             end))).
+    intros.
+    euttnorm.
+    destruct x; euttnorm.
+    
+    rewrite IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
+               blk_id := blk_id;
+               blk_phis := blk_phis;
+               blk_code := (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code);
+               blk_term := blk_term |}) (blk_phis := blk_phis) (blk_id0 := blk_id); reflexivity.
+    rewrite IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
+               blk_id := blk_id;
+               blk_phis := blk_phis;
+               blk_code := (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code);
+               blk_term := blk_term |}) (blk_phis := blk_phis) (blk_id0 := blk_id); reflexivity.
+
+
+    assert (OUTER_EQ:
+              (fun out : M.memory * InstResult =>
+     let (m', x) := out in
+     M.memD m'
+       (bindM (Ret x)
+          (fun iresult : InstResult =>
+           match iresult with
+           | IRCall fnid args retinstid _ => Ret (BBRCall fnid args retinstid pt blk_id)
+           | IRCallVoid fnid args _ => Ret (BBRCallVoid fnid args pt blk_id)
+           | IREnvEffect _ => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
+           | IRNone => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
+           end))) ≡ (fun out : M.memory * InstResult =>
+       let (m', x) := out in
+       M.memD m'
+         (bindM (Ret x)
+            (fun iresult : InstResult =>
+             match iresult with
+             | IRCall fnid args retinstid _ => Ret (BBRCall fnid args retinstid pt blk_id)
+             | IRCallVoid fnid args _ => Ret (BBRCallVoid fnid args pt blk_id)
+             | IREnvEffect _ =>
+                 execBBInstrs tds ge e blk_id
+                   (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code)
+                   (snd blk_term) (pt + 1)%nat
+             | IRNone =>
+                 execBBInstrs tds ge e blk_id
+                   (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code)
+                   (snd blk_term) (pt + 1)%nat
+             end)))).
+    extensionality xy.
+
+    setoid_rewrite MEMD_INNER_EQ.
+
 Admitted
 
 

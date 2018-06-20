@@ -975,6 +975,8 @@ Defined.
 
 
 
+
+
 Lemma bindM_proper_wrt_eutt:
   forall {A B: Type} {E: Type -> Type} (a a': M E A) (f: A -> M E B),
     a ≡ a' -> bindM a f ≡ bindM a' f.
@@ -1481,6 +1483,26 @@ Proof.
 Defined.
 
 
+Lemma bindM_Ret_2: forall {E: Type -> Type} {X: Type}  (mex: M E X),
+    bindM mex (Ret (X:=X)) ≡ mex.
+Proof.
+  intros until X.
+  cofix CIH.
+  
+  intros.
+  rewrite @matchM with (i := bindM _ _).
+  simpl.
+  destruct mex; simpl.
+  - rewrite remove_tau.
+    reflexivity.
+  - constructor.
+    intros.
+    apply CIH.
+  - constructor.
+    apply CIH.
+  - constructor.
+Defined.
+
 Lemma bindM_Err: forall {X Y :Type} {E: Type -> Type} (e: String.string) (f: X -> M E Y),
   bindM (Err e) f ≡ Err e.
 Proof.
@@ -1492,6 +1514,7 @@ Defined.
 Create HintDb euttnormdb.
 Hint Rewrite (@bindM_assoc) : euttnormdb.
 Hint Rewrite (@bindM_Ret) : euttnormdb.
+Hint Rewrite (@bindM_Ret_2) : euttnormdb.
 Hint Rewrite (@bindM_Vis) : euttnormdb.
 Hint Rewrite (@remove_tau) : euttnormdb.
 Hint Rewrite (@bindM_Err) : euttnormdb.
