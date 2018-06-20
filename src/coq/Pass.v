@@ -704,15 +704,21 @@ Admitted.
 End PASSTHEOREMS.
 
 
+Require Import Vellvm.TopLevel.
+(* 
 Module IO := LLVMIO.Make(Memory.A).
 Module M := Memory.Make(IO).
 Module SST := StepSemanticsTiered(Memory.A)(IO).
 
+
 Import SST.
 Import Vellvm.Trace.MonadVerif.
+*)
+Import SST.
+Import Trace.MonadVerif.
 
 Check (SST.eval_exp).
-Ltac unfolder_for_exp := unfold eval_exp,
+Ltac unfolder_for_exp := unfold SST.eval_exp,
                          IO.lift_err_d,
                          lookup_id,
                          raise,
@@ -1021,6 +1027,22 @@ Proof.
     setoid_rewrite OUTER_EQ.
     reflexivity.
 Qed.
+
+Lemma cfg_preservation_implies_program_preservation:
+  forall (cfgp: CFGPass)
+    (PRESERVE_CFG_EFFECT: forall
+             (tds: typedefs)
+             (ge: genv)
+             (e: env)
+             (CFG: cfg)
+             (fnid: function_id)
+             (m: M.memory),
+        M.memEffect m (execFunction tds ge e CFG fnid) ≡
+        M.memEffect m (execFunction tds ge e (cfgp CFG) fnid))
+    (MCFG: CFG.mcfg),
+    TopLevel.run_mcfg_with_memory_tiered MCFG ≡ run_mcfg_with_memory_tiered (monomap cfgp MCFG).
+Proof.
+Admitted.
 
 
 
