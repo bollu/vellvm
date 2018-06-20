@@ -745,7 +745,7 @@ Admitted.
 (** I need Proper instances of functions with bindM and MemD for stuff to work.
 Once again, I shall admit the instances and ask steve if this makes sense *)
 
-Lemma preserve_inst_trace_implies_preserve_bb_trace:
+Lemma preserve_inst_trace_implies_preserve_bb_mem_effect:
   forall (ip: InstrPass)
     (PRESERVE_INST_TRACE: forall (tds: typedefs)(ge: genv) (e: env)
                  (i: instr) (id: instr_id),
@@ -791,10 +791,10 @@ Proof.
     simpl in *.
     inversion BBMODIFIED.
     simpl in *.
-    repeat rewrite M.memD_commutes_with_bind_mem_effect_1.
+    repeat rewrite M.memD_commutes_with_bind_memEffect.
 
-    assert (MEM_EFFECT_SAME: M.mem_effect_1 minit (execInst tds ge e NAME INST) =
-                             M.mem_effect_1 minit (execInst tds ge e NAME (ip INST))).
+    assert (MEM_EFFECT_SAME: M.memEffect minit (execInst tds ge e NAME INST) =
+                             M.memEffect minit (execInst tds ge e NAME (ip INST))).
     rewrite PRESERVE_INST_TRACE.
     reflexivity.
 
@@ -883,8 +883,144 @@ Proof.
 Qed.
 
 
-Abort.
 
+Lemma preserve_inst_effect_implies_preserve_bb_mem_effect:
+  forall (ip: InstrPass)
+    (PRESERVE_INST_EFFECT: forall (tds: typedefs)(ge: genv) (e: env)
+                            (i: instr) (id: instr_id) (m: M.memory),
+        M.memEffect m (execInst tds ge e id i) ≡
+        M.memEffect m (execInst tds ge e id (ip i)))
+    (ge: genv)
+    (tds: typedefs)
+    (e: env)
+    (bb1 bb2: block)
+    (BBMODIFIED: bb2 = monomap ip bb1)
+    (pt: instr_pt)
+    (minit: M.memory),
+    M.memD minit (execBBInstrs tds ge e (blk_id bb1) (blk_code bb1) (snd (blk_term bb1))  pt) ≡
+    M.memD minit (execBBInstrs tds ge e (blk_id bb2) (blk_code bb2) (snd (blk_term bb2)) pt).
+Proof.
+  intros.
+  unfold monomap in BBMODIFIED.
+  unfold instrToBlockFunctor in BBMODIFIED.
+  
+  
+  destruct bb1; simpl in *.
+  generalize dependent blk_id.
+  generalize dependent blk_phis.
+  generalize dependent bb2.
+  generalize dependent ge.
+  generalize dependent e.
+  generalize dependent minit.
+  generalize dependent pt.
+  induction blk_code.
+  
+  - intros.
+    simpl in BBMODIFIED.
+    destruct bb2.
+    inversion BBMODIFIED.
+    simpl.
+    reflexivity.
+    
+  - intros.
+    simpl.
+    destruct bb2.
+    simpl in *.
+
+    destruct a as [NAME  INST].
+    simpl in *.
+    inversion BBMODIFIED.
+    simpl in *.
+    repeat rewrite M.memD_commutes_with_bind_memEffect.
+
+    assert (MEM_EFFECT_SAME: M.memEffect minit (execInst tds ge e NAME INST) ≡
+                             M.memEffect minit (execInst tds ge e NAME (ip INST))).
+    rewrite PRESERVE_INST_EFFECT.
+    reflexivity.
+
+    rewrite MEM_EFFECT_SAME.
+    clear MEM_EFFECT_SAME.
+    clear H0 H1 H2 H3.
+
+
+    assert (MEMD_INNER_EQ: forall m' x,
+           M.memD m'
+       (bindM (Ret x)
+          (fun iresult : InstResult =>
+           match iresult with
+           | IRCall fnid args retinstid _ => Ret (BBRCall fnid args retinstid pt blk_id)
+           | IRCallVoid fnid args _ => Ret (BBRCallVoid fnid args pt blk_id)
+           | IREnvEffect _ => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
+           | IRNone => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
+           end)) ≡
+           M.memD m'
+         (bindM (Ret x)
+            (fun iresult : InstResult =>
+             match iresult with
+             | IRCall fnid args retinstid _ => Ret (BBRCall fnid args retinstid pt blk_id)
+             | IRCallVoid fnid args _ => Ret (BBRCallVoid fnid args pt blk_id)
+             | IREnvEffect _ =>
+                 execBBInstrs tds ge e blk_id
+                   (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code)
+                   (snd blk_term) (pt + 1)%nat
+             | IRNone =>
+                 execBBInstrs tds ge e blk_id
+                   (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code)
+                   (snd blk_term) (pt + 1)%nat
+             end))).
+    intros.
+    euttnorm.
+    destruct x; euttnorm.
+    
+    rewrite IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
+               blk_id := blk_id;
+               blk_phis := blk_phis;
+               blk_code := (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code);
+               blk_term := blk_term |}) (blk_phis := blk_phis) (blk_id0 := blk_id); reflexivity.
+    rewrite IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
+               blk_id := blk_id;
+               blk_phis := blk_phis;
+               blk_code := (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code);
+               blk_term := blk_term |}) (blk_phis := blk_phis) (blk_id0 := blk_id); reflexivity.
+
+
+    assert (OUTER_EQ: Trace.MonadVerif.PointwiseEUTT
+              (fun out : M.memory * InstResult =>
+     let (m', x) := out in
+     M.memD m'
+       (bindM (Ret x)
+          (fun iresult : InstResult =>
+           match iresult with
+           | IRCall fnid args retinstid _ => Ret (BBRCall fnid args retinstid pt blk_id)
+           | IRCallVoid fnid args _ => Ret (BBRCallVoid fnid args pt blk_id)
+           | IREnvEffect _ => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
+           | IRNone => execBBInstrs tds ge e blk_id blk_code (snd blk_term) (pt + 1)%nat
+           end))) (fun out : M.memory * InstResult =>
+       let (m', x) := out in
+       M.memD m'
+         (bindM (Ret x)
+            (fun iresult : InstResult =>
+             match iresult with
+             | IRCall fnid args retinstid _ => Ret (BBRCall fnid args retinstid pt blk_id)
+             | IRCallVoid fnid args _ => Ret (BBRCallVoid fnid args pt blk_id)
+             | IREnvEffect _ =>
+                 execBBInstrs tds ge e blk_id
+                   (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code)
+                   (snd blk_term) (pt + 1)%nat
+             | IRNone =>
+                 execBBInstrs tds ge e blk_id
+                   (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code)
+                   (snd blk_term) (pt + 1)%nat
+             end)))) .
+    unfold PointwiseEUTT.
+    intros.
+    destruct x.
+    rewrite MEMD_INNER_EQ.
+    reflexivity.
+
+    setoid_rewrite OUTER_EQ.
+    reflexivity.
+Qed.
 
 
 

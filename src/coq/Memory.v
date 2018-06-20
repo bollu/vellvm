@@ -343,35 +343,21 @@ Definition arrowSecondTrace {A P Q: Type} (f: P -> Trace Q) (tuple: Trace (A * P
 
             
 
-CoFixpoint mem_effect_1 {X} (m: memory) (tx: Trace X):
+(** A version of memD that also provides the state of memory at a
+    given point *)
+CoFixpoint memEffect {X} (m: memory) (tx: Trace X):
   Trace (memory * X) :=
   (* (Trace memory) * (Trace X) := *)
   match tx with
   | Trace.Ret x => (Trace.Ret ( m,  x))
   | Trace.Err e => Trace.Err e
-  | Trace.Tau x' =>  Trace.Tau (mem_effect_1 m x')
+  | Trace.Tau x' =>  Trace.Tau (memEffect m x')
   | Trace.Vis Y io k => 
     match mem_step io m with
-    | inr (m', v) => Trace.Tau (mem_effect_1 m' (k v))
+    | inr (m', v) => Trace.Tau (memEffect m' (k v))
     | inl e => Trace.Err "uninterpretiable IO call "
     end
   end.
-  
-
-CoFixpoint mem_effect_2 {X} (m: memory) (tx: Trace X):
-  Trace (memory * Trace X) :=
-  (* (Trace memory) * (Trace X) := *)
-  match tx with
-  | Trace.Ret x => (Trace.Ret (m, Trace.Ret x))
-  | Trace.Err e => Trace.Err e
-  | Trace.Tau x' =>  Trace.Tau (mem_effect_2 m x')
-  | Trace.Vis Y io k => 
-    match mem_step io m with
-    | inr (m', v) => Trace.Tau (mem_effect_2 m' (k v))
-    | inl e => Trace.Vis io (fun y => Trace.Ret (m, (k y)))
-    end
-  end.
-                 
                                                                
 (** Tear down the finite trace to record effects that happened on memory **)
 Fixpoint mem_effect_fin {X} (m: memory) (d: Trace X) (FIN: Trace.TraceFinite d)
@@ -745,12 +731,12 @@ Qed.
 
 Check (Ret).
 
-Theorem memD_commutes_with_bind_mem_effect_1: forall {X Y: Type}
+Theorem memD_commutes_with_bind_memEffect: forall {X Y: Type}
                                  (trx: Trace X)
                                  (f: X -> Trace Y)
                                  (m: memory),
     memD m (bindM trx f) ≡
-            bindM (mem_effect_1 m trx)
+            bindM (memEffect m trx)
             (fun out =>  match out with
                       | (m', x) => memD m' (bindM (Ret x) f)
                       end).
@@ -761,12 +747,12 @@ Proof.
   destruct trx.
   - (* ret *)
     euttnorm.
-    rewrite (@Trace.matchM) with (i := mem_effect_1 _ _); simpl.
+    rewrite (@Trace.matchM) with (i := memEffect _ _); simpl.
     euttnorm.
     Guarded.
   - (* Vis *)
     rewrite (@Trace.matchM) with (i := memD _ _); simpl.
-    rewrite (@Trace.matchM) with (i := mem_effect_1 _ _); simpl.
+    rewrite (@Trace.matchM) with (i := memEffect _ _); simpl.
     destruct (mem_step e m) eqn:MEMSTEP.
     + euttnorm.
       constructor.
@@ -780,7 +766,7 @@ Proof.
 
   - (* Tau *)
       rewrite (@Trace.matchM) with (i := bindM (Tau _) _); simpl.
-      rewrite (@Trace.matchM) with (i := mem_effect_1 _ _); simpl.
+      rewrite (@Trace.matchM) with (i := memEffect _ _); simpl.
       rewrite (@Trace.matchM) with (i := bindM (Tau _) _); simpl.
       rewrite (@Trace.matchM) with (i := memD _ _); simpl.
       constructor.
@@ -789,7 +775,7 @@ Proof.
 
   - euttnorm.
     Guarded.
-    rewrite (@Trace.matchM) with (i := mem_effect_1 _ _); simpl.
+    rewrite (@Trace.matchM) with (i := memEffect _ _); simpl.
     euttnorm.
     forcememd.
     Guarded.
