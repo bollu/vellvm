@@ -1302,7 +1302,6 @@ Qed.
 Create HintDb eutt.
 Hint Resolve bindM_proper_wrt_eutt : eutt.
 
-
 Instance bindm_eutt_proper {E X Y}:
   Proper ((@EquivUpToTau E X) ==> eq ==> (@EquivUpToTau E Y)) (@bindM E X Y).
 Proof.
@@ -1326,6 +1325,7 @@ Proof.
   rewrite H.
   reflexivity.
 Qed.
+  
 
 
 
@@ -1528,4 +1528,38 @@ Proof.
   intros.
   constructor. auto.
 Qed.
+
+
+
+(** Show that we can rewrite functions which agree pointwise with respect to EUTT
+under bind **)
+Definition PointwiseEUTT {E: Type -> Type} {X Y: Type} (f: X -> M E Y) (g: X -> M E Y) : Prop :=
+  forall (x: X), f x ≡ g x.
+
+Instance bindm_function_pointwise_proper {E X Y}:
+  Proper ((@EquivUpToTau E X)
+            ==> (@PointwiseEUTT E X Y)
+            ==>  (@EquivUpToTau E Y))
+         (@bindM E X Y).
+Proof.
+  intros MEX MEX' MEXEQUIV.
+  intros F G FEQUIV.
+  unfold PointwiseEUTT in FEQUIV.
+
+  generalize dependent MEX.
+  generalize dependent MEX'.
+  generalize dependent F.
+  generalize dependent G.
+  cofix.
+  Guarded.
+  intros.
+  Guarded.
+  destruct MEX.
+  - inversion MEXEQUIV; subst.
+    + euttnorm.
+      Guarded.
+      rewrite FEQUIV.
+      Guarded.
+      reflexivity.
+Admitted.
 End MonadVerif.
