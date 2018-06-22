@@ -878,11 +878,13 @@ Definition init_state_tiered (MCFG: mcfg) (fname:string) :
      (declarations_in_module_tiered MCFG);
     mret ((IREnterFunction (Name fname) []), g).
 
-(** Theorems and lemmas on properties of StepSemanticsTiered **)
+(** *Theorems and lemmas on properties of StepSemanticsTiered, Forcing functions **)
 (** Write some lemmas to allow simplification of CoFixpoints without
 having to unfold and force them manually. The proof terms are
  horrible if we unfold them *)
+Import Trace.MonadVerif.
 
+(** TODO: cleanup repetition in proof with LTac **)
 Lemma force_step_sem_tiered:
   forall (e: env)
     (ge: genv)
@@ -893,6 +895,42 @@ Lemma force_step_sem_tiered:
                                         ('rnext <- execInterpreter ge e  st MCFG r ;
                                            step_sem_tiered ge e  st MCFG rnext).
 Proof.
+  intros.
+  destruct r.
+
+  - rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ _ (IRDone _)).
+    rewrite @Trace.matchM with (i := (execInterpreter _ _ _ _ (IRDone _))).
+    simpl.
+    euttnorm.
+    rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ _ (IRDone _)).
+    simpl.
+    reflexivity.
+
+  - rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ _ (IREnterFunction _ _)).
+    Opaque bindM.
+    simpl.
+    Transparent bindM.
+    destruct (execInterpreter ge e st MCFG (IREnterFunction fnid args)); euttnorm.
+    Guarded.
+
+  - Opaque bindM.
+    rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ _ (IRReturnFunction _)).
+    simpl.
+    Transparent bindM.
+    destruct (execInterpreter ge e st MCFG (IRReturnFunction fres)); euttnorm.
+
+    
+  - Opaque bindM.
+    rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ _ (IRResumeFunction _)).
+    simpl.
+    Transparent bindM.
+    destruct (execInterpreter ge e st MCFG (IRResumeFunction _)); euttnorm.
+Defined.
+
+
+    
+    
+    
 Admitted.
 
 Lemma force_exec_bb_instrs:
