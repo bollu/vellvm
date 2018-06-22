@@ -1107,14 +1107,15 @@ Proof.
   intros.
   unfold run_mcfg_with_memory_tiered.
   rewrite init_state_tiered_after_cfg_pass_eq with (cfgp := cfgp).
-  assert (STEP_SEM_EQUIV:
-            Trace.MonadVerif.PointwiseEUTT
-              (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] MCFG ir)
-              (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] (monomap cfgp MCFG) ir)).
-  admit.
-  rewrite STEP_SEM_EQUIV.
-  reflexivity.
-Admitted.
+  (** TODO: change this to something rewriteable, once I figure out the
+      correct Proper instance **)
+  apply M.MemD_proper_wrt_PointwiseMemEffectEUTT.
+
+  unfold M.PointwiseMemEffectEUTT.
+  intros.
+  destruct x.
+  apply cfg_preservation_implies_step_sem_preservation; auto.
+Qed.
 
 
 
