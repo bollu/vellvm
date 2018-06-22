@@ -885,6 +885,7 @@ having to unfold and force them manually. The proof terms are
 Import Trace.MonadVerif.
 
 (** TODO: cleanup repetition in proof with LTac **)
+
 Lemma force_step_sem_tiered:
   forall (e: env)
     (ge: genv)
@@ -928,11 +929,6 @@ Proof.
 Defined.
 
 
-    
-    
-    
-Admitted.
-
 Lemma force_exec_bb_instrs:
   forall (tds: typedefs)
     (ge: genv)
@@ -956,7 +952,7 @@ Lemma force_exec_bb_instrs:
 Proof.
   intros.
   induction instrs; reflexivity.
-Qed.
+Defined.
   
 Lemma force_exec_function_at_bb_id: 
   forall (tds: typedefs)

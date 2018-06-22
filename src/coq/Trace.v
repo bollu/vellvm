@@ -78,7 +78,7 @@ Proof.
   - rewrite matchM.
     rewrite @matchM with (i := i2).
     auto.
-Qed.
+Defined.
 
 Inductive TraceFinite {E: Type -> Type} {X: Type}: M E X -> Type :=
 | TFRet: forall (x: X), TraceFinite (Ret x)
@@ -89,6 +89,8 @@ Inductive TraceFinite {E: Type -> Type} {X: Type}: M E X -> Type :=
            (FINK: forall (y: Y), TraceFinite (k y)),
     TraceFinite (Vis e k)
 .
+
+
 
   
 
@@ -239,7 +241,7 @@ Proof.
   - eapply _EquivTauLeft; eauto.
   - eapply _EquivTauRight; eauto.
   - constructor.
-Qed.
+Defined.
 Hint Resolve pEquivUpToTauGen_monotone : paco.
 
 Lemma peutt_refl : forall E X (s : M E X),
@@ -260,7 +262,7 @@ Proof.
     right. auto.
     
   - pfold. constructor.
-Qed.
+Defined.
 
 Lemma eutt_refl : forall E X (s : M E X),
     EquivUpToTau s s.
@@ -270,7 +272,7 @@ Proof.
   destruct s; constructor;
     intros;
     apply eutt_refl.
-Qed.
+Defined.
 
 Lemma eutt_sym : forall E X (s t : M E X),
     EquivUpToTau s t -> EquivUpToTau t s.
@@ -282,7 +284,7 @@ Proof.
   - apply eutt_sym. apply H.
   - econstructor. assumption. eassumption. apply eutt_sym. assumption.
   - econstructor. assumption. eassumption. apply eutt_sym. assumption.
-Qed.
+Defined.
 
 Lemma peutt_sym : forall E X (s : M E X),
     pEquivUpToTau s s.
@@ -302,7 +304,7 @@ Proof.
     right. auto.
     
   - pfold. constructor.
-Qed.
+Defined.
 
 
 Fixpoint tauN {E X} (n: nat) (s': M E X): M E X :=
@@ -470,13 +472,13 @@ Proof.
   replace (Tau (Tau a)) with (tauN 2 a).
   apply tauN_eutt.
   auto.
-Qed.
+Defined.
     
 (* 
 Lemma tauN_destruct_2: forall {E X} (n: nat) (s': M E X),
     tauN (S n) (Tau s') = tauN n s'.
 Proof.
-Qed.
+Defined.
 *)
                
 
@@ -497,7 +499,7 @@ Proof.
   - exists 0.
     simpl.
     reflexivity.
-Qed.
+Defined.
   
 
 Lemma untau_notau : forall E X (s t : M E X), ~(UnTau s (Tau t)).
@@ -507,7 +509,7 @@ Proof.
   induction H.
   - auto.
   - eapply H; eauto.
-Qed.
+Defined.
 
 Lemma untau_untau : forall E X (s t : M E X),
     UnTau s t -> UnTau t t.
@@ -516,7 +518,7 @@ Proof.
   induction H.
   - auto.
   - constructor; assumption.
-Qed.
+Defined.
 
 Lemma untau_inj : forall E X (s s' s'' : M E X),
     UnTau s s' -> UnTau s s'' -> s' = s''.
@@ -527,7 +529,7 @@ Proof.
   - dispatch_contra.
   - dispatch_contra.
   - reflexivity.
-Qed.
+Defined.
 
 Lemma eutt_untau : forall E X (s s' t : M E X),
     UnTau s s' -> EquivUpToTau s t ->
@@ -560,7 +562,7 @@ Proof.
     + eexists; split.
       * constructor. intros. unfold not. intros. inversion H0.
       * assumption.
-Qed.
+Defined.
 
 Lemma eutt_tau_2 : forall E X (s s' t t' : M E X),
     UnTau s s' -> UnTau t t' -> EquivUpToTau s' t' ->
@@ -576,7 +578,7 @@ Proof.
   - destruct H;
       try (constructor; assumption);
       dispatch_contra.
-Qed.
+Defined.
 
 Lemma eutt_untau_2 : forall E X (s s' t t' : M E X),
     UnTau s s' -> UnTau t t' -> EquivUpToTau s t ->
@@ -601,7 +603,7 @@ Proof.
       * assumption.
       * eapply untau_inj; eassumption.
     + constructor.
-Qed.
+Defined.
 
 
 Lemma eutt_untau_3: forall {E X} (t t': M E X),
@@ -615,7 +617,7 @@ Proof.
   rewrite T_TAU.
   apply eutt_sym.
   apply tauN_eutt.
-Qed.
+Defined.
 
 Lemma eutt_untau_trans : forall E X (s s' t : M E X),
     UnTau s s' -> EquivUpToTau s' t -> EquivUpToTau s t.
@@ -651,7 +653,7 @@ Proof.
       + assumption.
   }
   assumption.
-Qed.
+Defined.
 
 
 
@@ -678,7 +680,7 @@ Proof.
         end) x)) as BIND.
   apply eutt_sym.
   apply tauN_eutt_1.
-Qed.
+Defined.
 
     
     
@@ -693,7 +695,7 @@ Proof.
   inversion H. subst.
   econstructor; auto. apply H1. eapply eutt_err_t. apply H2.
   econstructor.
-Qed.  
+Defined.  
 
 Lemma eutt_trans : forall E X (s t u : M E X),
     EquivUpToTau s t -> EquivUpToTau t u -> EquivUpToTau s u.
@@ -817,7 +819,7 @@ Proof.
     + eapply eutt_err_t. apply H1.
 
   - econstructor.
-Qed.
+Defined.
 
 
 (** Register EUTT as an equivalence relation **)
@@ -854,7 +856,7 @@ Proof.
 
     eapply eutt_trans; eauto.
     omega.
-Qed.
+Defined.
 
 
 Lemma eutt_bindM_through_unTau: forall {E X Y}  (t t': M E X) (f: X -> M E Y),
@@ -868,7 +870,7 @@ Proof.
   destruct T_TAU as [n T_TAU].
   subst.
   apply eutt_bindM_through_tauN.
-Qed.
+Defined.
 
 (* This is not true, consider t' = Ret x, then it cannot be the
 RHS of an UnTau in the result since Ret x >>= f = (Tau (f x)))
@@ -900,7 +902,7 @@ Proof.
     + rewrite (@matchM) with (i := bindM (Err s) f).
       simpl.
       apply NoTau; auto.
-Qed.
+Defined.
  
     
   
@@ -912,7 +914,7 @@ Proof.
   unfold Reflexive.
   intros.
   apply eutt_refl.
-Qed.
+Defined.
 
 
 Instance symmetric_eutt{E} X : Symmetric (@EquivUpToTau E X).
@@ -920,7 +922,7 @@ Proof.
   unfold Symmetric.
   intros.
   apply eutt_sym; auto.
-Qed.
+Defined.
 
 
 Instance transitive_eutt{E} X : Transitive (@EquivUpToTau E X).
@@ -928,7 +930,7 @@ Proof.
   unfold Transitive.
   intros.
   eapply eutt_trans; eauto.
-Qed.
+Defined.
 
   
 
@@ -938,7 +940,7 @@ Proof.
   apply reflexive_eutt.
   apply symmetric_eutt.
   apply transitive_eutt.
-Qed.
+Defined.
 
 Instance equiv_eutt {E} X : Equiv (M E X) := (@EquivUpToTau E X).
 
@@ -957,7 +959,7 @@ Proof.
   apply tauN_eutt.
   rewrite eutt_trans; eauto.
   apply eutt_refl.
-Qed.
+Defined.
 
 
 (* Show theorems about bind being proper wrt equivalences *)
@@ -1257,7 +1259,7 @@ Proof.
        simpl.
        constructor.
        Guarded.
-Qed.
+Defined.
 
 Lemma bindM_rewrite_fn: 
   forall {E: Type -> Type } {X Y: Type} (f g: X -> M E Y)
@@ -1294,7 +1296,7 @@ Proof.
     simpl.
     constructor.
     Guarded.
-Qed.
+Defined.
 
     
     
@@ -1315,7 +1317,7 @@ Proof.
 
   apply bindM_proper_wrt_eutt.
   assumption.
-Qed.
+Defined.
 
 Check (@bindM).
 Add Parametric Morphism (E: Type -> Type) (X Y : Type) : (@bindM E X Y) with
@@ -1324,7 +1326,7 @@ Proof.
   intros.
   rewrite H.
   reflexivity.
-Qed.
+Defined.
   
 
 
@@ -1376,7 +1378,7 @@ Proof.
     destruct T2ERR as [s' T2ERR].
     subst.
     constructor.
-Qed.
+Defined.
 
 (** Rewrite Rules **)
 
@@ -1527,7 +1529,7 @@ Add Parametric Morphism (E: Type -> Type) (X : Type) : (@Tau E X) with
 Proof.
   intros.
   constructor. auto.
-Qed.
+Defined.
 
 
 

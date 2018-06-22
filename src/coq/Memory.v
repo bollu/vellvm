@@ -32,7 +32,7 @@ Module A : MemoryAddress.ADDRESS with Definition addr := (Z * Z) % type.
     - right. intros H. inversion H; subst. apply n. reflexivity.
     - right. intros H. inversion H; subst. apply n. reflexivity.
     - right. intros H. inversion H; subst. apply n. reflexivity.      
-  Qed.
+  Defined.
 End A.
 
 
@@ -395,7 +395,7 @@ Proof.
   - simpl.
     rewrite IHsize0.
     replace (S begin + size0)%nat with (begin + S size0)%nat; auto; try omega.
-Qed.
+Defined.
 
 
 Lemma seq_inc_begin: forall (begin size: nat) (SIZE_GT_0: (size > 0)%nat),
@@ -407,7 +407,7 @@ Proof.
   induction size0; intros; simpl; auto.
   - omega.
   - replace (size0 - 0)%nat with size0; auto; try omega.
-Qed.
+Defined.
 
 Definition list_length_Z {A: Type} (l: list A) : Z :=
   Z.of_nat (List.length l).
@@ -422,7 +422,7 @@ Proof.
   assert (ADD_MAPSTO: IM.MapsTo ix v ( (IM.add ix v mem) )).
   apply IM.add_1; auto.
   apply IM.find_1; auto.
-Qed.
+Defined.
 
 Lemma lookup_add_all_index:
   forall {A: Type}
@@ -578,7 +578,7 @@ Lemma memD_commutes_tauN: forall (X: Type) n (x: Trace X) mem,
     simpl.
     constructor.
     apply IHn.
-Qed.
+Defined.
 
 Lemma memD_annhilates_tauN:
   forall {X: Type} (n: nat) (x: Trace X) (mem: memory),
@@ -589,7 +589,7 @@ Proof.
     rewrite memD_commutes_tauN.
     symmetry.
     apply tauN_eutt.
-Qed.
+Defined.
 
 
 
@@ -623,7 +623,7 @@ Proof.
   + assert (CONTRA: ~UnTau t (Trace.Tau t0)).
     apply untau_notau.
     contradiction.
-Qed.
+Defined.
 
   
 
@@ -657,7 +657,7 @@ Proof.
   intros x1 x2 xeq.
   subst.
   apply memD_proper_wrt_eutt; assumption.
-Qed.
+Defined.
 
 Instance register_memEffect_proper_eutt {X: Type}:
   Proper (eq ==> (@EquivUpToTau IO X) ==>
@@ -667,7 +667,7 @@ Proof.
   intros x1 x2 xeq.
   subst.
   apply memEffect_proper_wrt_eutt; assumption.
-Qed.
+Defined.
 
 
 
@@ -731,7 +731,7 @@ Proof.
       forcememd.
       rewrite MEMSTEP.
       euttnorm.
-Qed.
+Defined.
 
 
 Theorem memD_commutes_with_bind_fin': forall {X Y: Type}
@@ -751,7 +751,7 @@ Proof.
   destruct (mem_effect_fin m FINTRX) eqn:EFF.
   simpl in *.
   auto.
-Qed.
+Defined.
 
 Check (Ret).
 
@@ -845,7 +845,7 @@ Proof.
             memD m' (bindM trx' (Ret (Event:=IO) (X:=X)))).
   apply rewrite_memD_as_memEffect_fin.
   destruct (mem_effect_fin m FINTRX); auto.
-Qed.
+Defined.
 
 (** Rewrite memD in terms of mem effect. Useful to reason about
  memory effects of arbitrary traces, or to chop a trace at a given point *)
