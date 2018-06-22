@@ -625,6 +625,8 @@ Proof.
     contradiction.
 Qed.
 
+  
+
 
     
     
@@ -849,8 +851,95 @@ Proof.
   reflexivity.
 Qed.
             
-                        
+Definition PointwiseMemEffectEUTT {X Y: Type} (f g: X -> Trace Y): Prop :=
+  forall (m: memory) (x: X), memEffect m (f x) ≡ memEffect m (g x).
 
+
+Lemma memEffect_proper_wrt_PointwiseMemEffectEUTT:
+  forall {X Y: Type}
+    (x: Trace X)
+    (f g: X -> Trace Y)
+    (FGEQUIV: PointwiseMemEffectEUTT f g)
+    (mem :memory),
+    memEffect mem (bindM x f) ≡ memEffect mem (bindM x g).
+Proof.
+  intros.
+  generalize dependent x.
+  generalize dependent mem.
+  cofix CIH.
+  intros.
+
+  intros.
+  destruct x.
+  - rewrite @Trace.matchM with (i := bindM _ f).
+    rewrite @Trace.matchM with (i := bindM _ g).
+    simpl.
+    rewrite @Trace.matchM with (i := memEffect _ (Tau (f x))).
+    rewrite @Trace.matchM with (i := memEffect _ (Tau (g x))).
+    simpl.
+    euttnorm.
+    Guarded.
+
+  - rewrite @Trace.matchM with (i := bindM _ f).
+    rewrite @Trace.matchM with (i := bindM _ g).
+    simpl.
+    rewrite @Trace.matchM with (i := memEffect _ (Vis _ _)).
+    rewrite @Trace.matchM with
+        (i := memEffect _
+                        ((Vis e
+                              (fun y : Y0 =>
+                                 (cofix go (s : M IO X) : M IO Y :=
+                                    match s with
+                                    | Ret x => Tau (g x)
+                                    | @Vis _ _ Y1 e0 k0 => Vis e0 (fun y0 : Y1 => go (k0 y0))
+                                    | Tau k0 => Tau (go k0)
+                                    | Err s0 => Err s0
+                                    end) (k y))))).
+    simpl.
+    destruct (mem_step e mem).
+    + reflexivity.
+      Guarded.
+    + destruct p. simpl.
+      constructor.
+      apply CIH.
+      Guarded.
+  - 
+    rewrite @Trace.matchM with (i := memEffect _ (_ (Tau x) f)).
+    rewrite @Trace.matchM with (i := memEffect _ (_ (Tau x) g)).
+    simpl.
+    constructor.
+    apply CIH.
+    Guarded.
+
+  -
+    rewrite @Trace.matchM with (i := memEffect _ (_ (Err s) f)).
+    rewrite @Trace.matchM with (i := memEffect _ (_ (Err s) g)).
+    simpl.
+    reflexivity.
+Qed.
+  
+
+
+Lemma MemD_proper_wrt_PointwiseMemEffectEUTT:
+  forall {X Y: Type}
+    (x: Trace X)
+    (f g: X -> Trace Y)
+    (FGEQUIV: PointwiseMemEffectEUTT f g)
+    (mem :memory),
+    memD mem (Trace.bindM x f) ≡ memD mem (Trace.bindM x g).
+Proof.
+  intros.
+  
+  repeat rewrite rewrite_memD_as_memEffect.
+  unfold PointwiseMemEffectEUTT in FGEQUIV.
+
+
+  assert (MEMEFF_EQUIV: memEffect mem (bindM x f) ≡ memEffect mem (bindM x g)).
+  apply memEffect_proper_wrt_PointwiseMemEffectEUTT; auto.
+
+  rewrite MEMEFF_EQUIV.
+  reflexivity.
+Qed.
 
 
 
