@@ -632,13 +632,22 @@ Qed.
     
 
 (** I want to be able to rewrite inside M.memD for my proof **)
-Lemma MemD_proper_wrt_eutt:
+Lemma memD_proper_wrt_eutt:
   forall {X: Type}
     (x x': Trace X)
     (mem :memory),
     x ≡ x' -> memD mem x ≡ memD mem x'.
 Proof.
 Admitted.
+
+Lemma memEffect_proper_wrt_eutt:
+  forall {X: Type}
+    (x x': Trace X)
+    (mem :memory),
+    x ≡ x' -> memEffect mem x ≡ memEffect mem x'.
+Proof.
+Admitted.
+
 
 Instance register_memD_proper_eutt {X: Type}:
   Proper (eq ==> (@EquivUpToTau IO X) ==>
@@ -647,8 +656,20 @@ Proof.
   intros m1 m2 meq.
   intros x1 x2 xeq.
   subst.
-  apply MemD_proper_wrt_eutt; assumption.
+  apply memD_proper_wrt_eutt; assumption.
 Qed.
+
+Instance register_memEffect_proper_eutt {X: Type}:
+  Proper (eq ==> (@EquivUpToTau IO X) ==>
+             (@EquivUpToTau IO (memory *X))) memEffect.
+Proof.
+  intros m1 m2 meq.
+  intros x1 x2 xeq.
+  subst.
+  apply memEffect_proper_wrt_eutt; assumption.
+Qed.
+
+
 
 Require Import Vellvm.Trace.
 
