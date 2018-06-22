@@ -67,7 +67,7 @@ Definition idM E X (i: M E X) :=
   | Err s => Err s
   end.
 Lemma matchM : forall E X (i: M E X), i = idM i.
-Proof. destruct i; auto. Qed.
+Proof. destruct i; auto. Defined.
 
 
 (* Allow rewrite on both LHS and RHS *)
