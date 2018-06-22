@@ -747,9 +747,7 @@ Admitted.
 
 
 
-
-(** I need Proper instances of functions with bindM and MemD for stuff to work.
-Once again, I shall admit the instances and ask steve if this makes sense *)
+(** *Instruction to Basic block preservation *)
 
 Lemma preserve_inst_trace_implies_preserve_bb_mem_effect:
   forall (ip: InstrPass)
@@ -1027,6 +1025,7 @@ Proof.
     setoid_rewrite OUTER_EQ.
     reflexivity.
 Qed.
+(** *CFG (Function) to whole program preservation *)
 
 (** declarations in module returns the same value on a CFG pass **)
 Lemma declarations_in_module_after_cfg_pass_eq: forall (MCFG: mcfg) (cfgp: CFGPass),
@@ -1108,8 +1107,14 @@ Proof.
   intros.
   unfold run_mcfg_with_memory_tiered.
   rewrite init_state_tiered_after_cfg_pass_eq with (cfgp := cfgp).
-  simpl.
-Abort.
+  assert (STEP_SEM_EQUIV:
+            Trace.MonadVerif.PointwiseEUTT
+              (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] MCFG ir)
+              (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] (monomap cfgp MCFG) ir)).
+  admit.
+  rewrite STEP_SEM_EQUIV.
+  reflexivity.
+Admitted.
 
 
 
