@@ -803,7 +803,7 @@ Proof.
     euttnorm.
     forcememd.
     Guarded.
-Qed.
+Defined.
 
 
 Theorem rewrite_memD_as_memEffect_fin: forall {X: Type}
@@ -827,7 +827,7 @@ Proof.
 
   rewrite MEMEFF in M_EFFECT.
   auto.
-Qed.
+Defined.
 
 
 (** Easier version without let in hypothesis **)
@@ -870,7 +870,7 @@ Proof.
   destruct x; euttnorm.
   rewrite FNEQ.
   reflexivity.
-Qed.
+Defined.
             
 Definition PointwiseMemEffectEUTT {X Y: Type} (f g: X -> Trace Y): Prop :=
   forall (m: memory) (x: X), memEffect m (f x) ≡ memEffect m (g x).
@@ -937,7 +937,7 @@ Proof.
     rewrite @Trace.matchM with (i := memEffect _ (_ (Err s) g)).
     simpl.
     reflexivity.
-Qed.
+Defined.
   
 
 
@@ -960,7 +960,7 @@ Proof.
 
   rewrite MEMEFF_EQUIV.
   reflexivity.
-Qed.
+Defined.
 
 
 

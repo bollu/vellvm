@@ -1086,7 +1086,31 @@ Lemma cfg_preservation_implies_step_sem_preservation:
     M.memEffect m (step_sem_tiered ge e s MCFG r) ≡
                 M.memEffect m (step_sem_tiered ge e s (monomap cfgp MCFG) r).
 Proof.
+  intros until ge.
+  generalize dependent ge.
+  cofix CIH.
+
   intros.
+
+  
+  destruct r.
+
+  - rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ MCFG _).
+    rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ (monomap _ _) _).
+    simpl.
+    reflexivity.
+
+  - repeat rewrite force_step_sem_tiered.
+    assert (EXECINTERPEQ:
+              execInterpreter ge e s MCFG (IREnterFunction fnid args) ≡
+                              execInterpreter ge e s (monomap cfgp MCFG) (IREnterFunction fnid args)).
+    admit.
+    
+    rewrite EXECINTERPEQ.
+    apply M.memEffect_proper_wrt_PointwiseMemEffectEUTT.
+    rewrite M.memEffect
+    reflexivity.
+
 Admitted.
 
 
