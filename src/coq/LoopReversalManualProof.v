@@ -419,7 +419,7 @@ Abort.
 
 (** tiered semantics is already paying off, I can look at what happens
 when I execute a function **)
-Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory) exists eff,
+Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory), exists eff,
   M.memEffect initmem (SST.execFunction []
               (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
                  (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
