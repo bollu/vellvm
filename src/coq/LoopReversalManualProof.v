@@ -340,9 +340,11 @@ Lemma exec_bbInit: forall (n: nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
-    (mem: M.memory),
+    (mem: M.memory), 
       M.memEffect mem (SST.execBB tds ge e (bbInit n)) ≡
-                  (Ret (M.add (M.size mem) (M.init_block 8) mem, SST.BBRBreak (Name "loop"))).
+                  (Ret (M.add (M.size mem) (M.init_block 8) mem,
+                        SST.BBRBreak (SST.add_env (Name "arr") (DVALUE_Addr (M.size mem, 0)) e)
+                                     (Name "loop"))).
 Proof.
   intros.
   unfold SST.execBB.
@@ -370,11 +372,12 @@ Lemma exec_bbInitRewrite: forall (n: nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
-    (mem: M.memory),
+    (mem: M.memory), 
       M.memEffect mem (SST.execBB tds ge e (bbInitRewrite n)) ≡
                   (Ret
-                     (M.add (M.size mem) (M.make_empty_block DTYPE_Pointer) mem,
-                      SST.BBRBreak (Name "loop"))).
+            (M.add (M.size mem) (M.make_empty_block DTYPE_Pointer) mem,
+            SST.BBRBreak (SST.add_env (Name "arr") (DVALUE_Addr (M.size mem, 0)) e)
+              (Name "loop"))).
 Proof.
   intros.
   simpl.
@@ -393,6 +396,23 @@ Proof.
   unfold i32PTRTY.
   euttnorm.
 Qed.
+
+Lemma exec_bbInit_exec_bbInitRewrite_equiv:
+   forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (mem: M.memory), 
+     M.memEffect mem (SST.execBB tds ge e (bbInitRewrite n)) ≡
+                 M.memEffect mem (SST.execBB tds ge e (bbInit n)).
+Proof.
+  intros.
+  rewrite exec_bbInit.
+  rewrite exec_bbInitRewrite.
+  reflexivity.
+Qed.
+
+  
 
 Lemma exec_bbLoop: forall (n: nat)
     (tds: typedefs)
