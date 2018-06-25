@@ -30,6 +30,12 @@ Open Scope string_scope.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
+From Coq Require Import ssreflect ssrfun ssrbool.
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
+
 
 
 
@@ -185,9 +191,7 @@ Proof.
   rewrite monomap_functorial.
   reflexivity.
   rewrite MONO_EQ.
-  
-  rewrite <- monomap_functorial with (f0 := monomap f) (g0 := monomap g) (i0 := i).
-  simpl.
+  rewrite <- monomap_functorial.
   auto.
 Defined.
   
@@ -836,12 +840,12 @@ Proof.
     euttnorm.
     destruct x; euttnorm.
     
-    rewrite IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
+    rewrite -> IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
                blk_id := blk_id;
                blk_phis := blk_phis;
                blk_code := (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code);
                blk_term := blk_term |}) (blk_phis := blk_phis) (blk_id0 := blk_id); reflexivity.
-    rewrite IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
+    rewrite -> IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
                blk_id := blk_id;
                blk_phis := blk_phis;
                blk_code := (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code);
@@ -976,12 +980,12 @@ Proof.
     euttnorm.
     destruct x; euttnorm.
     
-    rewrite IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
+    rewrite -> IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
                blk_id := blk_id;
                blk_phis := blk_phis;
                blk_code := (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code);
                blk_term := blk_term |}) (blk_phis := blk_phis) (blk_id0 := blk_id); reflexivity.
-    rewrite IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
+    rewrite -> IHblk_code with (pt := (pt + 1)%nat) (minit := m') (e :=e) (ge := ge) (bb2 :={|
                blk_id := blk_id;
                blk_phis := blk_phis;
                blk_code := (map (fun iid : instr_id * instr => (fst iid, ip (snd iid))) blk_code);
@@ -1055,7 +1059,7 @@ Lemma init_state_tiered_after_cfg_pass_eq: forall (MCFG: mcfg) (cfgp: CFGPass),
 Proof.
   intros.
   unfold init_state_tiered.
-  rewrite declarations_in_module_after_cfg_pass_eq with (cfgp := cfgp).
+  rewrite declarations_in_module_after_cfg_pass_eq .
   reflexivity.
 Qed.
 
@@ -1074,11 +1078,63 @@ Lemma cfg_preservation_implies_exec_interpreter_preservation:
     (e: env)
     (s: stack)
     (MCFG: mcfg)
-    (m: M.memory) (fnid: function_id) (args: list dvalue),
-  M.memEffect m (execInterpreter ge e s MCFG (IREnterFunction fnid args)) ≡
-                  M.memEffect m (execInterpreter ge e s (monomap cfgp MCFG) (IREnterFunction fnid args)).
+    (m: M.memory) r,
+    M.memEffect m (execInterpreter ge e s MCFG r) ≡
+                M.memEffect m (execInterpreter ge e s (monomap cfgp MCFG) r).
 Proof.
+  intros until ge.
+  generalize ge.
+  cofix CIH.
   intros.
+  destruct r.
+  - rewrite -> @Trace.matchM with (i := execInterpreter _ _ _ MCFG _).
+    rewrite -> @Trace.matchM with (i := execInterpreter _ _ _ (monomap _ MCFG) _).
+    simpl.
+    reflexivity.
+
+  - Opaque monomap.
+    rewrite -> @Trace.matchM with (i := execInterpreter _ _ _ MCFG _).
+    rewrite -> @Trace.matchM with (i := execInterpreter _ _ _ (monomap _ MCFG) _).
+    simpl.
+    admit.
+  - rewrite -> @Trace.matchM with (i := execInterpreter _ _ _ MCFG _).
+    rewrite -> @Trace.matchM with (i := execInterpreter _ _ _ (monomap _ MCFG) _).
+    simpl.
+    destruct fres; try reflexivity.
+    + destruct s; try reflexivity.
+      * destruct f; try reflexivity.
+        rewrite -> @Trace.matchM with (i := M.memEffect _ (_ (_ _ _ _ MCFG _))).
+        rewrite -> @Trace.matchM with (i := M.memEffect _ (_ (_ _ _ _ (monomap _ _) _))).
+    simpl.
+    constructor.
+    apply CIH.
+
+    + destruct s; try reflexivity.
+      * destruct f; try reflexivity.
+        rewrite -> @Trace.matchM with (i := M.memEffect _ (_ (_ _ _ _ MCFG _))).
+        rewrite -> @Trace.matchM with (i := M.memEffect _ (_ (_ _ _ _ (monomap _ _) _))).
+        simpl.
+        constructor.
+        apply CIH.
+
+      * rewrite -> @Trace.matchM with (i := M.memEffect _ (_ (_ _ _ _ MCFG _))).
+        rewrite -> @Trace.matchM with (i := M.memEffect _ (_ (_ _ _ _ (monomap _ _) _))).
+        simpl.
+        constructor.
+        apply CIH.
+
+        
+      * rewrite -> @Trace.matchM with (i := M.memEffect _ (_ (_ _ _ _ MCFG _))).
+        rewrite -> @Trace.matchM with (i := M.memEffect _ (_ (_ _ _ _ (monomap _ _) _))).
+        simpl.
+        constructor.
+        apply CIH.
+
+      * rewrite -> @Trace.matchM with (i := M.memEffect _ (_ _  _ _ MCFG _)).
+        rewrite -> @Trace.matchM with (i := M.memEffect _  (_ _ _  (monomap _ _) _)).
+        simpl.
+        admit.
+Admitted.
   
 
 (*
@@ -1113,35 +1169,10 @@ Lemma cfg_preservation_implies_step_sem_preservation:
     (MCFG: mcfg)
     (r:InterpreterResult)
     (m: M.memory),
-    M.memEffect m (step_sem_tiered ge e s MCFG r) ≡
+   M.memEffect m (step_sem_tiered ge e s MCFG r) ≡
                 M.memEffect m (step_sem_tiered ge e s (monomap cfgp MCFG) r).
 Proof.
-  intros until ge.
-  generalize dependent ge.
-  cofix CIH.
-
-  destruct r.
-  - intros.
-    rewrite @Trace.matchM with (i := (step_sem_tiered _ _ _ MCFG  (IRDone v))).
-    rewrite @Trace.matchM with (i :=  (step_sem_tiered _ _ _ (monomap _ MCFG)  (IRDone v))).
-    simpl.
-    reflexivity.
-    Guarded.
-  - intros.
-    repeat rewrite force_step_sem_tiered.
-    setoid_replace (M.memEffect m
-    (execInterpreter ge e s MCFG (IREnterFunction fnid args)
-                     ≫= (fun rnext : InterpreterResult => step_sem_tiered ge e s MCFG rnext)))
-      with
-        
-        (bindM (M.memEffect m (execInterpreter ge e s MCFG (IREnterFunction fnid args)))
-                         (fun out =>
-                            M.memEffect
-                              (fst out)
-                              ((fun rnext : InterpreterResult => step_sem_tiered ge e s MCFG rnext)
-                                 (snd out)))).
-    + 
-    + apply M.memEffect_commutes_with_bind.
+  intros.
 Abort.
   
 
