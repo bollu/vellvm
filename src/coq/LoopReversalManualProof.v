@@ -282,10 +282,21 @@ Lemma effect_alloca:  forall
              (mem: M.memory)
              (ID: id = fst (alloca_array name nbytes))
              (INST: i = snd (alloca_array name nbytes)),
-             exists t,
-               M.memEffect mem (SST.execInst tds ge e id i) ≡ t.
+    M.memEffect mem (SST.execInst tds ge e id i) ≡
+                 (Ret
+       (M.add (M.size mem) (M.make_empty_block (SST.eval_typ tds i32PTRTY)) mem,
+       SST.IREnvEffect (SST.add_env (Name name) (DVALUE_Addr (M.size mem, 0)) e))).
 Proof.
-Abort.
+  intros.
+  subst.
+  simpl.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  euttnorm.
+Qed.
+Check (IVoid).
 
 (** Effect of store *)
 Lemma effect_store: forall
@@ -293,12 +304,36 @@ Lemma effect_store: forall
              (ge:  SST.genv)
              (e: SST.env)
              (id: instr_id)
-             (i: instr)
              (mem: M.memory)
-             (val ix: texp),
-             exists t,
-               M.memEffect mem (SST.execInst tds ge e id  (inst_store val ix)) ≡ t.
-Abort.
+             (valt ixt: typ)
+             (vale ixe: exp)
+             (IDVAL: exists (i: LLVMAst.int), id = IVoid i),
+               M.memEffect mem
+                           (SST.execInst tds
+                                         ge
+                                         e
+                                         id
+                                         (inst_store
+                                            (valt, vale)
+                                            (ixt, ixe))) ≡
+                           M.memEffect mem
+                           (bindM (SST.eval_exp tds ge e (Some (SST.eval_typ tds valt)) vale)
+                                  (fun dv : dvalue =>
+                                     bindM (SST.eval_exp tds ge e (Some (SST.eval_typ tds ixt)) ixe)
+                                           (fun v : dvalue => Vis (IO.Store v dv) (fun _ : () => Ret SST.IRNone)))).
+Proof.
+  intros.
+  unfold inst_store.
+  unfold SST.execInst.
+  destruct IDVAL as [idval IDVAL].
+  subst.
+  unfold SST.execInst.
+  simpl.
+  unfold SST.execInst.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  euttnorm.
+Qed.
 
 (** *Basic block effects *)
 Lemma exec_bbInit: forall (n: nat)
@@ -308,6 +343,18 @@ Lemma exec_bbInit: forall (n: nat)
     (mem: M.memory),
     exists t,
       M.memEffect mem (SST.execBB tds ge e (bbInit n)) ≡ t.
+Proof.
+  intros.
+  unfold SST.execBB.
+  unfold bbInit.
+  simpl.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  euttnorm.
+  unfold M.make_empty_block.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  (** TODO: fix the missing terminator? **)
 Abort.
              
 
