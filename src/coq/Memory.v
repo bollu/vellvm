@@ -8,6 +8,7 @@ Require Coq.Structures.OrderedTypeEx.
 Require Import ZMicromega.
 Import ListNotations.
 Require Import Setoid Morphisms Relations.
+Require Import Vellvm.Trace.
 
 
 From mathcomp Require ssreflect ssrbool ssrfun bigop.
@@ -671,8 +672,6 @@ Defined.
 
 
 
-Require Import Vellvm.Trace.
-
 Check (memD).
 Check (mem_step).
 (**
@@ -789,9 +788,9 @@ Proof.
       Guarded.
 
   - (* Tau *)
-      rewrite (@Trace.matchM) with (i := bindM (Tau _) _); simpl.
+      rewrite (@Trace.matchM) with (i := bindM (Trace.Tau _) _); simpl.
       rewrite (@Trace.matchM) with (i := memEffect _ _); simpl.
-      rewrite (@Trace.matchM) with (i := bindM (Tau _) _); simpl.
+      rewrite (@Trace.matchM) with (i := bindM (Trace.Tau _) _); simpl.
       rewrite (@Trace.matchM) with (i := memD _ _); simpl.
       constructor.
       apply CIH with (m := m) (trx := trx) (f :=f).
@@ -873,7 +872,9 @@ Proof.
 Defined.
 
 
-Theorem memEffect_commutes_with_bind: forall {X Y: Type} (trx: Trace X) (f: X -> Trace Y)
+Theorem memEffect_commutes_with_bind: forall {X Y: Type}
+                                        (trx: Trace X)
+                                        (f: X -> Trace Y)
                                         (m: memory),
     memEffect m (bindM trx f) ≡
               bindM (memEffect m trx)
@@ -898,8 +899,8 @@ Proof.
       constructor.
       apply CIH.
       Guarded.
-  - rewrite @Trace.matchM with (i := memEffect _ (bindM (Tau _) _)).
-    rewrite @Trace.matchM with (i := bindM (memEffect _ (Tau  _)) _).
+  - rewrite @Trace.matchM with (i := memEffect _ (bindM (Trace.Tau _) _)).
+    rewrite @Trace.matchM with (i := bindM (memEffect _ (Trace.Tau  _)) _).
     simpl.
     constructor.
     apply CIH.
@@ -908,7 +909,8 @@ Proof.
     rewrite @Trace.matchM with (i := bindM (memEffect _ (Err  _)) _).
     simpl.
     reflexivity.
-Qed.
+Defined.
+
 
             
 Definition PointwiseMemEffectEUTT {X Y: Type} (f g: X -> Trace Y): Prop :=
@@ -934,8 +936,8 @@ Proof.
   - rewrite @Trace.matchM with (i := bindM _ f).
     rewrite @Trace.matchM with (i := bindM _ g).
     simpl.
-    rewrite @Trace.matchM with (i := memEffect _ (Tau (f x))).
-    rewrite @Trace.matchM with (i := memEffect _ (Tau (g x))).
+    rewrite @Trace.matchM with (i := memEffect _ (Trace.Tau (f x))).
+    rewrite @Trace.matchM with (i := memEffect _ (Trace.Tau (g x))).
     simpl.
     euttnorm.
     Guarded.
@@ -950,9 +952,9 @@ Proof.
                               (fun y : Y0 =>
                                  (cofix go (s : M IO X) : M IO Y :=
                                     match s with
-                                    | Ret x => Tau (g x)
+                                    | Ret x => Trace.Tau (g x)
                                     | @Vis _ _ Y1 e0 k0 => Vis e0 (fun y0 : Y1 => go (k0 y0))
-                                    | Tau k0 => Tau (go k0)
+                                    | Trace.Tau k0 => Trace.Tau (go k0)
                                     | Err s0 => Err s0
                                     end) (k y))))).
     simpl.
@@ -964,8 +966,8 @@ Proof.
       apply CIH.
       Guarded.
   - 
-    rewrite @Trace.matchM with (i := memEffect _ (_ (Tau x) f)).
-    rewrite @Trace.matchM with (i := memEffect _ (_ (Tau x) g)).
+    rewrite @Trace.matchM with (i := memEffect _ (_ (Trace.Tau x) f)).
+    rewrite @Trace.matchM with (i := memEffect _ (_ (Trace.Tau x) g)).
     simpl.
     constructor.
     apply CIH.
