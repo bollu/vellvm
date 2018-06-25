@@ -871,9 +871,48 @@ Proof.
   rewrite FNEQ.
   reflexivity.
 Defined.
+
+
+Theorem memEffect_commutes_with_bind: forall {X Y: Type} (trx: Trace X) (f: X -> Trace Y)
+                                        (m: memory),
+    memEffect m (bindM trx f) ≡
+              bindM (memEffect m trx)
+              (fun out: memory * X => memEffect (fst out) (f (snd out))).
+Proof.
+  intros until f.
+  generalize dependent trx.
+  cofix CIH.
+
+  intros.
+  destruct trx.
+  - rewrite @Trace.matchM with (i := memEffect _ (bindM (Ret _) _)).
+    rewrite @Trace.matchM with (i := bindM (memEffect _ (Ret x)) _).
+    simpl.
+    reflexivity.
+  - rewrite @Trace.matchM with (i := memEffect _ (bindM (Vis _ _) _)).
+    rewrite @Trace.matchM with (i := bindM (memEffect _ (Vis _ _)) _).
+    simpl.
+    destruct (mem_step e m).
+    + reflexivity.
+    + destruct p.
+      constructor.
+      apply CIH.
+      Guarded.
+  - rewrite @Trace.matchM with (i := memEffect _ (bindM (Tau _) _)).
+    rewrite @Trace.matchM with (i := bindM (memEffect _ (Tau  _)) _).
+    simpl.
+    constructor.
+    apply CIH.
+    Guarded.
+  - rewrite @Trace.matchM with (i := memEffect _ (bindM (Err _) _)).
+    rewrite @Trace.matchM with (i := bindM (memEffect _ (Err  _)) _).
+    simpl.
+    reflexivity.
+Qed.
+
             
 Definition PointwiseMemEffectEUTT {X Y: Type} (f g: X -> Trace Y): Prop :=
-  forall (m: memory) (x: X), memEffect m (f x) ≡ memEffect m (g x).
+  forall (m: memory) (x: X), memEffect m (f x) ≡ memEffect m (g x). 
 
 
 Lemma memEffect_proper_wrt_PointwiseMemEffectEUTT:
