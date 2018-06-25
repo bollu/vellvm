@@ -610,6 +610,7 @@ Section BASICBLOCK.
     findInstrsAfterInstr_ li needle 0.
              
 
+  (** Do note that this does not to run PHI nodes **)
   Definition execBBAfterLoc
              (tds: typedefs)
              (ge: genv)
@@ -623,21 +624,97 @@ Section BASICBLOCK.
                                    (findInstrsAfterInstr (blk_code bb) loc)
                                    (snd (blk_term bb))
                                    (loc + 1)%nat.
+
+  Check (assoc).
+  (**
+  let eval_phi (e:env) '(iid, phi t ls) :=
+      match assoc RawIDOrd.eq_dec bid_src ls with
+      | Some op =>
+        let dt := eval_typ t in
+        'dv <- eval_exp g e_init (Some dt) op;
+          mret (add_env iid dv e)
+      | None => failwith ("jump: block " ++ string_of bid_src ++ " not found in " ++ string_of iid)
+      end
+  in
+  match find_block_entry CFG fid bid_tgt with
+  | None => raise ("jump: target block " ++ string_of bid_tgt ++ " not found")
+  | Some (BlockEntry phis pc_entry) =>
+      'e_out <- monad_fold_right eval_phi phis e_init;
+      cont (g, pc_entry, e_out, k)
+  end.
+   *)
+
+  Definition evalPhi (tds: typedefs)
+             (ge: genv)
+             (prev_blk_id: block_id)
+             (e: env)
+             (id_phi: raw_id * phi) : Trace env :=
+    match snd id_phi with
+    | Phi typ args => 
+      match assoc RawIDOrd.eq_dec prev_blk_id args with
+      | Some expr =>
+        let dt := eval_typ tds typ in
+        'dv <- eval_exp tds ge e (Some dt) expr;
+          Ret  (add_env (fst id_phi) dv e)
+      | None => Err ("jump: block " ++ string_of prev_blk_id ++ " not found in " ++
+                                   string_of (fst id_phi))
+      end
+    end.
+  
+  
+  (** *Phi node evaluation
+  Do note that this is broken, both in my implementation and VE-LLVM. Phi updates
+  as supposed to be like function calls: that is, the entire phi environment should be
+  updated in one-shot. So, evaluating a previous phi should not affect the next phi,
+  which is *NOT* the case with this implementation!
+
+  counterexample would be something like:
+
+    entry:
+        br counterex
+    counterex:
+        iv = phi [0, entry] [iv.next, counterex]
+        x = phi[0, entry] [y, counterex]
+        y = phi [0, entry] [iv.next, counterex]
+        iv.next = iv + 1
+        br counterex
+
+
+    According to LLVM semantics, the values should be:
+    {iv: 0, x: 0, y: 0}
+    {iv:1, y:1, x:0}
+
+    However, because we monad_fold_right, what we get is:
+    {iv: 0, x: 0, y: 0}
+    {iv:1, y:1, x:1}
+  *)
+
+
+  Definition  evalPhis (tds: typedefs) (ge: genv) (einit: env) (oprev_blk_id: option block_id)
+              (phis: list (raw_id * phi)) : Trace env :=
+    match oprev_blk_id with
+    | Some prev_blk_id => monad_fold_right (evalPhi tds ge prev_blk_id) phis einit
+    | None => Ret einit
+    end.
+    
                                    
 
-  (** TODO: add PHI nodes! *)
   (** On adding PHI nodes, we will simply have another
   function call sequenced before the execBBInstrs which executes
   the PHI nodes *)
   Definition execBB (tds: typedefs)
              (ge: genv)
              (e: env)
+             (oprev_blk_id: option block_id)
              (bb: block):
-    Trace BBResult := execBBInstrs tds ge e
-                                   (blk_id bb)
-                                   (blk_code bb)
-                                   (snd (blk_term bb))
-                                   0%nat.
+    Trace BBResult :=
+    bindM (evalPhis tds ge e oprev_blk_id (blk_phis bb))
+          (fun e' =>
+             execBBInstrs tds ge e'
+                          (blk_id bb)
+                          (blk_code bb)
+                          (snd (blk_term bb))
+                          0%nat).
 End BASICBLOCK.
 
 
@@ -672,15 +749,15 @@ the game, since we can provide no guarantees about the termination
 capabilities of a function call.
    *)
   CoFixpoint execFunctionAtBBId (tds: typedefs)(ge: genv) (e: env)
-    (CFG: cfg) (fnid: function_id) (bbid: block_id):
+             (CFG: cfg) (fnid: function_id) (oprev_blk_id: option block_id) (bbid: block_id): 
     Trace FunctionResult :=
     match find_block (blks CFG) bbid with
     | None => 
       Err "no block found"
     | Some bb =>
-      'bbres <- execBB tds ge e bb;
+      'bbres <- execBB tds ge e oprev_blk_id bb;
         match bbres with
-        | BBRBreak e' bbid' => execFunctionAtBBId tds ge e' CFG fnid bbid' 
+        | BBRBreak e' bbid' => execFunctionAtBBId tds ge e' CFG fnid (Some bbid) bbid' 
         | BBRRet dv => Ret (FRReturn dv)
         | BBRRetVoid => Ret FRReturnVoid
         | BBRCall e' fnid args retinstid instid bbid =>
@@ -696,10 +773,11 @@ capabilities of a function call.
              (e: env)
              (CFG: cfg)
              (fnid: function_id) : Trace FunctionResult :=
-    execFunctionAtBBId tds ge e CFG fnid (init CFG).
+    execFunctionAtBBId tds ge e CFG fnid None (init CFG).
 
   
 
+  (** Do note that DOES NOT RUN PHI nodes **)
   CoFixpoint execFunctionAtBBIdAfterLoc (tds: typedefs) (ge: genv) (e: env)
     (CFG: cfg) (fnid: function_id) (bbid: block_id) (loc: instr_pt):
     Trace FunctionResult :=
@@ -709,7 +787,7 @@ capabilities of a function call.
     | Some bb =>
       'bbres <- execBBAfterLoc tds ge e bb loc;
         match bbres with
-        | BBRBreak e' bbid' => execFunctionAtBBId tds ge e' CFG fnid bbid' 
+        | BBRBreak e' bbid' => execFunctionAtBBId tds ge e' CFG fnid (Some bbid) bbid' 
         | BBRRet dv => Ret (FRReturn dv)
         | BBRRetVoid => Ret FRReturnVoid
         | BBRCall e' fnid args retinstid instid bbid =>
