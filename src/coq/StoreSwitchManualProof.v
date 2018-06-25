@@ -29,6 +29,7 @@ Require Import ZMicromega.
 Import IO.DV.
 Import Trace.MonadVerif.
 Require Nsatz.
+Require Import PolyIR.
 
 (** Enable SSReflect for better rewrite **)
 From mathcomp Require ssreflect ssrbool ssrfun bigop.

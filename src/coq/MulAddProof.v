@@ -52,7 +52,6 @@ Import Trace.MonadVerif.
 Module PT := PASSTHEOREMS A LLVMIO.
 Import PT.
 
-Import PT.SS.
 
 (* Since
 1. Trace X := M IO X

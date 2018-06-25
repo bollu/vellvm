@@ -37,6 +37,7 @@ Require Import ZMicromega.
 Import IO.DV.
 Import Trace.MonadVerif.
 Require Nsatz.
+Require Import polyir.
 
 Import ListNotations.
 Open Scope Z_scope.
@@ -376,7 +377,7 @@ Proof.
   simpl.
   rewrite @Trace.matchM with (i := SST.execInterpreter _ _ _ _ _ ).
   simpl.
-  rewrite M.rewrite_memD_as_memEffect'.
+  rewrite M.rewrite_memD_as_memEffect.
   M.forcememd.
   euttnorm.
   

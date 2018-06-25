@@ -6,14 +6,14 @@ COQLIBDIR = ../lib
 MLDIR = ml
 EXTRACTDIR = ml/extracted
 
-COQINCLUDES=$(foreach d, $(COQDIR), -R $(d) Vellvm) -R $(COQLIBDIR)/paco/src Paco -R $(EXTRACTDIR) Extract -R ../lib/CompCert compcert
+COQINCLUDES=$(foreach d, $(COQDIR), -R $(d) Vellvm) -R $(COQLIBDIR)/paco/src Paco -R $(EXTRACTDIR) Extract -R ../lib/CompCert compcert 
 COQC="$(COQBIN)coqc" -q $(COQINCLUDES) $(COQCOPTS)
 COQDEP="$(COQBIN)coqdep" $(COQINCLUDES)
 COQEXEC="$(COQBIN)coqtop" -q -w none $(COQINCLUDES) -batch -load-vernac-source
 MENHIR=menhir
 CP=cp
 
-COQFILES := LLVMAst Classes Util Misc AstLib Dom CFG CFGProp Trace MemoryAddress DynamicValues LLVMIO TypeUtil StepSemantics StepSemanticsTiered Memory Renaming DeadInstr Transform TopLevel Pass StoreSwitch StoreSwitchProof StoreSwitchManualProof MulAdd MulAddProof 
+COQFILES := LLVMAst Classes Util Misc AstLib Dom CFG CFGProp Trace MemoryAddress DynamicValues LLVMIO TypeUtil StepSemantics StepSemanticsTiered Memory Renaming DeadInstr Transform TopLevel Pass StoreSwitch  MulAdd   polyir/PolyIRDefinition MulAddProof StoreSwitchProof StoreSwitchManualProof
 OLLVMFILES := 
 
 VFILES := $(COQFILES:%=coq/%.v)
