@@ -1079,8 +1079,8 @@ Lemma cfg_preservation_implies_exec_interpreter_preservation:
     (s: stack)
     (MCFG: mcfg)
     (m: M.memory) r,
-    M.memEffect m (execInterpreter ge e s MCFG r) ≡
-                M.memEffect m (execInterpreter ge e s (monomap cfgp MCFG) r).
+    M.memEffect m (execInterpreter ge e s (monomap cfgp MCFG) r) ≡
+    M.memEffect m (execInterpreter ge e s MCFG r).
 Proof.
   intros until ge.
   generalize ge.
@@ -1137,21 +1137,7 @@ Proof.
 Admitted.
   
 
-(*
-
-       (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] MCFG ir))
-  ≡ M.memD M.empty
-      (bindM (init_state_tiered MCFG "main")
-         (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] (monomap cfgp MCFG) ir))
- *)
-
-
-(* 
-    (execInterpreter ge e s MCFG r
-     ≫= (fun rnext : InterpreterResult => step_sem_tiered ge e s MCFG rnext))
-  ≡ M.memEffect m
-      (execInterpreter ge e s (monomap cfgp MCFG) r
-*)
+(** This is horrible to work with cofix, so I will show this once we have paco **)
 Lemma cfg_preservation_implies_step_sem_preservation:
   forall (cfgp: CFGPass)
     (PRESERVE_CFG_EFFECT: forall
@@ -1172,15 +1158,29 @@ Lemma cfg_preservation_implies_step_sem_preservation:
    M.memEffect m (step_sem_tiered ge e s MCFG r) ≡
                 M.memEffect m (step_sem_tiered ge e s (monomap cfgp MCFG) r).
 Proof.
+  cofix CIH.
   intros.
-Abort.
   
+  destruct r.
+  - rewrite -> @Trace.matchM with (i := M.memEffect _ _).
+    simpl.
+    rewrite -> @Trace.matchM with (i := M.memEffect _ _).
+    simpl.
+    reflexivity.
 
-    
-    
-    
-
-
+  - repeat rewrite force_step_sem_tiered.
+    simpl.
+    repeat rewrite M.memEffect_commutes_with_bind.
+    simpl.
+    rewrite cfg_preservation_implies_exec_interpreter_preservation.
+    Guarded.
+    destruct (M.memEffect _ (execInterpreter _ _ _ _ _)).
+    + rewrite -> @Trace.matchM with (i := bindM _ _); simpl.
+      rewrite -> @Trace.matchM with (i := bindM _ _); simpl.
+      constructor.
+      Guarded.
+      apply CIH.
+Admitted.
 
 Lemma cfg_preservation_implies_program_preservation:
   forall (cfgp: CFGPass)
@@ -1198,7 +1198,7 @@ Lemma cfg_preservation_implies_program_preservation:
 Proof.
   intros.
   unfold run_mcfg_with_memory_tiered.
-  rewrite init_state_tiered_after_cfg_pass_eq with (cfgp := cfgp).
+  rewrite init_state_tiered_after_cfg_pass_eq.
   (** TODO: change this to something rewriteable, once I figure out the
       correct Proper instance **)
   apply M.MemD_proper_wrt_PointwiseMemEffectEUTT.
