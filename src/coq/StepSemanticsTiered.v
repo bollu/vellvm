@@ -644,29 +644,11 @@ Section BASICBLOCK.
   end.
    *)
 
-  Definition evalPhi (tds: typedefs)
-             (ge: genv)
-             (prev_blk_id: block_id)
-             (e: env)
-             (id_phi: raw_id * phi) : Trace env :=
-    match snd id_phi with
-    | Phi typ args => 
-      match assoc RawIDOrd.eq_dec prev_blk_id args with
-      | Some expr =>
-        let dt := eval_typ tds typ in
-        'dv <- eval_exp tds ge e (Some dt) expr;
-          Ret  (add_env (fst id_phi) dv e)
-      | None => Err ("jump: block " ++ string_of prev_blk_id ++ " not found in " ++
-                                   string_of (fst id_phi))
-      end
-    end.
-  
-  
+                   
   (** *Phi node evaluation
-  Do note that this is broken, both in my implementation and VE-LLVM. Phi updates
-  as supposed to be like function calls: that is, the entire phi environment should be
-  updated in one-shot. So, evaluating a previous phi should not affect the next phi,
-  which is *NOT* the case with this implementation!
+  Phi updates are supposed to be like function calls:
+  That is, the entire phi environment should be updated in one-shot.
+  So, evaluating a previous phi should not affect the next phi,
 
   counterexample would be something like:
 
@@ -684,16 +666,35 @@ Section BASICBLOCK.
     {iv: 0, x: 0, y: 0}
     {iv:1, y:1, x:0}
 
-    However, because we monad_fold_right, what we get is:
-    {iv: 0, x: 0, y: 0}
-    {iv:1, y:1, x:1}
-  *)
+   So, we evaluate the phis according to `einit`, while updating and `ecur`.
+
+    *)
 
 
+
+  Definition evalPhi (tds: typedefs)
+             (ge: genv)
+             (prev_blk_id: block_id)
+             (einit: env)
+             (ecur: env)
+             (id_phi: raw_id * phi) : Trace env :=
+    match snd id_phi with
+    | Phi typ args => 
+      match assoc RawIDOrd.eq_dec prev_blk_id args with
+      | Some expr =>
+        let dt := eval_typ tds typ in
+        'dv <- eval_exp tds ge einit (Some dt) expr;
+          Ret  (add_env (fst id_phi) dv ecur)
+      | None => Err ("jump: block " ++ string_of prev_blk_id ++ " not found in " ++
+                                   string_of (fst id_phi))
+      end
+    end.
+  
+  
   Definition  evalPhis (tds: typedefs) (ge: genv) (einit: env) (oprev_blk_id: option block_id)
               (phis: list (raw_id * phi)) : Trace env :=
     match oprev_blk_id with
-    | Some prev_blk_id => monad_fold_right (evalPhi tds ge prev_blk_id) phis einit
+    | Some prev_blk_id => monad_fold_right (evalPhi tds ge prev_blk_id einit) phis einit
     | None => Ret einit
     end.
     
@@ -777,7 +778,7 @@ capabilities of a function call.
 
   
 
-  (** Do note that DOES NOT RUN PHI nodes **)
+  (** Do note that DOES NOT  RUN PHI nodes **)
   CoFixpoint execFunctionAtBBIdAfterLoc (tds: typedefs) (ge: genv) (e: env)
     (CFG: cfg) (fnid: function_id) (bbid: block_id) (loc: instr_pt):
     Trace FunctionResult :=
