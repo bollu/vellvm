@@ -53,7 +53,6 @@
 <span class="kwd">Module</span> <span class="id">PT</span> := <span class="id">PASSTHEOREMS</span> <span class="id">A</span> <span class="id">LLVMIO</span>.<br/>
 <span class="kwd">Import</span> <span class="id">PT</span>.<br/>
 <br/>
-<span class="kwd">Import</span> <span class="id">PT.SS</span>.<br/>
 <br/>
 <br/>
 <br/>
@@ -62,16 +61,16 @@
 <br/>
 <span class="kwd">Example</span> <span class="id">bind_of_ret</span>: <br/>
 &nbsp;&nbsp;(<span class="id">mbind</span> (<span class="id">F</span> := <span class="id">M</span> <span class="id">IO</span>)) (<span class="id">mret</span> (<span class="id">DVALUE_I64</span> (<span class="id">Int64.repr</span> 2)))  (<span class="kwd">fun</span> <span class="id">v</span> =&gt; <span class="id">mret</span> <span class="id">v</span>)  ≡ <span class="id">mret</span> (<span class="id">DVALUE_I64</span> (<span class="id">Int64.repr</span> 2)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof323')">Proof.</div>
-<div class="proofscript" id="proof323">
+<div class="toggleproof" onclick="toggleDisplay('proof322')">Proof.</div>
+<div class="proofscript" id="proof322">
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">mret_mbind</span>.<br/>
 Qed.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span>  <span class="id">eval_type_I64</span>: <span class="kwd">forall</span> (<span class="id">cfg</span>: <span class="id">mcfg</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_typ</span> <span class="id">cfg</span> (<span class="id">TYPE_I</span> 64) = <span class="id">DTYPE_I</span> 64.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof324')">Proof.</div>
-<div class="proofscript" id="proof324">
+<div class="toggleproof" onclick="toggleDisplay('proof323')">Proof.</div>
+<div class="proofscript" id="proof323">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_typ</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
@@ -80,8 +79,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eval_typ_rewrite_mcfg</span>: <span class="kwd">forall</span> (<span class="id">mcfg</span>: <span class="id">mcfg</span>) (<span class="id">t</span>: <span class="id">typ</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_typ</span> (<span class="id">rewrite_mcfg</span> <span class="id">mcfg</span>) <span class="id">t</span> = <span class="id">eval_typ</span> <span class="id">mcfg</span> <span class="id">t</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof325')">Proof.</div>
-<div class="proofscript" id="proof325">
+<div class="toggleproof" onclick="toggleDisplay('proof324')">Proof.</div>
+<div class="proofscript" id="proof324">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">unfold</span> <span class="id">eval_typ</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>).<br/>
@@ -93,8 +92,8 @@ Admitted.</div>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">i</span>: <span class="id">Z</span>),<br/>
 &nbsp;(<span class="id">Int64.mul</span> (<span class="id">Int64.repr</span> <span class="id">i</span>) (<span class="id">Int64.repr</span> 2))<br/>
 &nbsp;&nbsp;= (<span class="id">Int64.add</span> (<span class="id">Int64.repr</span> <span class="id">i</span>) (<span class="id">Int64.repr</span> <span class="id">i</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof326')">Proof.</div>
-<div class="proofscript" id="proof326">
+<div class="toggleproof" onclick="toggleDisplay('proof325')">Proof.</div>
+<div class="proofscript" id="proof325">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Int64.mul</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Int64.add</span>.<br/>
@@ -120,8 +119,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">is_exp_equal_ints_inv</span>: <span class="kwd">forall</span> (<span class="id">o1</span> <span class="id">o2</span>: <span class="id">exp</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">is_exp_equal_ints</span> <span class="id">o1</span> <span class="id">o2</span> = <span class="id">true</span> -&gt; <span class="id">o1</span> = <span class="id">o2</span> /\<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> (<span class="id">x</span>: <span class="id">int</span>),  <span class="id">o1</span> = (<span class="id">EXP_Integer</span> <span class="id">x</span>) .<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof327')">Proof.</div>
-<div class="proofscript" id="proof327">
+<div class="toggleproof" onclick="toggleDisplay('proof326')">Proof.</div>
+<div class="proofscript" id="proof326">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">o1</span>; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">destruct</span> <span class="id">o2</span>; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Z.eqb_eq</span> <span class="kwd">in</span> <span class="id">H1</span>.<br/>
@@ -143,8 +142,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">mx</span> &lt;- <span class="id">f</span> <span class="id">x</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">mxs</span> &lt;- <span class="id">map_monad</span> <span class="id">f</span> <span class="id">xs</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mret</span> (<span class="id">mx</span> ::<span class="id">mxs</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof328')">Proof.</div>
-<div class="proofscript" id="proof328">
+<div class="toggleproof" onclick="toggleDisplay('proof327')">Proof.</div>
+<div class="proofscript" id="proof327">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
@@ -165,8 +164,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">top</span>: <span class="id">option</span> <span class="id">dtyp</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exists</span> <span class="id">x</span>, <span class="id">eval_exp</span> <span class="id">MCFG</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">top</span> <span class="id">expr</span> ≡ <span class="id">Ret</span> <span class="id">x</span>) \/<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exists</span> <span class="id">err</span>, <span class="id">eval_exp</span> <span class="id">MCFG</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">top</span> <span class="id">expr</span> ≡ <span class="id">Err</span> <span class="id">err</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof329')">Proof.</div>
-<div class="proofscript" id="proof329">
+<div class="toggleproof" onclick="toggleDisplay('proof328')">Proof.</div>
+<div class="proofscript" id="proof328">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">expr</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">expr</span>; <span class="tactic">intros</span>; <span class="tactic">simpl</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">try</span> (<span class="tactic">destruct</span> <span class="id">top</span>; <span class="tactic">try</span> <span class="id">unfold_fail</span>;<br/>

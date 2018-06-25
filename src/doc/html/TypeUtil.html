@@ -58,8 +58,8 @@
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">a</span> : <span class="id">ident</span>) (<span class="id">b</span> : <span class="id">ident</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eqb_ident</span> <span class="id">a</span> <span class="id">b</span> = <span class="id">true</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">a</span> = <span class="id">b</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof218')">Proof.</div>
-<div class="proofscript" id="proof218">
+<div class="toggleproof" onclick="toggleDisplay('proof220')">Proof.</div>
+<div class="proofscript" id="proof220">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">a</span> <span class="id">b</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>, <span class="id">b</span>; <span class="tactic">intuition</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">id</span>, <span class="id">id0</span>; <span class="tactic">try</span> (<span class="tactic">inversion</span> <span class="id">H</span>).<br/>
@@ -394,8 +394,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Theorem</span> <span class="id">wf_typ_order</span> :<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">well_founded</span> <span class="id">typ_order</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof219')">Proof.</div>
-<div class="proofscript" id="proof219">
+<div class="toggleproof" onclick="toggleDisplay('proof221')">Proof.</div>
+<div class="proofscript" id="proof221">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">well_founded</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">a</span> <span class="kwd">using</span> <span class="id">typ_ind</span>'; <span class="id">constructor</span>; <span class="tactic">intros</span> <span class="id">y</span> <span class="id">H</span>'; <span class="tactic">inversion</span> <span class="id">H</span>'; <span class="tactic">subst</span>; <span class="tactic">auto</span>.<br/>
 Defined.</div>
@@ -406,8 +406,8 @@ Defined.</div>
 <br/>
 <span class="kwd">Theorem</span> <span class="id">wf_lt_typ_order</span> :<br/>
 &nbsp;&nbsp;<span class="id">well_founded</span> (<span class="id">lex_ord</span> <span class="id">lt</span> <span class="id">typ_order</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof220')">Proof.</div>
-<div class="proofscript" id="proof220">
+<div class="toggleproof" onclick="toggleDisplay('proof222')">Proof.</div>
+<div class="proofscript" id="proof222">
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">wf_lex_ord</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">lt_wf</span>. <span class="tactic">apply</span> <span class="id">wf_typ_order</span>.<br/>
 Defined.</div>
@@ -417,8 +417,8 @@ Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">map_In</span> {<span class="id">A</span> <span class="id">B</span> : <span class="kwd">Type</span>} (<span class="id">l</span> : <span class="id">list</span> <span class="id">A</span>) (<span class="id">f</span> : <span class="kwd">forall</span> (<span class="id">x</span> : <span class="id">A</span>), <span class="id">In</span> <span class="id">x</span> <span class="id">l</span> -&gt; <span class="id">B</span>) : <span class="id">list</span> <span class="id">B</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof221')">Proof.</div>
-<div class="proofscript" id="proof221">
+<div class="toggleproof" onclick="toggleDisplay('proof223')">Proof.</div>
+<div class="proofscript" id="proof223">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">exact</span> [].<br/>
 &nbsp;&nbsp;- <span class="tactic">refine</span> (<span class="id">f</span> <span class="id">a</span> <span class="id">_</span> :: <span class="id">IHl</span> <span class="id">_</span>).<br/>
@@ -442,8 +442,8 @@ Defined.</div>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">A</span> <span class="id">B</span> : <span class="kwd">Type</span>) (<span class="id">a</span> : <span class="id">A</span>)  (<span class="id">b</span> : <span class="id">B</span>) <span class="id">eq_dec</span> <span class="id">l</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">In</span> (<span class="id">a</span>, <span class="id">b</span>) <span class="id">l</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">List.length</span> (<span class="id">remove_key</span> <span class="id">eq_dec</span> <span class="id">a</span> <span class="id">l</span>) &lt; <span class="id">List.length</span> <span class="id">l</span>)%<span class="id">nat</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof222')">Proof.</div>
-<div class="proofscript" id="proof222">
+<div class="toggleproof" onclick="toggleDisplay('proof224')">Proof.</div>
+<div class="proofscript" id="proof224">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">H</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">H</span>.<br/>
@@ -498,8 +498,8 @@ Defined.</div>
 &nbsp;&nbsp;| <span class="id">TYPE_X86_mmx</span> =&gt; <span class="id">DTYPE_X86_mmx</span><br/>
 &nbsp;&nbsp;| <span class="id">TYPE_Opaque</span> =&gt; <span class="id">DTYPE_Opaque</span><br/>
 &nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof223')">Next Obligation.</div>
-<div class="proofscript" id="proof223">
+<div class="toggleproof" onclick="toggleDisplay('proof225')">Next Obligation.</div>
+<div class="proofscript" id="proof225">
 &nbsp;&nbsp;<span class="id">left</span>.<br/>
 &nbsp;&nbsp;<span class="id">remember</span> (<span class="id">find</span> (<span class="kwd">fun</span> <span class="id">a</span> : <span class="id">ident</span> * <span class="id">typ</span> =&gt; <span class="id">eqb_ident</span> <span class="id">id</span> (<span class="id">fst</span> <span class="id">a</span>)) <span class="id">env</span>) <span class="kwd">as</span> <span class="id">o</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">o</span>.<br/>
@@ -555,8 +555,8 @@ Defined.</div>
 &nbsp;&nbsp;| <span class="id">TYPE_X86_mmx</span> =&gt; <span class="id">DTYPE_X86_mmx</span><br/>
 &nbsp;&nbsp;| <span class="id">TYPE_Opaque</span> =&gt; <span class="id">DTYPE_Opaque</span><br/>
 &nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof224')">Proof.</div>
-<div class="proofscript" id="proof224">
+<div class="toggleproof" onclick="toggleDisplay('proof226')">Proof.</div>
+<div class="proofscript" id="proof226">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">env</span> <span class="id">t</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">normalize_type</span>. <br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">normalize_type_func</span> <span class="tactic">at</span> 1.<br/>
@@ -570,8 +570,8 @@ Defined.</div>
 &nbsp;&nbsp;<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">example</span>: <span class="id">normalize_type</span> [] <span class="id">TYPE_Void</span> = <span class="id">DTYPE_Void</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof225')">Proof.</div>
-<div class="proofscript" id="proof225">
+<div class="toggleproof" onclick="toggleDisplay('proof227')">Proof.</div>
+<div class="proofscript" id="proof227">
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>. <span class="tactic">reflexivity</span>.<br/>
 Qed.</div>
 &nbsp;&nbsp;<br/>

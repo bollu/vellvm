@@ -43,6 +43,7 @@
 <span class="kwd">Import</span> <span class="id">IO.DV</span>.<br/>
 <span class="kwd">Import</span> <span class="id">Trace.MonadVerif</span>.<br/>
 <span class="kwd">Require</span> <span class="id">Nsatz</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">PolyIR</span>.<br/>
 <br/>
 <div class="doc">Enable SSReflect for better rewrite *</div>
 <span class="id">From</span> <span class="id">mathcomp</span> <span class="kwd">Require</span> <span class="id">ssreflect</span> <span class="id">ssrbool</span> <span class="id">ssrfun</span> <span class="id">bigop</span>.<br/>
@@ -233,8 +234,8 @@
 <span class="id">Trace.Tau</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">TopLevel.SS.register_declaration</span> (<span class="id">TopLevel.SS.ENV.empty</span> <span class="id">IO.DV.dvalue</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mainproto</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof314')">Proof.</div>
-<div class="proofscript" id="proof314">
+<div class="toggleproof" onclick="toggleDisplay('proof347')">Proof.</div>
+<div class="proofscript" id="proof347">
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">TopLevel.SS.register_functions</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
@@ -252,8 +253,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">program_program</span>'<span class="id">_build_global_environment_eq</span>:<br/>
 &nbsp;&nbsp;&nbsp;<span class="id">TopLevel.SS.build_global_environment</span> <span class="id">program</span> ≡<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">TopLevel.SS.build_global_environment</span> <span class="id">program</span>'.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof315')">Proof.</div>
-<div class="proofscript" id="proof315">
+<div class="toggleproof" onclick="toggleDisplay('proof348')">Proof.</div>
+<div class="proofscript" id="proof348">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">TopLevel.SS.build_global_environment</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 <br/>
@@ -271,8 +272,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">build_global_env_program_value</span>:<br/>
 &nbsp;&nbsp;<span class="id">TopLevel.SS.build_global_environment</span> <span class="id">program</span> ≡ <span class="id">Ret</span> (<span class="id">TopLevel.SS.ENV.empty</span> <span class="id">dvalue</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof316')">Proof.</div>
-<div class="proofscript" id="proof316">
+<div class="toggleproof" onclick="toggleDisplay('proof349')">Proof.</div>
+<div class="proofscript" id="proof349">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">TopLevel.SS.build_global_environment</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">TopLevel.SS.allocate_globals</span>.<br/>
@@ -292,8 +293,8 @@ Qed.</div>
 Abort.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eval_typ_i32</span>: <span class="kwd">forall</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>), <span class="id">SS.eval_typ</span> (<span class="id">CFG</span> )<span class="id">i32ty</span> = <span class="id">DTYPE_I</span> 32.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof317')">Proof.</div>
-<div class="proofscript" id="proof317">
+<div class="toggleproof" onclick="toggleDisplay('proof350')">Proof.</div>
+<div class="proofscript" id="proof350">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SS.eval_typ</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
@@ -302,8 +303,8 @@ Qed.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eval_typ_i8</span>: <span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>), <span class="id">SS.eval_typ</span> (<span class="id">CFG</span>) <span class="id">i8ty</span> = <span class="id">DTYPE_I</span> 8.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof318')">Proof.</div>
-<div class="proofscript" id="proof318">
+<div class="toggleproof" onclick="toggleDisplay('proof351')">Proof.</div>
+<div class="proofscript" id="proof351">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SS.eval_typ</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
@@ -313,8 +314,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">eval_typ_array_i32</span>: <span class="kwd">forall</span> (<span class="id">CFG</span>: <span class="id">mcfg</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SS.eval_typ</span> <span class="id">CFG</span> (<span class="id">TYPE_Array</span> 2 <span class="id">i32ty</span>)) =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">DTYPE_Array</span> 2 (<span class="id">DTYPE_I</span> 32).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof319')">Proof.</div>
-<div class="proofscript" id="proof319">
+<div class="toggleproof" onclick="toggleDisplay('proof352')">Proof.</div>
+<div class="proofscript" id="proof352">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SS.eval_typ</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>; <span class="tactic">simpl</span>).<br/>
@@ -345,8 +346,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">s</span> : <span class="id">TopLevel.SS.state</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">TopLevel.SS.step_sem</span> <span class="id">program</span> (<span class="id">TopLevel.SS.Step</span> <span class="id">s</span>))) ≡<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">DVALUE_I32</span>  (<span class="id">Int32.repr</span> 1%<span class="id">Z</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof320')">Proof.</div>
-<div class="proofscript" id="proof320">
+<div class="toggleproof" onclick="toggleDisplay('proof353')">Proof.</div>
+<div class="proofscript" id="proof353">
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SS.init_state</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
@@ -418,8 +419,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">s</span> : <span class="id">TopLevel.SS.state</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">TopLevel.SS.step_sem</span> <span class="id">program</span>' (<span class="id">TopLevel.SS.Step</span> <span class="id">s</span>))) ≡<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">DVALUE_I32</span> (<span class="id">Int32.repr</span> 1%<span class="id">Z</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof321')">Proof.</div>
-<div class="proofscript" id="proof321">
+<div class="toggleproof" onclick="toggleDisplay('proof354')">Proof.</div>
+<div class="proofscript" id="proof354">
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SS.init_state</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
@@ -464,8 +465,8 @@ Qed.</div>
 <div class="doc">State what we want to prove *</div>
 <span class="kwd">Definition</span> <span class="id">program_program</span>'<span class="id">_have_same_semantics</span>:<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">run_mcfg_with_memory</span> <span class="id">program</span> ≡ <span class="id">run_mcfg_with_memory</span> <span class="id">program</span>'.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof322')">Proof.</div>
-<div class="proofscript" id="proof322">
+<div class="toggleproof" onclick="toggleDisplay('proof355')">Proof.</div>
+<div class="proofscript" id="proof355">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">run_mcfg_with_memory</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">original_program_execution</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">new_program_execution</span>.<br/>

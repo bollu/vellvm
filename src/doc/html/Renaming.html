@@ -62,13 +62,13 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">raw_id_swaplaws</span> : <span class="id">SwapLaws</span> <span class="id">raw_id</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof249')">Next Obligation.</div>
-<div class="proofscript" id="proof249">
+<div class="toggleproof" onclick="toggleDisplay('proof258')">Next Obligation.</div>
+<div class="proofscript" id="proof258">
 &nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">unfold</span> <span class="id">swap_raw_id</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">x</span> == <span class="id">id</span>); <span class="tactic">auto</span>.<br/>
 Qed.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof250')">Next Obligation.</div>
-<div class="proofscript" id="proof250">
+<div class="toggleproof" onclick="toggleDisplay('proof259')">Next Obligation.</div>
+<div class="proofscript" id="proof259">
 &nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">unfold</span> <span class="id">swap_raw_id</span>. <span class="id">simpl_ifs</span>; <span class="tactic">subst</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
@@ -79,8 +79,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="kwd">end</span>.<br/>
 <span class="kwd">Instance</span> <span class="id">swap_of_ident</span> : <span class="id">Swap</span> <span class="id">ident</span> := <span class="id">swap_ident</span>.<br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">ident_swaplaws</span> : <span class="id">SwapLaws</span> <span class="id">ident</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof251')">Next Obligation.</div>
-<div class="proofscript" id="proof251">
+<div class="toggleproof" onclick="toggleDisplay('proof260')">Next Obligation.</div>
+<div class="proofscript" id="proof260">
 &nbsp;&nbsp;<span class="id">unfold_swaps</span>; <span class="tactic">unfold</span> <span class="id">swap_of_ident</span>; <span class="tactic">destruct</span> <span class="id">x</span>; <span class="tactic">simpl</span>; <span class="tactic">rewrite</span> <span class="id">swap_same_id</span>; <span class="tactic">reflexivity</span>.<br/>
 Qed.</div>
 <br/>
@@ -89,17 +89,17 @@ Qed.</div>
 <span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">swap_of_pair</span>.<br/>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">swap_laws_pair</span> {<span class="id">A</span> <span class="id">B</span>} `(<span class="id">SA</span>:<span class="id">Swap</span> <span class="id">A</span>) `(<span class="id">SB</span>:<span class="id">Swap</span> <span class="id">B</span>) `(<span class="id">SLA</span>:<span class="id">SwapLaws</span> <span class="id">A</span>) `(<span class="id">SLB</span>:<span class="id">SwapLaws</span> <span class="id">B</span>) : <span class="id">SwapLaws</span> (<span class="id">A</span>*<span class="id">B</span>)%<span class="id">type</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof252')">Next Obligation.</div>
-<div class="proofscript" id="proof252">
+<div class="toggleproof" onclick="toggleDisplay('proof261')">Next Obligation.</div>
+<div class="proofscript" id="proof261">
 &nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">destruct</span> <span class="id">x</span>;  <span class="tactic">simpl</span>; <span class="tactic">rewrite</span> <span class="id">swap_comm</span>; <span class="tactic">reflexivity</span>.<br/>
 Qed.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof253')">Next Obligation.</div>
-<div class="proofscript" id="proof253">
+<div class="toggleproof" onclick="toggleDisplay('proof262')">Next Obligation.</div>
+<div class="proofscript" id="proof262">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">swap</span>. <span class="tactic">unfold</span> <span class="id">swap_of_pair</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">swap_same_id</span>. <span class="tactic">rewrite</span> <span class="id">swap_same_id</span>. <span class="tactic">reflexivity</span>.<br/>
 Qed.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof254')">Next Obligation.</div>
-<div class="proofscript" id="proof254">
+<div class="toggleproof" onclick="toggleDisplay('proof263')">Next Obligation.</div>
+<div class="proofscript" id="proof263">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">swap</span>. <span class="tactic">unfold</span> <span class="id">swap_of_pair</span>. <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">swap_comm</span>. <span class="tactic">rewrite</span> (@<span class="id">swap_comm</span> <span class="id">B</span>) <span class="tactic">at</span> 1. <span class="tactic">reflexivity</span>. <span class="tactic">assumption</span>.<br/>
 Qed.</div>
@@ -484,8 +484,8 @@ Qed.</div>
 <span class="kwd">Section</span> <span class="id">PROOFS</span>.<br/>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">Empty_Equals</span> : <span class="kwd">forall</span> {<span class="id">X</span>} (<span class="id">e</span>:<span class="id">ENV.t</span> <span class="id">X</span>), <span class="id">ENV.Empty</span> <span class="id">e</span> -&gt; <span class="id">ENV.Equal</span> (<span class="id">ENV.empty</span> <span class="id">X</span>) <span class="id">e</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof255')">Proof.</div>
-<div class="proofscript" id="proof255">
+<div class="toggleproof" onclick="toggleDisplay('proof264')">Proof.</div>
+<div class="proofscript" id="proof264">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENVFacts.Equal_mapsto_iff</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">k</span> <span class="id">x</span>.<br/>
@@ -497,8 +497,8 @@ Qed.</div>
 &nbsp;&nbsp;Qed.</div>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">find_Empty_none</span> : <span class="kwd">forall</span> {<span class="id">X</span>} (<span class="id">e</span>:<span class="id">ENV.t</span> <span class="id">X</span>) (<span class="id">id</span>:<span class="id">raw_id</span>), <span class="id">ENV.Empty</span> <span class="id">e</span> -&gt; <span class="id">ENV.find</span> <span class="id">id</span> <span class="id">e</span> = <span class="id">None</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof256')">Proof.</div>
-<div class="proofscript" id="proof256">
+<div class="toggleproof" onclick="toggleDisplay('proof265')">Proof.</div>
+<div class="proofscript" id="proof265">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENVFacts.not_find_in_iff</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span> <span class="id">H1</span>.<br/>
@@ -510,8 +510,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">id1</span> <span class="id">id2</span> : <span class="id">raw_id</span>.<br/>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_raw_id_inj</span> : <span class="kwd">forall</span> (<span class="id">k</span> <span class="id">j</span>:<span class="id">raw_id</span>), <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">k</span> = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">j</span> -&gt; <span class="id">k</span> = <span class="id">j</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof257')">Proof.</div>
-<div class="proofscript" id="proof257">
+<div class="toggleproof" onclick="toggleDisplay('proof266')">Proof.</div>
+<div class="proofscript" id="proof266">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">unfold</span> <span class="id">swap_raw_id</span> <span class="kwd">in</span> *.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">simpl_ifs</span>; <span class="tactic">subst</span>; <span class="tactic">try</span> <span class="tactic">reflexivity</span>; <span class="tactic">try</span> <span class="id">contradiction</span>.<br/>
@@ -519,8 +519,8 @@ Qed.</div>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_ENV_find</span> : <span class="kwd">forall</span> {<span class="id">X</span>} `{<span class="id">SX</span> : <span class="id">Swap</span> <span class="id">X</span>} (<span class="id">e</span>:<span class="id">ENV.t</span> <span class="id">X</span>) (<span class="id">id</span>:<span class="id">raw_id</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ENV.find</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>)) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">ENV.find</span> <span class="id">id</span> <span class="id">e</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof258')">Proof.</div>
-<div class="proofscript" id="proof258">
+<div class="toggleproof" onclick="toggleDisplay('proof267')">Proof.</div>
+<div class="proofscript" id="proof267">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">X</span> <span class="id">SX</span>. <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">e</span> <span class="id">id</span>.<br/>
@@ -544,8 +544,8 @@ Qed.</div>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_lookup_env</span> : <span class="kwd">forall</span> {<span class="id">X</span>} `{<span class="id">SX</span> : <span class="id">Swap</span> <span class="id">X</span>} (<span class="id">e</span>:<span class="id">ENV.t</span> <span class="id">X</span>) (<span class="id">id</span>:<span class="id">raw_id</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">lookup_env</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">id</span>) ≡ <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">lookup_env</span> <span class="id">e</span> <span class="id">id</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof259')">Proof.</div>
-<div class="proofscript" id="proof259">
+<div class="toggleproof" onclick="toggleDisplay('proof268')">Proof.</div>
+<div class="proofscript" id="proof268">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">lookup_env</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">swap_ENV_find</span>.<br/>
@@ -554,8 +554,8 @@ Qed.</div>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_lookup_id</span> : <span class="kwd">forall</span> (<span class="id">g</span>:<span class="id">genv</span>) (<span class="id">e</span>:<span class="id">env</span>) (<span class="id">i</span>:<span class="id">ident</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">lookup_id</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">g</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">i</span>) ≡ <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">lookup_id</span> <span class="id">g</span> <span class="id">e</span> <span class="id">i</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof260')">Proof.</div>
-<div class="proofscript" id="proof260">
+<div class="toggleproof" onclick="toggleDisplay('proof269')">Proof.</div>
+<div class="proofscript" id="proof269">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">g</span> <span class="id">e</span> <span class="id">i</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">lookup_id</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">i</span>; <span class="tactic">simpl</span>; <span class="tactic">apply</span> <span class="id">swap_lookup_env</span>.<br/>
@@ -563,8 +563,8 @@ Qed.</div>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_i1_op</span> : <span class="kwd">forall</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 1),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_i1_op</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">y</span>) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_i1_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof261')">Proof.</div>
-<div class="proofscript" id="proof261">
+<div class="toggleproof" onclick="toggleDisplay('proof270')">Proof.</div>
+<div class="proofscript" id="proof270">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
@@ -572,8 +572,8 @@ Qed.</div>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_i32_op</span> : <span class="kwd">forall</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 32),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_i32_op</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">y</span>) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_i32_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof262')">Proof.</div>
-<div class="proofscript" id="proof262">
+<div class="toggleproof" onclick="toggleDisplay('proof271')">Proof.</div>
+<div class="proofscript" id="proof271">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
@@ -581,8 +581,8 @@ Qed.</div>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_i64_op</span> : <span class="kwd">forall</span> (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> 64),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_i64_op</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">y</span>) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_i64_op</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof263')">Proof.</div>
-<div class="proofscript" id="proof263">
+<div class="toggleproof" onclick="toggleDisplay('proof272')">Proof.</div>
+<div class="proofscript" id="proof272">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>. <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
@@ -590,8 +590,8 @@ Qed.</div>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_integer_op</span> : <span class="kwd">forall</span> (<span class="id">bits</span>:<span class="id">Z</span>) (<span class="id">iop</span>:<span class="id">ibinop</span>) (<span class="id">x</span> <span class="id">y</span>:<span class="id">inttyp</span> <span class="id">bits</span>),<br/>
 &nbsp;&nbsp;&nbsp;<span class="id">integer_op</span> <span class="id">bits</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">x</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">y</span>) = <span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">integer_op</span> <span class="id">bits</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof264')">Proof.</div>
-<div class="proofscript" id="proof264">
+<div class="toggleproof" onclick="toggleDisplay('proof273')">Proof.</div>
+<div class="proofscript" id="proof273">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">bits</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">integer_op</span> <span class="id">bits</span> <span class="id">iop</span> <span class="id">x</span> <span class="id">y</span>); <span class="tactic">reflexivity</span>.<br/>
@@ -601,8 +601,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_iop</span> : <span class="kwd">forall</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_iop</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">iop</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v1</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v2</span>) =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_iop</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof265')">Proof.</div>
-<div class="proofscript" id="proof265">
+<div class="toggleproof" onclick="toggleDisplay('proof274')">Proof.</div>
+<div class="proofscript" id="proof274">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">eval_iop</span> <span class="id">iop</span> <span class="id">v1</span> <span class="id">v2</span>); <span class="tactic">reflexivity</span>.<br/>
@@ -611,8 +611,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_icmp</span> : <span class="kwd">forall</span> <span class="id">icmp</span> <span class="id">v1</span> <span class="id">v2</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_icmp</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">icmp</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v1</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">v2</span>) =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_icmp</span> <span class="id">icmp</span> <span class="id">v1</span> <span class="id">v2</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof266')">Proof.</div>
-<div class="proofscript" id="proof266">
+<div class="toggleproof" onclick="toggleDisplay('proof275')">Proof.</div>
+<div class="proofscript" id="proof275">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">icmp</span> <span class="id">v1</span> <span class="id">v2</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">eval_icmp</span> <span class="id">icmp</span> <span class="id">v1</span> <span class="id">v2</span>); <span class="tactic">reflexivity</span>.<br/>
@@ -621,8 +621,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_eval_exp</span> : <span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">top</span> <span class="id">o</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eval_exp</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">CFG</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">g</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">e</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">top</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">o</span>) =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">eval_exp</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">top</span> <span class="id">o</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof267')">Proof.</div>
-<div class="proofscript" id="proof267">
+<div class="toggleproof" onclick="toggleDisplay('proof276')">Proof.</div>
+<div class="proofscript" id="proof276">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">g</span> <span class="id">e</span> <span class="id">top</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">o</span>; <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;Admitted.</div>
@@ -631,8 +631,8 @@ Qed.</div>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_step</span> : <span class="kwd">forall</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">s</span>:<span class="id">state</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">step</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">CFG</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">s</span>)) ≡ (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">step</span> <span class="id">CFG</span> <span class="id">s</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof268')">Proof.</div>
-<div class="proofscript" id="proof268">
+<div class="toggleproof" onclick="toggleDisplay('proof277')">Proof.</div>
+<div class="proofscript" id="proof277">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">s</span> <span class="kwd">as</span> [[[<span class="id">g</span> <span class="id">pc</span>] <span class="id">e</span>] <span class="id">k</span>].<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">unfold_swaps</span>. <span class="tactic">simpl</span>.<br/>
@@ -641,8 +641,8 @@ Qed.</div>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">swap_step_sem</span> : <span class="kwd">forall</span> (<span class="id">CFG</span>:<span class="id">mcfg</span>) (<span class="id">r</span>:<span class="id">result</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">step_sem</span> (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">CFG</span>) (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> <span class="id">r</span>)) ≡ (<span class="id">swap</span> <span class="id">id1</span> <span class="id">id2</span> (<span class="id">step_sem</span> <span class="id">CFG</span> <span class="id">r</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof269')">Proof.</div>
-<div class="proofscript" id="proof269">
+<div class="toggleproof" onclick="toggleDisplay('proof278')">Proof.</div>
+<div class="proofscript" id="proof278">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">cofix</span> <span class="id">swap_step_sem</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">r</span>.<br/>

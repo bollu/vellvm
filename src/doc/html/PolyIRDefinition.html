@@ -1,0 +1,889 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module PolyIRDefinition</title>
+<meta name="description" content="Documentation of Coq module PolyIRDefinition" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module PolyIRDefinition</h1>
+<div class="coq">
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Omega</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Nat</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">ZArith</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Ring</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">List</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Ncring</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Ring_tac</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">FunctionalExtensionality</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Maps</span>.<br/>
+<div class="doc">Import VPL for polyhedral goodness *</div>
+<span class="id">From</span> <span class="id">Vpl</span> <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">PedraQ</span> <span class="id">DomainInterfaces</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">VplTactic.Tactic</span>.<br/>
+<span class="kwd">Add</span> <span class="id">Field</span> <span class="id">Qcfield</span>: <span class="id">Qcft</span> (<span class="id">decidable</span> <span class="id">Qc_eq_bool_correct</span>, <span class="id">constants</span> [<span class="id">vpl_cte</span>]).<br/>
+<br/>
+<span class="kwd">Import</span> <span class="id">PedraQ.FullDom</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">EquivDec</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Equalities</span>.<br/>
+<br/>
+<span class="id">Locate</span> "=?".<br/>
+<br/>
+<div class="doc">Cool, VPLTactic works *</div>
+<span class="kwd">Example</span> <span class="id">demo1</span> (<span class="id">A</span>:<span class="kwd">Type</span>) (<span class="id">f</span>: <span class="id">Qc</span> -&gt; <span class="id">A</span>) (<span class="id">v1</span>: <span class="id">Qc</span>):<br/>
+&nbsp;&nbsp;<span class="id">v1</span> &lt;= 1 -&gt; (<span class="id">f</span> <span class="id">v1</span>) &lt;&gt; (<span class="id">f</span> 1) -&gt; <span class="id">v1</span> &lt; 1.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof311')">Proof.</div>
+<div class="proofscript" id="proof311">
+&nbsp;&nbsp;<span class="id">vpl_auto</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Local</span> <span class="kwd">Notation</span> "<span class="id">a</span> ## <span class="id">b</span>" := (<span class="id">ZMap.get</span> <span class="id">b</span> <span class="id">a</span>) (<span class="tactic">at</span> <span class="id">level</span> 1).<br/>
+<br/>
+<div class="doc">We will follow the development from this paper:
+http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.43.8188&amp;rep=rep1&amp;type=pdf</div>
+<br/>
+<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">list_scope</span>.<br/>
+<span class="kwd">Import</span> <span class="id">ListNotations</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">BinopType</span> :=<br/>
+| <span class="kwd">Add</span> : <span class="id">BinopType</span><br/>
+| <span class="id">Sub</span>: <span class="id">BinopType</span>.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Notation</span> <span class="id">Value</span> := <span class="id">Z</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">Ident</span> := <span class="id">Z</span>.<br/>
+<br/>
+<div class="doc">Syntax of PolyIR *</div>
+<span class="kwd">Definition</span> <span class="id">Indvar</span> := <span class="id">Z</span>.<br/>
+<span class="kwd">Inductive</span> <span class="id">AffineExpr</span> :=<br/>
+| <span class="id">Aindvar</span>:  <span class="id">Indvar</span> -&gt; <span class="id">AffineExpr</span><br/>
+| <span class="id">Abinop</span>: <span class="id">BinopType</span> -&gt; <span class="id">AffineExpr</span> -&gt; <span class="id">AffineExpr</span> -&gt; <span class="id">AffineExpr</span><br/>
+| <span class="id">Amul</span>: <span class="id">Z</span> -&gt; <span class="id">AffineExpr</span> -&gt; <span class="id">AffineExpr</span><br/>
+| <span class="id">Aconst</span>: <span class="id">Z</span> -&gt; <span class="id">AffineExpr</span><br/>
+.<br/>
+<span class="kwd">Inductive</span> <span class="id">PolyExpr</span> :=<br/>
+| <span class="id">Eaffine</span>: <span class="id">AffineExpr</span> -&gt; <span class="id">PolyExpr</span><br/>
+| <span class="id">Eload</span>: <span class="id">Ident</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyExpr</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyExpr</span><br/>
+.<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">PolyStmt</span> :=<br/>
+| <span class="id">Sstore</span>: <span class="id">Ident</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyExpr</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyExpr</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyStmt</span><br/>
+| <span class="id">Sseq</span>: <span class="id">PolyStmt</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyStmt</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyStmt</span><br/>
+| <span class="id">Sskip</span>: <span class="id">PolyStmt</span><br/>
+| <span class="id">Sloop</span>: <span class="id">Indvar</span>  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyExpr</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyStmt</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyStmt</span><br/>
+.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<div class="doc">Memory chunk: allows multidimensional reads and writes *</div>
+<span class="kwd">Notation</span> <span class="id">ChunkNum</span> := <span class="id">Z</span>.<br/>
+<span class="kwd">Record</span> <span class="id">MemoryChunk</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mkMemoryChunk</span> {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memoryChunkDim</span>: <span class="id">nat</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memoryChunkModel</span>: <span class="id">list</span> <span class="id">Z</span> -&gt; <span class="id">option</span> <span class="id">Value</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">const</span> {<span class="id">A</span> <span class="id">B</span> : <span class="kwd">Type</span>} (<span class="id">a</span>: <span class="id">A</span>) (<span class="id">_</span>: <span class="id">B</span>) : <span class="id">A</span> := <span class="id">a</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">initMemoryChunk</span> (<span class="id">n</span>: <span class="id">nat</span>): <span class="id">MemoryChunk</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mkMemoryChunk</span> <span class="id">n</span> (<span class="id">const</span> <span class="id">None</span>).<br/>
+<br/>
+<span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">Z_eq_eqdec</span> : <span class="id">EqDec</span> <span class="id">Z</span> <span class="id">eq</span> := <span class="id">Z.eq_dec</span>.<br/>
+<br/>
+<div class="doc">Only allows legal stores, so the length of six "store index"
+must be equal to the dimension of the memory chunk </div>
+<span class="kwd">Definition</span> <span class="id">storeMemoryChunk</span> (<span class="id">six</span>: <span class="id">list</span> <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">v</span>: <span class="id">Value</span>) (<span class="id">mc</span>: <span class="id">MemoryChunk</span>): <span class="id">MemoryChunk</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">dim</span> := <span class="id">memoryChunkDim</span> <span class="id">mc</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;{| <span class="id">memoryChunkDim</span> := <span class="id">dim</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memoryChunkModel</span> := <span class="kwd">if</span>  <span class="id">Nat.eqb</span> (<span class="id">List.length</span> <span class="id">six</span>)  <span class="id">dim</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> (<span class="kwd">fun</span> <span class="id">ix</span> =&gt; <span class="kwd">if</span> <span class="id">ix</span>  == <span class="id">six</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">Some</span> <span class="id">v</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> (<span class="id">memoryChunkModel</span> <span class="id">mc</span>) <span class="id">ix</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">memoryChunkModel</span> <span class="id">mc</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">loadMemoryChunk</span> (<span class="id">lix</span>: <span class="id">list</span> <span class="id">Z</span>)(<span class="id">mc</span>: <span class="id">MemoryChunk</span>): <span class="id">option</span> <span class="id">Value</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">Nat.eqb</span> (<span class="id">List.length</span> <span class="id">lix</span>) (<span class="id">memoryChunkDim</span> <span class="id">mc</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">then</span> (<span class="id">memoryChunkModel</span> <span class="id">mc</span> <span class="id">lix</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">None</span>.<br/>
+<br/>
+<span class="kwd">Notation</span> <span class="id">Memory</span> := (<span class="id">ZMap.t</span> (<span class="id">option</span> <span class="id">MemoryChunk</span>)).<br/>
+<br/>
+<br/>
+<span class="kwd">Check</span> (<span class="id">PMap.set</span>).<br/>
+<span class="kwd">Definition</span> <span class="id">storeMemory</span> (<span class="id">chunknum</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">chunkix</span>: <span class="id">list</span> <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">val</span>: <span class="id">Value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">Memory</span>) : <span class="id">Memory</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">memchunk</span> := <span class="id">mem</span> ## <span class="id">chunknum</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">memchunk</span>' := <span class="id">option_map</span> (<span class="kwd">fun</span> <span class="id">chk</span> =&gt; <span class="id">storeMemoryChunk</span> <span class="id">chunkix</span> <span class="id">val</span> <span class="id">chk</span> )<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memchunk</span><br/>
+&nbsp;&nbsp;<span class="kwd">in</span> <span class="id">ZMap.set</span> <span class="id">chunknum</span> <span class="id">memchunk</span>' <span class="id">mem</span>.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">option_bind</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id">A</span> <span class="id">B</span>: <span class="kwd">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">oa</span>: <span class="id">option</span> <span class="id">A</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">f</span>: <span class="id">A</span> -&gt; <span class="id">option</span> <span class="id">B</span>) : <span class="id">option</span> <span class="id">B</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">oa</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">None</span><br/>
+&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">a</span> =&gt; <span class="id">f</span> <span class="id">a</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Infix</span> "&gt;&gt;=" := <span class="id">option_bind</span> (<span class="tactic">at</span> <span class="id">level</span> 100).<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">loadMemory</span> (<span class="id">chunknum</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">chunkix</span>: <span class="id">list</span> <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">Memory</span>) : <span class="id">option</span> <span class="id">Value</span> :=<br/>
+&nbsp;&nbsp;(<span class="id">mem</span> ## <span class="id">chunknum</span>) &gt;&gt;= (<span class="kwd">fun</span> <span class="id">chk</span> =&gt; <span class="id">loadMemoryChunk</span> <span class="id">chunkix</span> <span class="id">chk</span>).<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">liftoption3</span> {<span class="id">a</span> <span class="id">b</span> <span class="id">c</span> <span class="id">d</span>: <span class="kwd">Type</span>} (<span class="id">f</span>: <span class="id">a</span> -&gt; <span class="id">b</span> -&gt; <span class="id">c</span> -&gt; <span class="id">d</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">oa</span>: <span class="id">option</span> <span class="id">a</span>) (<span class="id">ob</span>: <span class="id">option</span> <span class="id">b</span>) (<span class="id">oc</span>: <span class="id">option</span> <span class="id">c</span>): <span class="id">option</span> <span class="id">d</span> :=<br/>
+&nbsp;&nbsp;<span class="id">oa</span> &gt;&gt;= (<span class="kwd">fun</span> <span class="id">a</span> =&gt; <span class="id">ob</span> &gt;&gt;= (<span class="kwd">fun</span> <span class="id">b</span> =&gt; <span class="id">oc</span> &gt;&gt;= (<span class="kwd">fun</span> <span class="id">c</span> =&gt; <span class="id">Some</span> (<span class="id">f</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span>)))).<br/>
+<br/>
+<br/>
+<span class="kwd">Record</span> <span class="id">PolyLoop</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mkPolyLoop</span> {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">loopLowerBound</span>: <span class="id">PolyExpr</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">loopUpperBound</span>: <span class="id">PolyExpr</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">loopBody</span>: <span class="id">PolyStmt</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+<br/>
+<span class="kwd">Record</span> <span class="id">Environment</span> :=<br/>
+&nbsp;&nbsp;<span class="id">mkEnvironment</span> {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envIndvarToValue</span>: <span class="id">ZMap.t</span> (<span class="id">option</span> <span class="id">Value</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envIdentToChunkNum</span>: <span class="id">ZMap.t</span> (<span class="id">option</span> <span class="id">ChunkNum</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envLoopDepth</span>: <span class="id">Z</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+<br/>
+<div class="doc">Get the induction variable of the "current" loop *</div>
+<span class="kwd">Definition</span> <span class="id">evalLoopIndvar</span> (<span class="id">env</span>: <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">indvar</span>: <span class="id">Indvar</span>): <span class="id">option</span> <span class="id">Value</span> :=<br/>
+&nbsp;&nbsp;(<span class="id">envIndvarToValue</span> <span class="id">env</span>) ## <span class="id">indvar</span>.<br/>
+<br/>
+<div class="doc">Increase the induction variable by 1 *</div>
+<span class="kwd">Definition</span> <span class="id">bumpLoopIndvar</span> (<span class="id">env</span>: <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">indvar</span>: <span class="id">Indvar</span>) : <span class="id">Environment</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">ivToValue</span> : <span class="id">ZMap.t</span> (<span class="id">option</span> <span class="id">Value</span>) := <span class="id">envIndvarToValue</span> <span class="id">env</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">option_oldiv</span> := <span class="id">ivToValue</span> ## <span class="id">indvar</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">option_oldiv</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">env</span><br/>
+&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">oldiv</span> =&gt; <span class="kwd">let</span> <span class="id">newIvToValue</span> := <span class="id">ZMap.set</span> <span class="id">indvar</span> (<span class="id">Some</span> (1 + <span class="id">oldiv</span>)%<span class="id">Z</span>) <span class="id">ivToValue</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envIndvarToValue</span> := <span class="id">newIvToValue</span>; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envIdentToChunkNum</span> := <span class="id">envIdentToChunkNum</span> <span class="id">env</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envLoopDepth</span> := <span class="id">envLoopDepth</span> <span class="id">env</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|}<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">addLoopToEnv</span> (<span class="id">env</span>: <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">indvar</span>: <span class="id">Indvar</span>): <span class="id">Environment</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">oldLoopDepth</span> := <span class="id">envLoopDepth</span> <span class="id">env</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">newLoopDepth</span> := (<span class="id">oldLoopDepth</span> + 1)%<span class="id">Z</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">ivToValue</span> : <span class="id">ZMap.t</span> (<span class="id">option</span> <span class="id">Value</span>) := <span class="id">envIndvarToValue</span> <span class="id">env</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">newIvToValue</span> := <span class="id">ZMap.set</span> <span class="id">indvar</span> (<span class="id">Some</span> (0%<span class="id">Z</span>)) <span class="id">ivToValue</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envIndvarToValue</span> := <span class="id">newIvToValue</span>; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envIdentToChunkNum</span> := <span class="id">envIdentToChunkNum</span> <span class="id">env</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envLoopDepth</span> := <span class="id">newLoopDepth</span><br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">removeLoopFromEnv</span> (<span class="id">env</span>: <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">indvar</span>: <span class="id">Indvar</span>): <span class="id">Environment</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">oldLoopDepth</span> := <span class="id">envLoopDepth</span> <span class="id">env</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">newLoopDepth</span> := (<span class="id">oldLoopDepth</span> + 1)%<span class="id">Z</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">ivToValue</span> : <span class="id">ZMap.t</span> (<span class="id">option</span> <span class="id">Value</span>) := <span class="id">envIndvarToValue</span> <span class="id">env</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">newIvToValue</span> := <span class="id">ZMap.set</span> <span class="id">indvar</span> (<span class="id">None</span>) <span class="id">ivToValue</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envIndvarToValue</span> := <span class="id">newIvToValue</span>; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envIdentToChunkNum</span> := <span class="id">envIdentToChunkNum</span> <span class="id">env</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">envLoopDepth</span> := <span class="id">newLoopDepth</span><br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Fixpoint</span> <span class="id">evalAffineExprFn</span> (<span class="id">env</span>: <span class="id">Environment</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ae</span>: <span class="id">AffineExpr</span>) : <span class="id">option</span> <span class="id">Value</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">ae</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Aindvar</span> <span class="id">i</span> =&gt; ((<span class="id">envIndvarToValue</span> <span class="id">env</span>) ## <span class="id">i</span>)<br/>
+&nbsp;&nbsp;| <span class="id">Aconst</span> <span class="id">c</span> =&gt; <span class="id">Some</span> <span class="id">c</span><br/>
+&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">None</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span> .<br/>
+<br/>
+<span class="kwd">Fixpoint</span> <span class="id">evalExprFn</span> (<span class="id">pe</span>: <span class="id">PolyExpr</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">env</span>: <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">Memory</span>): <span class="id">option</span> <span class="id">Value</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">pe</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| <span class="id">Eaffine</span> <span class="id">ae</span> =&gt; <span class="id">evalAffineExprFn</span> <span class="id">env</span> <span class="id">ae</span><br/>
+&nbsp;&nbsp;| <span class="id">Eload</span> <span class="id">id</span> <span class="id">ixe</span> =&gt; <span class="kwd">let</span> <span class="id">ochunknum</span> := (<span class="id">envIdentToChunkNum</span> <span class="id">env</span>) ## <span class="id">id</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">oix</span> := <span class="id">evalExprFn</span> <span class="id">ixe</span> <span class="id">env</span> <span class="id">mem</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">ochunknum</span> &gt;&gt;=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">chunknum</span> =&gt; <span class="id">oix</span> &gt;&gt;=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">ix</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">loadMemory</span> <span class="id">chunknum</span> [<span class="id">ix</span>] <span class="id">mem</span>)<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Inductive</span> <span class="id">exec_stmt</span> : <span class="id">Environment</span> -&gt; <span class="id">Memory</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">PolyStmt</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">Memory</span> -&gt; <span class="id">Environment</span> -&gt; <span class="kwd">Prop</span>:=<br/>
+| <span class="id">exec_Sstore</span>: <span class="kwd">forall</span> (<span class="id">chunknum</span> <span class="id">ix</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">storeval</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">storevale</span> <span class="id">ixe</span>: <span class="id">PolyExpr</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">env</span>: <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span> <span class="id">mem</span>': <span class="id">Memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ident</span>: <span class="id">Ident</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">evalExprFn</span> <span class="id">storevale</span> <span class="id">env</span> <span class="id">mem</span> = <span class="id">Some</span> <span class="id">storeval</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">evalExprFn</span> <span class="id">ixe</span> <span class="id">env</span> <span class="id">mem</span> = <span class="id">Some</span> <span class="id">ix</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;((<span class="id">envIdentToChunkNum</span> <span class="id">env</span>) ## <span class="id">ident</span> = <span class="id">Some</span> <span class="id">chunknum</span>) -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">storeMemory</span> <span class="id">chunknum</span> [<span class="id">ix</span>] <span class="id">storeval</span> <span class="id">mem</span> = <span class="id">mem</span>' -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> (<span class="id">Sstore</span> <span class="id">ident</span> <span class="id">ixe</span> <span class="id">storevale</span>) <span class="id">mem</span>' <span class="id">env</span><br/>
+| <span class="id">exec_SSeq</span>: <span class="kwd">forall</span> (<span class="id">env</span> <span class="id">env</span>' <span class="id">env</span>'': <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span> <span class="id">mem</span>' <span class="id">mem</span>'': <span class="id">Memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">s1</span> <span class="id">s2</span>: <span class="id">PolyStmt</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> <span class="id">s1</span> <span class="id">mem</span>' <span class="id">env</span>' -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span>' <span class="id">mem</span>' <span class="id">s2</span> <span class="id">mem</span>'' <span class="id">env</span>'' -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> (<span class="id">Sseq</span> <span class="id">s1</span> <span class="id">s2</span>) <span class="id">mem</span>'' <span class="id">env</span>''<br/>
+| <span class="id">exec_Sskip</span>: <span class="kwd">forall</span> (<span class="id">mem</span> : <span class="id">Memory</span>) (<span class="id">env</span>: <span class="id">Environment</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> <span class="id">Sskip</span> <span class="id">mem</span> <span class="id">env</span><br/>
+| <span class="id">exec_Sloop_start</span>: <span class="kwd">forall</span> (<span class="id">mem</span>: <span class="id">Memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">indvar</span>: <span class="id">Indvar</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ube</span>: <span class="id">PolyExpr</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">env</span>: <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">inner</span>: <span class="id">PolyStmt</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">evalLoopIndvar</span> <span class="id">env</span> <span class="id">indvar</span> = <span class="id">None</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> (<span class="id">Sloop</span> <span class="id">indvar</span> <span class="id">ube</span> <span class="id">inner</span>) <span class="id">mem</span> (<span class="id">addLoopToEnv</span> <span class="id">env</span> <span class="id">indvar</span>)<br/>
+| <span class="id">exec_Sloop_loop</span>: <span class="kwd">forall</span> (<span class="id">mem</span> <span class="id">mem</span>': <span class="id">Memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">env</span> <span class="id">env</span>': <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">indvar</span>: <span class="id">Indvar</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ube</span>: <span class="id">PolyExpr</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ub</span> <span class="id">ivval</span>: <span class="id">Value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">inner</span>: <span class="id">PolyStmt</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">evalExprFn</span> <span class="id">ube</span> <span class="id">env</span> <span class="id">mem</span> = <span class="id">Some</span> <span class="id">ub</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">evalLoopIndvar</span> <span class="id">env</span> <span class="id">indvar</span> = <span class="id">Some</span> <span class="id">ivval</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ivval</span> &lt; <span class="id">ub</span>)%<span class="id">Z</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> <span class="id">inner</span> <span class="id">mem</span>' <span class="id">env</span>' -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> (<span class="id">Sloop</span> <span class="id">indvar</span> <span class="id">ube</span> <span class="id">inner</span>) <span class="id">mem</span>' (<span class="id">bumpLoopIndvar</span> <span class="id">env</span>' <span class="id">indvar</span>)<br/>
+| <span class="id">exec_Sloop_end</span>: <span class="kwd">forall</span> (<span class="id">mem</span>: <span class="id">Memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">env</span>: <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">indvar</span>: <span class="id">Indvar</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ube</span>: <span class="id">PolyExpr</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ub</span> <span class="id">ivval</span>: <span class="id">Value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">inner</span>: <span class="id">PolyStmt</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">evalExprFn</span> <span class="id">ube</span> <span class="id">env</span> <span class="id">mem</span> = <span class="id">Some</span> <span class="id">ub</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">evalLoopIndvar</span> <span class="id">env</span> <span class="id">indvar</span> = <span class="id">Some</span> <span class="id">ivval</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ivval</span> &gt;= <span class="id">ub</span>)%<span class="id">Z</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> (<span class="id">Sloop</span> <span class="id">indvar</span> <span class="id">ube</span> <span class="id">inner</span>) <span class="id">mem</span> (<span class="id">removeLoopFromEnv</span> <span class="id">env</span> <span class="id">indvar</span>)<br/>
+.<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">exec_stmt_deterministic</span>: <span class="kwd">forall</span> (<span class="id">mem</span> <span class="id">mem1</span> <span class="id">mem2</span>: <span class="id">Memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">env</span> <span class="id">env1</span> <span class="id">env2</span>: <span class="id">Environment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">s</span>: <span class="id">PolyStmt</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> <span class="id">s</span> <span class="id">mem1</span> <span class="id">env1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_stmt</span> <span class="id">env</span> <span class="id">mem</span> <span class="id">s</span> <span class="id">mem2</span> <span class="id">env2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mem1</span> = <span class="id">mem2</span> /\<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">env1</span> = <span class="id">env2</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof312')">Proof.</div>
+<div class="proofscript" id="proof312">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">s</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">EXECS1</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">env2</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">mem2</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">EXECS1</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">mem2</span> <span class="id">env2</span> <span class="id">EXECS2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">EXECS2</span>; <span class="tactic">subst</span>; <span class="tactic">auto</span>;<br/>
+&nbsp;Dispatch&nbsp;cases&nbsp;which&nbsp;require&nbsp;simple&nbsp;rewrites&nbsp;*)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [<span class="id">H1</span>: ?<span class="id">X</span> = ?<span class="id">Y</span>, <span class="id">H2</span>: ?<span class="id">X</span> = ?<span class="id">Z</span> |- <span class="id">_</span> ] =&gt;  <span class="tactic">rewrite</span> <span class="id">H1</span> <span class="kwd">in</span> <span class="id">H2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">H2</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">clear</span> <span class="id">H1</span>; <span class="tactic">clear</span> <span class="id">H2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>); <span class="tactic">auto</span>;<br/>
+&nbsp;dispatch&nbsp;cases&nbsp;that&nbsp;are&nbsp;resolved&nbsp;by&nbsp;indvar&nbsp;mutual&nbsp;exclusion&nbsp;*)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">try</span> <span class="tactic">omega</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;- <span class="tactic">assert</span> (<span class="id">S1_EQ</span>: <span class="id">mem</span>' = <span class="id">mem</span>'0 /\ <span class="id">env</span>' = <span class="id">env</span>'0).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">IHEXECS1_1</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">S1_EQ</span> <span class="kwd">as</span> [<span class="id">MEMEQ</span> <span class="id">ENVEQ</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">IHEXECS1_2</span>; <span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;- <span class="tactic">assert</span> (<span class="id">EQ</span>: <span class="id">mem</span>' = <span class="id">mem2</span> /\ <span class="id">env</span>' = <span class="id">env</span>'0).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">IHEXECS1</span>. <span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">EQ</span> <span class="kwd">as</span> [<span class="id">MEMEQ</span> <span class="id">ENVEQ</span>]. <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">Notation</span> <span class="id">MultidimAffineExpr</span> := (<span class="id">list</span> <span class="id">AffineExpr</span>).<br/>
+<br/>
+<span class="kwd">Fixpoint</span> <span class="id">option_traverse</span> {<span class="id">A</span>: <span class="kwd">Type</span>} (<span class="id">lo</span>: <span class="id">list</span> (<span class="id">option</span> <span class="id">A</span>)): <span class="id">option</span> (<span class="id">list</span> <span class="id">A</span>) :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">lo</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;| [] =&gt; <span class="id">Some</span> []<br/>
+&nbsp;&nbsp;| <span class="id">oa</span>::<span class="id">lo</span>' =&gt; <span class="id">oa</span> &gt;&gt;= (<span class="kwd">fun</span> <span class="id">a</span> =&gt; <span class="id">option_map</span> (<span class="id">cons</span> <span class="id">a</span>) (<span class="id">option_traverse</span> <span class="id">lo</span>'))<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="kwd">Type</span> <span class="id">POLYHEDRAL_THEORY</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">PointT</span>: <span class="kwd">Type</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">PolyT</span>: <span class="kwd">Type</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">AffineFnT</span>: <span class="kwd">Type</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">AffineRelT</span>: <span class="kwd">Type</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">ParamsT</span>: <span class="kwd">Type</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">DimensionT</span>: <span class="kwd">Type</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">mapPoint</span>: <span class="id">AffineFnT</span> -&gt; <span class="id">PointT</span> -&gt; <span class="id">option</span> (<span class="id">PointT</span>).<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">evalPoint</span>: <span class="id">ParamsT</span> -&gt; <span class="id">PointT</span> -&gt; <span class="id">option</span> (<span class="id">list</span> <span class="id">Z</span>).<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">composeAffineFunction</span>: <span class="id">AffineFnT</span> -&gt; <span class="id">AffineFnT</span> -&gt; <span class="id">option</span> <span class="id">AffineFnT</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">invertAffineFunction</span>: <span class="id">AffineFnT</span> -&gt; <span class="id">option</span> <span class="id">AffineFnT</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">arePointsRelated</span>: <span class="id">PointT</span> -&gt; <span class="id">PointT</span> -&gt; <span class="id">AffineRelT</span> -&gt; <span class="id">bool</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">isPointInPoly</span>: <span class="id">PointT</span> -&gt; <span class="id">PolyT</span> -&gt; <span class="id">bool</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">isLexSmaller</span>: <span class="id">PointT</span> -&gt; <span class="id">PointT</span> -&gt; <span class="id">option</span> (<span class="id">bool</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">getNextLexLargerPoint</span>: <span class="id">ParamsT</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">PolyT</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">PointT</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">option</span> (<span class="id">PointT</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">getOverapproximationNumPointsInPoly</span>: <span class="id">ParamsT</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">PolyT</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">option</span> (<span class="id">nat</span>).<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">emptyPoly</span>: <span class="id">PolyT</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">emptyAffineRel</span>: <span class="id">AffineRelT</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">unionAffineRel</span>:  <span class="id">AffineRelT</span> -&gt; <span class="id">AffineRelT</span> -&gt; <span class="id">AffineRelT</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">affineFnToAffineRel</span>: <span class="id">AffineFnT</span> -&gt; <span class="id">AffineRelT</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">unionPoly</span>:  <span class="id">PolyT</span> -&gt; <span class="id">PolyT</span> -&gt; <span class="id">option</span> <span class="id">PolyT</span>.<br/>
+<br/>
+<div class="doc">Defines what it means to be a dependence relation. This is the
+        over-approximate definition. In particular, it does not ask for
+        exact dependence relations .
+        t1 --R1--&gt; p 
+        t2 --R2--&gt; p
+        t1 &lt; t2
+        ===============
+          t1 --D--&gt; t2
+   *</div>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">relationIsDependenceBetweenRelations</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">r1</span> <span class="id">r2</span>: <span class="id">AffineRelT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">dep</span>: <span class="id">AffineRelT</span>): <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">tp1</span> <span class="id">tp2</span> <span class="id">ixp1</span> <span class="id">ixp2</span>: <span class="id">PointT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">TP1_MAPSTO_IXP1</span>: <span class="id">arePointsRelated</span>  <span class="id">tp1</span> <span class="id">ixp1</span> <span class="id">r1</span> = <span class="id">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">TP2_MAPSTO_IXP2</span>: <span class="id">arePointsRelated</span> <span class="id">tp2</span> <span class="id">ixp2</span> <span class="id">r2</span> = <span class="id">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">IXEQ</span>: <span class="id">ixp1</span> = <span class="id">ixp2</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">TP_LEX_ORDERED</span>: <span class="id">isLexSmaller</span> <span class="id">tp1</span> <span class="id">tp2</span> = <span class="id">Some</span> <span class="id">true</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">arePointsRelated</span> <span class="id">tp1</span> <span class="id">tp2</span> <span class="id">dep</span> = <span class="id">true</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Parameter</span> <span class="id">getDependenceRelation</span>: <span class="id">AffineRelT</span> -&gt; <span class="id">AffineRelT</span> -&gt; <span class="id">option</span> <span class="id">AffineRelT</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+<span class="kwd">End</span> <span class="id">POLYHEDRAL_THEORY</span>.<br/>
+<br/>
+<span class="kwd">Module</span> <span class="id">SCOP</span>(<span class="id">P</span>: <span class="id">POLYHEDRAL_THEORY</span>).<br/>
+<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Inductive</span> <span class="id">ScopStmtType</span> :=<br/>
+&nbsp;&nbsp;| <span class="id">SSTstore</span>: (<span class="id">list</span> <span class="id">Value</span> -&gt; <span class="id">Value</span>) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&gt; <span class="id">ScopStmtType</span><br/>
+&nbsp;&nbsp;| <span class="id">SSTload</span>: <span class="id">ScopStmtType</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Record</span> <span class="id">ScopEnvironment</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mkScopEnvironment</span> {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopenvVIV</span>: <span class="id">P.PointT</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopenvParams</span>: <span class="id">P.ParamsT</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopenvIdentToChunkNum</span>: <span class="id">ZMap.t</span> (<span class="id">option</span> <span class="id">ChunkNum</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+<br/>
+<div class="doc">Note that for now, we don't care what is stored or loaded, because
+conceptually, we don't actually care either. We just want to make sure
+that the reads/writes are modeled </div>
+&nbsp;&nbsp;<span class="kwd">Record</span> <span class="id">ScopStmt</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mkScopStmt</span> {<br/>
+<div class="doc">Identifier of the scop statement </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtArrayIdent</span> : <span class="id">Ident</span>;<br/>
+<div class="doc">The domain of the scop statement. That is, interpreted as
+          0 &lt;= &lt;indvars<span class="bracket"><span class="id">i</span></span>&gt; &lt;= &lt;domain<span class="bracket"><span class="id">i</span></span>&gt; *</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtDomain</span>: <span class="id">P.PolyT</span>;<br/>
+<div class="doc">Function from the canonical induction variables to the schedule
+         timepoint. That is, interpreted as the output dimensions when
+         invoked against the input *</div>
+<div class="doc">Note that the schedule dimensions can be larger than the input
+      dimension *</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtSchedule</span> : <span class="id">P.AffineFnT</span>;<br/>
+<div class="doc">Access function to model where to read or write from *</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtAccessFunction</span>: <span class="id">P.AffineFnT</span>;<br/>
+<div class="doc">Type of the scop statement: store or load *</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtType</span>: <span class="id">ScopStmtType</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Record</span> <span class="id">Scop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mkScop</span> {<br/>
+<div class="doc">The statements in this scop *</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmts</span> : <span class="id">list</span> <span class="id">ScopStmt</span>;<br/>
+<div class="doc">Induction variables in this scop *</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopIndvars</span> : <span class="id">list</span> <span class="id">P.DimensionT</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Fixpoint</span> <span class="id">all</span> (<span class="id">bs</span>: <span class="id">list</span> <span class="id">bool</span>): <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">List.fold_right</span> <span class="id">andb</span> <span class="id">true</span> <span class="id">bs</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Fixpoint</span> <span class="id">zipWith</span> {<span class="id">X</span> <span class="id">Y</span> <span class="id">Z</span>: <span class="kwd">Type</span>} (<span class="id">f</span>: <span class="id">X</span> -&gt; <span class="id">Y</span> -&gt; <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">xs</span>: <span class="id">list</span> <span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ys</span>: <span class="id">list</span> <span class="id">Y</span>) : <span class="id">list</span> <span class="id">Z</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">xs</span>  <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [] =&gt; []<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">x</span>::<span class="id">xs</span>' =&gt; <span class="kwd">match</span> <span class="id">ys</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [] =&gt; []<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">y</span>::<span class="id">ys</span>' =&gt; (<span class="id">f</span> <span class="id">x</span> <span class="id">y</span>)::<span class="id">zipWith</span> <span class="id">f</span> <span class="id">xs</span>' <span class="id">ys</span>'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">zip</span> {<span class="id">X</span> <span class="id">Y</span> : <span class="kwd">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">xs</span>: <span class="id">list</span> <span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ys</span>: <span class="id">list</span> <span class="id">Y</span>): <span class="id">list</span> (<span class="id">X</span> * <span class="id">Y</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;@<span class="id">zipWith</span> <span class="id">X</span> <span class="id">Y</span> (<span class="id">X</span> * <span class="id">Y</span>) (<span class="kwd">fun</span> <span class="id">x</span> <span class="id">y</span> =&gt; (<span class="id">x</span>, <span class="id">y</span>)) <span class="id">xs</span> <span class="id">ys</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">isScopStmtActive</span> (<span class="id">se</span>: <span class="id">ScopEnvironment</span>) (<span class="id">ss</span>: <span class="id">ScopStmt</span>) : <span class="id">bool</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P.isPointInPoly</span> (<span class="id">scopenvVIV</span> <span class="id">se</span>) (<span class="id">scopStmtDomain</span> <span class="id">ss</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">storeArray</span> (<span class="id">arrayIdent</span>: <span class="id">Ident</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ix</span>: <span class="id">list</span> <span class="id">Value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">val</span>: <span class="id">Value</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">Memory</span>) : <span class="id">Memory</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> (<span class="id">scopenvIdentToChunkNum</span> <span class="id">se</span>) ## <span class="id">arrayIdent</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">chnk</span> =&gt; <span class="id">storeMemory</span> <span class="id">chnk</span> <span class="id">ix</span> <span class="id">val</span> <span class="id">mem</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">mem</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+<div class="doc">TODO: make loads an actual statement in the PolyIR language *</div>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">runScopStmt</span> (<span class="id">ss</span>: <span class="id">ScopStmt</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">Memory</span>) : <span class="id">Memory</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">oaccessfn</span> : <span class="id">option</span> <span class="id">P.AffineFnT</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Some</span> (<span class="id">scopStmtAccessFunction</span> <span class="id">ss</span>) <span class="kwd">in</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">viv</span> : <span class="id">P.PointT</span> := <span class="id">scopenvVIV</span> <span class="id">se</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">oiv</span> : <span class="id">option</span> <span class="id">P.PointT</span> := <span class="id">oaccessfn</span> &gt;&gt;= <span class="kwd">fun</span> <span class="id">f</span> =&gt; <span class="id">P.mapPoint</span> <span class="id">f</span> <span class="id">viv</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">oaccessix</span> : <span class="id">option</span> (<span class="id">list</span> <span class="id">Z</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">oiv</span> &gt;&gt;= <span class="kwd">fun</span> <span class="id">iv</span> =&gt; <span class="id">P.evalPoint</span> (<span class="id">scopenvParams</span> <span class="id">se</span>) <span class="id">iv</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> (<span class="id">oaccessix</span>, <span class="id">scopStmtType</span> <span class="id">ss</span>)  <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">Some</span> <span class="id">accessix</span>, <span class="id">SSTstore</span> <span class="id">val</span>) =&gt; <span class="id">storeArray</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopStmtArrayIdent</span> <span class="id">ss</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">accessix</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">val</span> <span class="id">accessix</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">se</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mem</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">Some</span> <span class="id">accessix</span>, <span class="id">SSTload</span>) =&gt; <span class="id">mem</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">None</span>, <span class="id">_</span>) =&gt; <span class="id">mem</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+<div class="doc">Get the statements whose domain is contained in the current environment *</div>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">getActiveScopStmtsInScop</span> (<span class="id">s</span>: <span class="id">Scop</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>): <span class="id">list</span> <span class="id">ScopStmt</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">List.filter</span> (<span class="id">isScopStmtActive</span> <span class="id">se</span>) (<span class="id">scopStmts</span> <span class="id">s</span>).<br/>
+<br/>
+<div class="doc">Run a scop for a step with some given environment and memory. *</div>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">runScopStepWithEnvAndMem</span> (<span class="id">s</span>: <span class="id">Scop</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">Memory</span>) : <span class="id">Memory</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">List.fold_left</span> (<span class="kwd">fun</span> <span class="id">m</span> <span class="id">ss</span> =&gt; <span class="id">runScopStmt</span> <span class="id">ss</span> <span class="id">se</span> <span class="id">m</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">getActiveScopStmtsInScop</span> <span class="id">s</span> <span class="id">se</span>) <span class="id">mem</span>.<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+<div class="doc">Numbers represented with highest position to the _left_. So, 100 would be "1 0 0"
+    Limits represent the "base" of that given digit. If the number exceeds the base,
+    it rolls over. If a number is not possible, then it returns a None
+    Definition findLexNextValue (vs: list Value) (limits: list Value): option (list Value) :=
+      findLexNextValue_ (List.rev vs) (List.rev limits).
+    (* Set all the given induction variables in the environment </div>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">setIndvarsInEnv</span> (<span class="id">ebegin</span>: <span class="id">Environment</span>) (<span class="id">ivs</span>: <span class="id">list</span> <span class="id">Ident</span>) (<span class="id">vs</span>: <span class="id">list</span> <span class="id">Value</span>): <span class="id">Environment</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">List.fold_left</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">e</span> <span class="id">iv_v</span> =&gt; <span class="id">setIndvarInEnv</span> <span class="id">e</span> (<span class="id">fst</span> <span class="id">iv_v</span>) (<span class="id">snd</span> <span class="id">iv_v</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">zip</span> <span class="id">ivs</span> <span class="id">vs</span>) <span class="id">ebegin</span>.<br/>
+&nbsp;&nbsp;&nbsp;*)<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">setVIVInScopEnv</span> (<span class="id">vivs</span>: <span class="id">P.PointT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>):<span class="id">ScopEnvironment</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopenvVIV</span> := <span class="id">vivs</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopenvParams</span> := <span class="id">scopenvParams</span> <span class="id">se</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopenvIdentToChunkNum</span> := <span class="id">scopenvIdentToChunkNum</span> <span class="id">se</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;|}.<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">bumpScopenvVIV</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopDomain</span>: <span class="id">P.PolyT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;: <span class="id">option</span> <span class="id">ScopEnvironment</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">option_map</span> (<span class="kwd">fun</span> <span class="id">viv</span>' =&gt; <span class="id">setVIVInScopEnv</span> <span class="id">viv</span>' <span class="id">se</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">P.getNextLexLargerPoint</span> (<span class="id">scopenvParams</span> <span class="id">se</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopDomain</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopenvVIV</span> <span class="id">se</span>)).<br/>
+&nbsp;&nbsp;<br/>
+<div class="doc">update all the environment induction variables to their next value *</div>
+<div class="doc">This is separate from bumpEnvindvarvalues for conceptual clarity.
+Could be merged later... *</div>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">stepScopenv</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopDomain</span>: <span class="id">P.PolyT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>) : <span class="id">option</span> <span class="id">ScopEnvironment</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;:= <span class="id">bumpScopenvVIV</span> <span class="id">scopDomain</span> <span class="id">se</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Fixpoint</span> <span class="id">runScop_</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fuel</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopDomain</span>: <span class="id">P.PolyT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">Memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">s</span>: <span class="id">Scop</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="kwd">struct</span> <span class="id">fuel</span>}: <span class="id">ScopEnvironment</span> * <span class="id">Memory</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">mem</span>' := <span class="id">runScopStepWithEnvAndMem</span> <span class="id">s</span> <span class="id">se</span> <span class="id">mem</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">ose</span>' := <span class="id">stepScopenv</span> <span class="id">scopDomain</span> <span class="id">se</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">fuel</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">O</span> =&gt; (<span class="id">se</span>, <span class="id">mem</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">S</span> <span class="id">fuel</span>' =&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">ose</span>' <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; (<span class="id">se</span>, <span class="id">mem</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">se</span>' =&gt; <span class="id">runScop_</span> <span class="id">fuel</span>' <span class="id">scopDomain</span> <span class="id">se</span>' <span class="id">mem</span>' <span class="id">s</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Check</span> (<span class="id">List.fold_left</span>).<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">getScopDomain</span>  (<span class="id">s</span>: <span class="id">Scop</span>) : <span class="id">option</span> <span class="id">P.PolyT</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">domains</span>: <span class="id">list</span> (<span class="id">P.PolyT</span>) := <span class="id">List.map</span> <span class="id">scopStmtDomain</span> (<span class="id">scopStmts</span> <span class="id">s</span>) <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">fold_left</span> (<span class="kwd">fun</span> <span class="id">op</span> <span class="id">q</span> =&gt; <span class="id">op</span> &gt;&gt;= <span class="kwd">fun</span> <span class="id">p</span> =&gt; <span class="id">P.unionPoly</span> <span class="id">p</span> <span class="id">q</span>) <span class="id">domains</span> (<span class="id">Some</span> <span class="id">P.emptyPoly</span>) .<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">runScop</span> (<span class="id">s</span>: <span class="id">Scop</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">initmem</span>: <span class="id">Memory</span>): <span class="id">option</span> (<span class="id">ScopEnvironment</span> * <span class="id">Memory</span>) :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">getScopDomain</span> <span class="id">s</span> &gt;&gt;=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">fun</span> <span class="id">dom</span> =&gt; <span class="id">P.getOverapproximationNumPointsInPoly</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopenvParams</span> <span class="id">se</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dom</span> &gt;&gt;= <span class="kwd">fun</span> <span class="id">fuel</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Some</span> (<span class="id">runScop_</span> <span class="id">fuel</span> <span class="id">dom</span> <span class="id">se</span> <span class="id">initmem</span> <span class="id">s</span>).<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">getScopStmtLoads</span> (<span class="id">ss</span>: <span class="id">ScopStmt</span>): <span class="id">P.AffineRelT</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">scopStmtType</span> <span class="id">ss</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SSTstore</span> <span class="id">_</span> =&gt; <span class="id">P.emptyAffineRel</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SSTload</span> =&gt;  <span class="id">P.affineFnToAffineRel</span> (<span class="id">scopStmtAccessFunction</span> <span class="id">ss</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">getScopStmtStores</span> (<span class="id">ss</span>: <span class="id">ScopStmt</span>): <span class="id">P.AffineRelT</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">scopStmtType</span> <span class="id">ss</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SSTload</span> =&gt; <span class="id">P.emptyAffineRel</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">SSTstore</span> <span class="id">_</span> =&gt;  <span class="id">P.affineFnToAffineRel</span> (<span class="id">scopStmtAccessFunction</span> <span class="id">ss</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">getScopStores</span>(<span class="id">s</span>: <span class="id">Scop</span>): <span class="id">P.AffineRelT</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">List.fold_left</span> (<span class="kwd">fun</span> <span class="id">rel</span> <span class="id">ss</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P.unionAffineRel</span> <span class="id">rel</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">getScopStmtStores</span> <span class="id">ss</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopStmts</span> <span class="id">s</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P.emptyAffineRel</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">getScopLoads</span>(<span class="id">s</span>: <span class="id">Scop</span>): <span class="id">P.AffineRelT</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">List.fold_left</span> (<span class="kwd">fun</span> <span class="id">rel</span> <span class="id">ss</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P.unionAffineRel</span> <span class="id">rel</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">getScopStmtLoads</span> <span class="id">ss</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopStmts</span> <span class="id">s</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P.emptyAffineRel</span>.<br/>
+<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">scheduleRespectsDependence</span> (<span class="id">schedule</span>: <span class="id">P.AffineFnT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">dep</span>: <span class="id">P.AffineRelT</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">p1</span> <span class="id">q1</span>: <span class="id">P.PointT</span>), (<span class="id">P.arePointsRelated</span> <span class="id">p1</span> <span class="id">q1</span> <span class="id">dep</span>) = <span class="id">true</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> (<span class="id">p2</span> <span class="id">q2</span>: <span class="id">P.PointT</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P.mapPoint</span> <span class="id">schedule</span> <span class="id">p1</span> = <span class="id">Some</span> <span class="id">q1</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P.mapPoint</span> <span class="id">schedule</span> <span class="id">p2</span> = <span class="id">Some</span> <span class="id">q2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P.arePointsRelated</span> (<span class="id">q1</span>) (<span class="id">q2</span>) <span class="id">dep</span> = <span class="id">true</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">scheduleRespectsRAW</span> (<span class="id">schedule</span>: <span class="id">P.AffineFnT</span>) (<span class="id">s</span>: <span class="id">Scop</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> (<span class="id">rel</span>: <span class="id">P.AffineRelT</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">P.getDependenceRelation</span> (<span class="id">getScopStores</span> <span class="id">s</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">getScopLoads</span> <span class="id">s</span>) = <span class="id">Some</span> <span class="id">rel</span>) /\<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scheduleRespectsDependence</span> <span class="id">schedule</span> <span class="id">rel</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">scheduleRespectsWAW</span> (<span class="id">schedule</span>: <span class="id">P.AffineFnT</span>) (<span class="id">s</span>: <span class="id">Scop</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> (<span class="id">rel</span>: <span class="id">P.AffineRelT</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">P.getDependenceRelation</span> (<span class="id">getScopStores</span> <span class="id">s</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">getScopStores</span> <span class="id">s</span>) = <span class="id">Some</span> <span class="id">rel</span>) /\<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scheduleRespectsDependence</span> <span class="id">schedule</span> <span class="id">rel</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">applyScheduleToScopStmt</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">schedule</span>: <span class="id">P.AffineFnT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ss</span>: <span class="id">ScopStmt</span>): <span class="id">option</span> <span class="id">ScopStmt</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">option_map</span> (<span class="kwd">fun</span> <span class="id">newschedule</span> =&gt; {|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtArrayIdent</span> := <span class="id">scopStmtArrayIdent</span> <span class="id">ss</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtDomain</span>:= <span class="id">scopStmtDomain</span> <span class="id">ss</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtSchedule</span> := <span class="id">newschedule</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtAccessFunction</span> := <span class="id">scopStmtAccessFunction</span> <span class="id">ss</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtType</span> := <span class="id">scopStmtType</span> <span class="id">ss</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|}) (<span class="id">P.composeAffineFunction</span> (<span class="id">scopStmtSchedule</span> <span class="id">ss</span>) <span class="id">schedule</span>).<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">applyScheduleToScop</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">schedule</span>: <span class="id">P.AffineFnT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scop</span>: <span class="id">Scop</span>): <span class="id">option</span> <span class="id">Scop</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">option_map</span> (<span class="kwd">fun</span> <span class="id">newScopStmts</span> =&gt; {|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmts</span> :=  <span class="id">newScopStmts</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopIndvars</span> := <span class="id">scopIndvars</span> <span class="id">scop</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|})<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">option_traverse</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">List.map</span> (<span class="id">applyScheduleToScopStmt</span> <span class="id">schedule</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopStmts</span> <span class="id">scop</span>))).<br/>
+<br/>
+<div class="doc">=============PROOF============= *</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">applyScheduleToScopStmt_preserves_scop_stmt_domain</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">ss</span> <span class="id">ss</span>': <span class="id">ScopStmt</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">schedule</span>: <span class="id">P.AffineFnT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">MAPPED</span>: <span class="id">applyScheduleToScopStmt</span> <span class="id">schedule</span> <span class="id">ss</span> = <span class="id">Some</span> <span class="id">ss</span>'),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtDomain</span> <span class="id">ss</span> = <span class="id">scopStmtDomain</span> <span class="id">ss</span>'.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof313')">Proof.</div>
+<div class="proofscript" id="proof313">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">applyScheduleToScopStmt</span> <span class="kwd">in</span> <span class="id">MAPPED</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">P.composeAffineFunction</span> (<span class="id">scopStmtSchedule</span> <span class="id">ss</span>) <span class="id">schedule</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>; <span class="tactic">auto</span>; <span class="tactic">inversion</span> <span class="id">MAPPED</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">applyScheduleToScopStmt_preserves_scop_stmt_domain</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="id">Rewrite</span> <span class="id">applyScheduleToScopStmt_preserves_scop_stmt_domain</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">getScopDomain_cons</span>: <span class="kwd">forall</span> (<span class="id">ss</span> : <span class="id">ScopStmt</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">sslist</span>: <span class="id">list</span> <span class="id">ScopStmt</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sindvar</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">getScopDomain</span> {| <span class="id">scopStmts</span> := <span class="id">ss</span> :: <span class="id">sslist</span>; <span class="id">scopIndvars</span> := <span class="id">sindvar</span> |} =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">getScopDomain</span> {| <span class="id">scopStmts</span> := <span class="id">sslist</span>; <span class="id">scopIndvars</span> := <span class="id">sindvar</span>; |}.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof314')">Proof.</div>
+<div class="proofscript" id="proof314">
+&nbsp;&nbsp;Abort.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">applyScheduleToScopStmt_access_fn_eq</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">ss</span> <span class="id">ss</span>': <span class="id">ScopStmt</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">schedule</span>: <span class="id">P.AffineFnT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">MAPPED</span>: <span class="id">applyScheduleToScopStmt</span> <span class="id">schedule</span> <span class="id">ss</span> = <span class="id">Some</span> <span class="id">ss</span>'),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scopStmtAccessFunction</span> <span class="id">ss</span> = <span class="id">scopStmtAccessFunction</span> <span class="id">ss</span>'.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof315')">Proof.</div>
+<div class="proofscript" id="proof315">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">applyScheduleToScopStmt</span> <span class="kwd">in</span> *.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">P.composeAffineFunction</span> (<span class="id">scopStmtSchedule</span> <span class="id">ss</span>) <span class="id">schedule</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">MAPPED</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">MAPPED</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">applyScheduleToScopStmt_access_fn_eq</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="id">Rewrite</span> <span class="id">applyScheduleToScopStmt_access_fn_eq</span>.<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">applyScheduleToScop_scop_domain_eq</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">scop</span> <span class="id">scop</span>': <span class="id">Scop</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">schedule</span>: <span class="id">P.AffineFnT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">MAPPED</span>: <span class="id">applyScheduleToScop</span> <span class="id">schedule</span> <span class="id">scop</span> = <span class="id">Some</span> <span class="id">scop</span>'),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">getScopDomain</span> <span class="id">scop</span> = <span class="id">getScopDomain</span> <span class="id">scop</span>'.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof316')">Proof.</div>
+<div class="proofscript" id="proof316">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">scop</span> <span class="kwd">as</span> [<span class="id">ss</span> <span class="id">sindvar</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">ss</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="comment">(*&nbsp;base&nbsp;case&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">applyScheduleToScop</span> <span class="kwd">in</span> <span class="id">MAPPED</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">MAPPED</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">MAPPED</span>.<br/>
+&nbsp;&nbsp;Admitted.</div>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">applyScheduleToScop_scop_domain_eq</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="id">Rewrite</span> <span class="id">applyScheduleToScop_scop_domain_eq</span>.<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">isScopStmtActive_eq</span>: <span class="kwd">forall</span> (<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ss</span> <span class="id">ss</span>': <span class="id">ScopStmt</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">schedule</span>: <span class="id">P.AffineFnT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">MAPPEDSS</span>: <span class="id">Some</span> <span class="id">ss</span>' =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">applyScheduleToScopStmt</span> <span class="id">schedule</span> <span class="id">ss</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">isScopStmtActive</span> <span class="id">se</span> <span class="id">ss</span> = <span class="id">isScopStmtActive</span> <span class="id">se</span> <span class="id">ss</span>'.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof317')">Proof.</div>
+<div class="proofscript" id="proof317">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">isScopStmtActive</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">isScopStmtActive_eq</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="id">Rewrite</span> <span class="id">isScopStmtActive_eq</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Section</span> <span class="id">SEMANTICS_PRESERVATION_PROOF</span>.<br/>
+<div class="doc">Preservation properties of applyScheduleToScop *</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">schedule</span>: <span class="id">P.AffineFnT</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">scop</span> <span class="id">scop</span>': <span class="id">Scop</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">RESPECTRAW</span>: <span class="id">scheduleRespectsRAW</span> <span class="id">schedule</span> <span class="id">scop</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">RESPECTWAW</span>: <span class="id">scheduleRespectsWAW</span> <span class="id">schedule</span> <span class="id">scop</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">MAPPED</span>: <span class="id">applyScheduleToScop</span> <span class="id">schedule</span> <span class="id">scop</span> = <span class="id">Some</span> <span class="id">scop</span>'.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">getActiveScopStmtsInScop_eq</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">se</span>: <span class="id">ScopEnvironment</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> (<span class="id">ss</span>': <span class="id">list</span> <span class="id">ScopStmt</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">option_traverse</span> (<span class="id">List.map</span> (<span class="id">applyScheduleToScopStmt</span> <span class="id">schedule</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">getActiveScopStmtsInScop</span> <span class="id">scop</span> <span class="id">se</span>)) = <span class="id">Some</span> <span class="id">ss</span>' /\<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">getActiveScopStmtsInScop</span> <span class="id">scop</span>' <span class="id">se</span> = <span class="id">ss</span>'.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof318')">Proof.</div>
+<div class="proofscript" id="proof318">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">getActiveScopStmtsInScop</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Admitted.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">runScopStepWithEnvAndMem_eq</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">Memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">runScopStepWithEnvAndMem</span> <span class="id">scop</span> <span class="id">se</span> <span class="id">mem</span> = <span class="id">runScopStepWithEnvAndMem</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">scop</span>' <span class="id">se</span> <span class="id">mem</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof319')">Proof.</div>
+<div class="proofscript" id="proof319">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">runScopStepWithEnvAndMem</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">ACTIVE_STMTS_IN_SCOP</span>': <span class="id">exists</span> <span class="id">ss</span>': <span class="id">list</span> <span class="id">ScopStmt</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">option_traverse</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">List.map</span> (<span class="id">applyScheduleToScopStmt</span> <span class="id">schedule</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">getActiveScopStmtsInScop</span> <span class="id">scop</span> <span class="id">se</span>)) =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Some</span> <span class="id">ss</span>' /\<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">getActiveScopStmtsInScop</span> <span class="id">scop</span>' <span class="id">se</span> = <span class="id">ss</span>'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">admit</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">ACTIVE_STMTS_IN_SCOP</span>' <span class="kwd">as</span> [<span class="id">ss</span>' [<span class="id">SS</span>' <span class="id">ACTIVE_IN_SCOP</span>']].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">ACTIVE_IN_SCOP</span>'.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">remember</span> (<span class="id">getActiveScopStmtsInScop</span> <span class="id">scop</span> <span class="id">se</span>) <span class="kwd">as</span> <span class="id">ss</span> <span class="id">eqn</span>:<span class="id">ACTIVE_IN_SCOP</span>.<br/>
+<br/>
+&nbsp;Induction&nbsp;on&nbsp;the&nbsp;scop&nbsp;statements&nbsp;themseleves&nbsp;*)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">ss</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">simpl</span> <span class="kwd">in</span> *. <span class="tactic">inversion</span> <span class="id">SS</span>'. <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Admitted.</div>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">runScopStepWithEnvAndMem_eq</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Theorem</span> <span class="id">runScop_eq</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">fuel</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">initmem</span>: <span class="id">Memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">scopdom</span>: <span class="id">P.PolyT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SCOPDOMAIN</span>: <span class="id">Some</span> <span class="id">scopdom</span> = <span class="id">getScopDomain</span> <span class="id">scop</span>'),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">runScop_</span> <span class="id">fuel</span> <span class="id">scopdom</span> <span class="id">se</span> <span class="id">initmem</span> <span class="id">scop</span> =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">runScop_</span> <span class="id">fuel</span> <span class="id">scopdom</span> <span class="id">se</span> <span class="id">initmem</span> <span class="id">scop</span>'.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof320')">Proof.</div>
+<div class="proofscript" id="proof320">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">fuel</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">fuel</span>; <span class="tactic">intros</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">stepScopenv</span> <span class="id">scopdom</span> <span class="id">se</span>) <span class="id">eqn</span>:<span class="id">SCOPENV</span>'; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">runScopStepWithEnvAndMem_eq</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">IHfuel</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">runScop_eq</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Theorem</span> <span class="id">applying_valid_schedule_preserves_semantics</span>:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">se</span>: <span class="id">ScopEnvironment</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">initmem</span>: <span class="id">Memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">runScop</span> <span class="id">scop</span> <span class="id">se</span> <span class="id">initmem</span> = <span class="id">runScop</span> <span class="id">scop</span>' <span class="id">se</span> <span class="id">initmem</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof321')">Proof.</div>
+<div class="proofscript" id="proof321">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">runScop</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">erewrite</span> <span class="id">applyScheduleToScop_scop_domain_eq</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">getScopDomain</span> <span class="id">scop</span>') <span class="id">eqn</span>:<span class="id">SCOPDOMAIN</span>;  <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rename</span> <span class="id">p</span> <span class="id">into</span> <span class="id">scopdom</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">P.getOverapproximationNumPointsInPoly</span> (<span class="id">scopenvParams</span> <span class="id">se</span>) <span class="id">scopdom</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">eqn</span>:<span class="id">FUEL</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rename</span> <span class="id">n</span> <span class="id">into</span> <span class="id">fuel</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Qed.</div>
+<br/>
+&nbsp;&nbsp;<span class="kwd">End</span> <span class="id">SEMANTICS_PRESERVATION_PROOF</span>.<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+<span class="kwd">End</span> <span class="id">SCOP</span>.<br/>
+<br/>
+</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>

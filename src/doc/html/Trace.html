@@ -74,7 +74,7 @@
 <span class="kwd">Lemma</span> <span class="id">matchM</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">i</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>), <span class="id">i</span> = <span class="id">idM</span> <span class="id">i</span>.<br/>
 <div class="toggleproof" onclick="toggleDisplay('proof170')">Proof.</div>
 <div class="proofscript" id="proof170">
- <span class="tactic">destruct</span> <span class="id">i</span>; <span class="tactic">auto</span>. Qed.</div>
+ <span class="tactic">destruct</span> <span class="id">i</span>; <span class="tactic">auto</span>. Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">matchM</span>' : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">i1</span> <span class="id">i2</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>), <span class="id">i1</span> ≡ <span class="id">i2</span> &lt;-&gt; <span class="id">idM</span> <span class="id">i1</span> ≡ <span class="id">idM</span> <span class="id">i2</span>.<br/>
@@ -85,7 +85,7 @@
 &nbsp;&nbsp;- <span class="tactic">rewrite</span> <span class="id">matchM</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">i2</span>).<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Inductive</span> <span class="id">TraceFinite</span> {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} {<span class="id">X</span>: <span class="kwd">Type</span>}: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span> -&gt; <span class="kwd">Type</span> :=<br/>
 | <span class="id">TFRet</span>: <span class="kwd">forall</span> (<span class="id">x</span>: <span class="id">X</span>), <span class="id">TraceFinite</span> (<span class="id">Ret</span> <span class="id">x</span>)<br/>
@@ -96,6 +96,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">FINK</span>: <span class="kwd">forall</span> (<span class="id">y</span>: <span class="id">Y</span>), <span class="id">TraceFinite</span> (<span class="id">k</span> <span class="id">y</span>)),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">TraceFinite</span> (<span class="id">Vis</span> <span class="id">e</span> <span class="id">k</span>)<br/>
 .<br/>
+<br/>
+<br/>
 <br/>
 &nbsp;&nbsp;<br/>
 <br/>
@@ -230,7 +232,7 @@ Qed.</div>
 &nbsp;&nbsp;- <span class="tactic">eapply</span> <span class="id">_EquivTauLeft</span>; <span class="tactic">eauto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">eapply</span> <span class="id">_EquivTauRight</span>; <span class="tactic">eauto</span>.<br/>
 &nbsp;&nbsp;- <span class="id">constructor</span>.<br/>
-Qed.</div>
+Defined.</div>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">pEquivUpToTauGen_monotone</span> : <span class="id">paco</span>.<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">peutt_refl</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
@@ -252,7 +254,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">right</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;- <span class="id">pfold</span>. <span class="id">constructor</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_refl</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EquivUpToTau</span> <span class="id">s</span> <span class="id">s</span>.<br/>
@@ -263,7 +265,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">s</span>; <span class="id">constructor</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_refl</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_sym</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">t</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EquivUpToTau</span> <span class="id">s</span> <span class="id">t</span> -&gt; <span class="id">EquivUpToTau</span> <span class="id">t</span> <span class="id">s</span>.<br/>
@@ -276,7 +278,7 @@ Qed.</div>
 &nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">eutt_sym</span>. <span class="tactic">apply</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="id">econstructor</span>. <span class="tactic">assumption</span>. <span class="id">eassumption</span>. <span class="tactic">apply</span> <span class="id">eutt_sym</span>. <span class="tactic">assumption</span>.<br/>
 &nbsp;&nbsp;- <span class="id">econstructor</span>. <span class="tactic">assumption</span>. <span class="id">eassumption</span>. <span class="tactic">apply</span> <span class="id">eutt_sym</span>. <span class="tactic">assumption</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">peutt_sym</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">pEquivUpToTau</span> <span class="id">s</span> <span class="id">s</span>.<br/>
@@ -297,7 +299,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">right</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;- <span class="id">pfold</span>. <span class="id">constructor</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Fixpoint</span> <span class="id">tauN</span> {<span class="id">E</span> <span class="id">X</span>} (<span class="id">n</span>: <span class="id">nat</span>) (<span class="id">s</span>': <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>): <span class="id">M</span> <span class="id">E</span> <span class="id">X</span> :=<br/>
@@ -315,7 +317,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">omega</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">N_PLUS_1</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">tauN_untau</span>:<br/>
@@ -336,7 +338,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">tauN_destruct</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">constructor</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">omega</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">tauN_untau</span>.<br/>
@@ -355,7 +357,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- <span class="id">IHn</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">tauN_eutt</span>: <span class="kwd">forall</span> {<span class="id">E</span> <span class="id">X</span>}<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">n</span>: <span class="id">nat</span>)<br/>
@@ -396,7 +398,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">tauN_eutt</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">omega</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <br/>
@@ -409,7 +411,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">replace</span> (<span class="id">Tau</span> <span class="id">a</span>) <span class="kwd">with</span> (<span class="id">tauN</span> 1 <span class="id">a</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">tauN_eutt</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">tauN_eutt_2</span>: <span class="kwd">forall</span> {<span class="id">E</span> <span class="id">X</span>} (<span class="id">a</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
@@ -420,7 +422,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">replace</span> (<span class="id">Tau</span> (<span class="id">Tau</span> <span class="id">a</span>)) <span class="kwd">with</span> (<span class="id">tauN</span> 2 <span class="id">a</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">tauN_eutt</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 <br/>
@@ -440,7 +442,7 @@ Qed.</div>
 &nbsp;&nbsp;- <span class="id">exists</span> 0.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
-Qed.</div>
+Defined.</div>
 &nbsp;&nbsp;<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">untau_notau</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">t</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>), ~(<span class="id">UnTau</span> <span class="id">s</span> (<span class="id">Tau</span> <span class="id">t</span>)).<br/>
@@ -451,7 +453,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">eapply</span> <span class="id">H</span>; <span class="tactic">eauto</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">untau_untau</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">t</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">UnTau</span> <span class="id">s</span> <span class="id">t</span> -&gt; <span class="id">UnTau</span> <span class="id">t</span> <span class="id">t</span>.<br/>
@@ -461,7 +463,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="id">constructor</span>; <span class="tactic">assumption</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">untau_inj</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">s</span>' <span class="id">s</span>'' : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">UnTau</span> <span class="id">s</span> <span class="id">s</span>' -&gt; <span class="id">UnTau</span> <span class="id">s</span> <span class="id">s</span>'' -&gt; <span class="id">s</span>' = <span class="id">s</span>''.<br/>
@@ -473,7 +475,7 @@ Qed.</div>
 &nbsp;&nbsp;- <span class="id">dispatch_contra</span>.<br/>
 &nbsp;&nbsp;- <span class="id">dispatch_contra</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">reflexivity</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_untau</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">s</span>' <span class="id">t</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">UnTau</span> <span class="id">s</span> <span class="id">s</span>' -&gt; <span class="id">EquivUpToTau</span> <span class="id">s</span> <span class="id">t</span> -&gt;<br/>
@@ -507,7 +509,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id">eexists</span>; <span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="id">constructor</span>. <span class="tactic">intros</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span>. <span class="tactic">inversion</span> <span class="id">H0</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">assumption</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_tau_2</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">s</span>' <span class="id">t</span> <span class="id">t</span>' : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">UnTau</span> <span class="id">s</span> <span class="id">s</span>' -&gt; <span class="id">UnTau</span> <span class="id">t</span> <span class="id">t</span>' -&gt; <span class="id">EquivUpToTau</span> <span class="id">s</span>' <span class="id">t</span>' -&gt;<br/>
@@ -524,7 +526,7 @@ Qed.</div>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">H</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">try</span> (<span class="id">constructor</span>; <span class="tactic">assumption</span>);<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dispatch_contra</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_untau_2</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">s</span>' <span class="id">t</span> <span class="id">t</span>' : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">UnTau</span> <span class="id">s</span> <span class="id">s</span>' -&gt; <span class="id">UnTau</span> <span class="id">t</span> <span class="id">t</span>' -&gt; <span class="id">EquivUpToTau</span> <span class="id">s</span> <span class="id">t</span> -&gt;<br/>
@@ -550,7 +552,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">assumption</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* <span class="tactic">eapply</span> <span class="id">untau_inj</span>; <span class="id">eassumption</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id">constructor</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_untau_3</span>: <span class="kwd">forall</span> {<span class="id">E</span> <span class="id">X</span>} (<span class="id">t</span> <span class="id">t</span>': <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
@@ -565,7 +567,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">T_TAU</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_sym</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">tauN_eutt</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_untau_trans</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">s</span>' <span class="id">t</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">UnTau</span> <span class="id">s</span> <span class="id">s</span>' -&gt; <span class="id">EquivUpToTau</span> <span class="id">s</span>' <span class="id">t</span> -&gt; <span class="id">EquivUpToTau</span> <span class="id">s</span> <span class="id">t</span>.<br/>
@@ -602,7 +604,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">assumption</span>.<br/>
 &nbsp;&nbsp;}<br/>
 &nbsp;&nbsp;<span class="tactic">assumption</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <br/>
@@ -629,7 +631,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>) <span class="id">x</span>)) <span class="kwd">as</span> <span class="id">BIND</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_sym</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">tauN_eutt_1</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
@@ -645,7 +647,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">H</span>. <span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;<span class="id">econstructor</span>; <span class="tactic">auto</span>. <span class="tactic">apply</span> <span class="id">H1</span>. <span class="tactic">eapply</span> <span class="id">eutt_err_t</span>. <span class="tactic">apply</span> <span class="id">H2</span>.<br/>
 &nbsp;&nbsp;<span class="id">econstructor</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_trans</span> : <span class="kwd">forall</span> <span class="id">E</span> <span class="id">X</span> (<span class="id">s</span> <span class="id">t</span> <span class="id">u</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">EquivUpToTau</span> <span class="id">s</span> <span class="id">t</span> -&gt; <span class="id">EquivUpToTau</span> <span class="id">t</span> <span class="id">u</span> -&gt; <span class="id">EquivUpToTau</span> <span class="id">s</span> <span class="id">u</span>.<br/>
@@ -770,7 +772,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">eapply</span> <span class="id">eutt_err_t</span>. <span class="tactic">apply</span> <span class="id">H1</span>.<br/>
 <br/>
 &nbsp;&nbsp;- <span class="id">econstructor</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <div class="doc">Register EUTT as an equivalence relation *</div>
@@ -807,7 +809,7 @@ Qed.</div>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">eutt_trans</span>; <span class="tactic">eauto</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">omega</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eutt_bindM_through_unTau</span>: <span class="kwd">forall</span> {<span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>}  (<span class="id">t</span> <span class="id">t</span>': <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) (<span class="id">f</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>),<br/>
@@ -822,7 +824,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">T_TAU</span> <span class="kwd">as</span> [<span class="id">n</span> <span class="id">T_TAU</span>].<br/>
 &nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_bindM_through_tauN</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">untau_bindM</span>: <span class="kwd">forall</span> {<span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>} (<span class="id">t</span> <span class="id">t</span>': <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) (<span class="id">f</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> <span class="id">x</span>: <span class="id">X</span>, <span class="id">t</span>' &lt;&gt; <span class="id">Ret</span> <span class="id">x</span>) -&gt; <br/>
@@ -852,7 +854,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">rewrite</span> (@<span class="id">matchM</span>) <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">bindM</span> (<span class="id">Err</span> <span class="id">s</span>) <span class="id">f</span>).<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">NoTau</span>; <span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
 &nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<br/>
@@ -865,7 +867,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Reflexive</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_refl</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">symmetric_eutt</span>{<span class="id">E</span>} <span class="id">X</span> : <span class="id">Symmetric</span> (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>).<br/>
@@ -874,7 +876,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Symmetric</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_sym</span>; <span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">transitive_eutt</span>{<span class="id">E</span>} <span class="id">X</span> : <span class="id">Transitive</span> (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>).<br/>
@@ -883,7 +885,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Transitive</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">eutt_trans</span>; <span class="tactic">eauto</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 &nbsp;&nbsp;<br/>
 <br/>
@@ -894,7 +896,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">reflexive_eutt</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">symmetric_eutt</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">transitive_eutt</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Instance</span> <span class="id">equiv_eutt</span> {<span class="id">E</span>} <span class="id">X</span> : <span class="id">Equiv</span> (<span class="id">M</span> <span class="id">E</span> <span class="id">X</span>) := (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>).<br/>
 <br/>
@@ -914,7 +916,7 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">tauN_eutt</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eutt_trans</span>; <span class="tactic">eauto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_refl</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">bindM_Ret</span>: <span class="kwd">forall</span> (<span class="id">A</span> <span class="id">B</span>: <span class="kwd">Type</span>) (<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span> ) (<span class="id">a</span>: <span class="id">A</span>) (<span class="id">f</span>: <span class="id">A</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">B</span>),<br/>
@@ -927,7 +929,9 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">symmetry</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">tauN_eutt_1</span>.<br/>
 &nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
-Qed.</div>
+Defined.</div>
+<br/>
+<br/>
 <br/>
 <br/>
 <br/>
@@ -1211,7 +1215,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">constructor</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">bindM_rewrite_fn</span>: <br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span> } {<span class="id">X</span> <span class="id">Y</span>: <span class="kwd">Type</span>} (<span class="id">f</span> <span class="id">g</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>)<br/>
@@ -1249,14 +1253,13 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">constructor</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 <span class="id">Create</span> <span class="id">HintDb</span> <span class="id">eutt</span>.<br/>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">bindM_proper_wrt_eutt</span> : <span class="id">eutt</span>.<br/>
-<br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">bindm_eutt_proper</span> {<span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>}:<br/>
 &nbsp;&nbsp;<span class="id">Proper</span> ((@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>) ==&gt; <span class="id">eq</span> ==&gt; (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">Y</span>)) (@<span class="id">bindM</span> <span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>).<br/>
@@ -1272,7 +1275,7 @@ Qed.</div>
 <br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">bindM_proper_wrt_eutt</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">assumption</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="kwd">Check</span> (@<span class="id">bindM</span>).<br/>
 <span class="kwd">Add</span> <span class="id">Parametric</span> <span class="id">Morphism</span> (<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>) (<span class="id">X</span> <span class="id">Y</span> : <span class="kwd">Type</span>) : (@<span class="id">bindM</span> <span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>) <span class="kwd">with</span><br/>
@@ -1282,7 +1285,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
-Qed.</div>
+Defined.</div>
+&nbsp;&nbsp;<br/>
 <br/>
 <br/>
 <br/>
@@ -1294,17 +1298,16 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exists</span> (<span class="id">k2</span>: <span class="id">Y</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">t2</span> = <span class="id">Vis</span> <span class="id">e</span> <span class="id">k2</span> /\<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="kwd">forall</span> (<span class="id">y</span>: <span class="id">Y</span>), <span class="id">P</span> (<span class="id">k1</span> <span class="id">y</span>) (<span class="id">k2</span> <span class="id">y</span>)))))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">TAU</span>: <span class="kwd">forall</span> <span class="id">t1</span> <span class="id">t2</span> <span class="id">t1</span>',<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> <span class="id">t1</span> <span class="id">t2</span> -&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">t1</span> = <span class="id">Tau</span> <span class="id">t1</span>' /\<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exists</span> <span class="id">t2</span>', <span class="id">t2</span> = <span class="id">Tau</span> <span class="id">t2</span>' /\ <span class="id">P</span> <span class="id">t1</span>' <span class="id">t2</span>'))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ERR</span>: <span class="kwd">forall</span> <span class="id">t1</span> <span class="id">t2</span> <span class="id">s</span> , <span class="id">t1</span> = <span class="id">Err</span> (<span class="id">Event</span>:=<span class="id">E</span>) (<span class="id">X</span>:=<span class="id">X</span>) <span class="id">s</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">TAU</span>: <span class="kwd">forall</span> <span class="id">t1</span> <span class="id">t2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">P</span> (<span class="id">Tau</span> <span class="id">t1</span>) <span class="id">t2</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exists</span> <span class="id">t2</span>', <span class="id">t2</span> = <span class="id">Tau</span> <span class="id">t2</span>' /\ <span class="id">P</span> <span class="id">t1</span> <span class="id">t2</span>'))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ERR</span>: <span class="kwd">forall</span> <span class="id">t1</span> <span class="id">t2</span> <span class="id">s</span> , <span class="id">P</span> <span class="id">t1</span> <span class="id">t2</span> -&gt;  <span class="id">t1</span> = <span class="id">Err</span> (<span class="id">Event</span>:=<span class="id">E</span>) (<span class="id">X</span>:=<span class="id">X</span>) <span class="id">s</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> <span class="id">s</span>', <span class="id">t2</span> = <span class="id">Err</span> (<span class="id">Event</span>:=<span class="id">E</span>) (<span class="id">X</span>:=<span class="id">X</span>) <span class="id">s</span>'),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> (<span class="id">t1</span> <span class="id">t2</span> : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>), <span class="id">P</span> <span class="id">t1</span> <span class="id">t2</span> -&gt; <span class="id">EquivUpToTau</span> <span class="id">t1</span> <span class="id">t2</span>).<br/>
 <div class="toggleproof" onclick="toggleDisplay('proof208')">Proof.</div>
 <div class="proofscript" id="proof208">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">P</span>.<br/>
-&nbsp;&nbsp;<span class="id">cofix</span>.<br/>
+&nbsp;&nbsp;<span class="id">cofix</span> <span class="id">CIH</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">t2</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">P_TRACES</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">t1</span>.<br/>
@@ -1320,13 +1323,14 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">constructor</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_coinduction_principle</span>; <span class="tactic">auto</span>.<br/>
-&nbsp;&nbsp;+ <span class="tactic">assert</span> (<span class="id">T2TAU</span>:  <span class="id">exists</span> <span class="id">t2</span>' : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>, <span class="id">t2</span> = <span class="id">Tau</span> <span class="id">t2</span>' /\ <span class="id">P</span> <span class="id">t1</span> <span class="id">t2</span>').<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">CIH</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;+ <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">T2TAU</span>:  <span class="id">exists</span> <span class="id">t2</span>' : <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>, <span class="id">t2</span> = <span class="id">Tau</span> <span class="id">t2</span>' /\ <span class="id">P</span>  <span class="id">t1</span> <span class="id">t2</span>').<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">TAU</span>; <span class="tactic">eauto</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">T2TAU</span> <span class="kwd">as</span> [<span class="id">t2</span>' [<span class="id">T2TAu</span> <span class="id">TEQUIV</span>]].<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">constructor</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">eutt_coinduction_principle</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">CIH</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;+<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">T2ERR</span>: <span class="id">exists</span> <span class="id">s</span>', <span class="id">t2</span> = <span class="id">Err</span> <span class="id">s</span>').<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ERR</span> <span class="kwd">with</span> (<span class="id">t1</span> := (<span class="id">Err</span> <span class="id">s</span>)) (<span class="id">s</span> := <span class="id">s</span>); <span class="tactic">eauto</span>.<br/>
@@ -1334,7 +1338,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">T2ERR</span> <span class="kwd">as</span> [<span class="id">s</span>' <span class="id">T2ERR</span>].<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">constructor</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <div class="doc">Rewrite Rules *</div>
 <br/>
@@ -1404,7 +1408,7 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">M_functor_eutt_laws</span> {<span class="id">E</span>} : (@<span class="id">FunctorLaws</span> (<span class="id">M</span> <span class="id">E</span>)) (@<span class="id">mapM</span> <span class="id">E</span>) (@<span class="id">equiv_eutt</span> <span class="id">E</span>).<br/>
@@ -1438,21 +1442,43 @@ Admitted.</div>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="tactic">rewrite</span> &lt;- <span class="id">tauN_eutt_1</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">bindM_Ret_2</span>: <span class="kwd">forall</span> {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} {<span class="id">X</span>: <span class="kwd">Type</span>}  (<span class="id">mex</span>: <span class="id">M</span> <span class="id">E</span> <span class="id">X</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">bindM</span> <span class="id">mex</span> (<span class="id">Ret</span> (<span class="id">X</span>:=<span class="id">X</span>)) ≡ <span class="id">mex</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof215')">Proof.</div>
+<div class="proofscript" id="proof215">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">X</span>.<br/>
+&nbsp;&nbsp;<span class="id">cofix</span> <span class="id">CIH</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">bindM</span> <span class="id">_</span> <span class="id">_</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">mex</span>; <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">rewrite</span> <span class="id">remove_tau</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;- <span class="id">constructor</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">CIH</span>.<br/>
+&nbsp;&nbsp;- <span class="id">constructor</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">CIH</span>.<br/>
+&nbsp;&nbsp;- <span class="id">constructor</span>.<br/>
+Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">bindM_Err</span>: <span class="kwd">forall</span> {<span class="id">X</span> <span class="id">Y</span> :<span class="kwd">Type</span>} {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} (<span class="id">e</span>: <span class="id">String.string</span>) (<span class="id">f</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>),<br/>
 &nbsp;&nbsp;<span class="id">bindM</span> (<span class="id">Err</span> <span class="id">e</span>) <span class="id">f</span> ≡ <span class="id">Err</span> <span class="id">e</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof215')">Proof.</div>
-<div class="proofscript" id="proof215">
+<div class="toggleproof" onclick="toggleDisplay('proof216')">Proof.</div>
+<div class="proofscript" id="proof216">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := (<span class="id">bindM</span> <span class="id">_</span> <span class="id">_</span>)).<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
 <br/>
 <span class="id">Create</span> <span class="id">HintDb</span> <span class="id">euttnormdb</span>.<br/>
 <span class="kwd">Hint</span> <span class="id">Rewrite</span> (@<span class="id">bindM_assoc</span>) : <span class="id">euttnormdb</span>.<br/>
 <span class="kwd">Hint</span> <span class="id">Rewrite</span> (@<span class="id">bindM_Ret</span>) : <span class="id">euttnormdb</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> (@<span class="id">bindM_Ret_2</span>) : <span class="id">euttnormdb</span>.<br/>
 <span class="kwd">Hint</span> <span class="id">Rewrite</span> (@<span class="id">bindM_Vis</span>) : <span class="id">euttnormdb</span>.<br/>
 <span class="kwd">Hint</span> <span class="id">Rewrite</span> (@<span class="id">remove_tau</span>) : <span class="id">euttnormdb</span>.<br/>
 <span class="kwd">Hint</span> <span class="id">Rewrite</span> (@<span class="id">bindM_Err</span>) : <span class="id">euttnormdb</span>.<br/>
@@ -1462,11 +1488,51 @@ Qed.</div>
 <br/>
 <span class="kwd">Add</span> <span class="id">Parametric</span> <span class="id">Morphism</span> (<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>) (<span class="id">X</span> : <span class="kwd">Type</span>) : (@<span class="id">Tau</span> <span class="id">E</span> <span class="id">X</span>) <span class="kwd">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">signature</span> ((@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>) ==&gt;(@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>)) <span class="kwd">as</span> <span class="id">Tau</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof216')">Proof.</div>
-<div class="proofscript" id="proof216">
+<div class="toggleproof" onclick="toggleDisplay('proof217')">Proof.</div>
+<div class="proofscript" id="proof217">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="id">constructor</span>. <span class="tactic">auto</span>.<br/>
-Qed.</div>
+Defined.</div>
+<br/>
+<br/>
+<br/>
+<div class="doc">Show that we can rewrite functions which agree pointwise with respect to EUTT
+under bind *</div>
+<span class="kwd">Definition</span> <span class="id">PointwiseEUTT</span> {<span class="id">E</span>: <span class="kwd">Type</span> -&gt; <span class="kwd">Type</span>} {<span class="id">X</span> <span class="id">Y</span>: <span class="kwd">Type</span>} (<span class="id">f</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>) (<span class="id">g</span>: <span class="id">X</span> -&gt; <span class="id">M</span> <span class="id">E</span> <span class="id">Y</span>) : <span class="kwd">Prop</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">x</span>: <span class="id">X</span>), <span class="id">f</span> <span class="id">x</span> ≡ <span class="id">g</span> <span class="id">x</span>.<br/>
+<br/>
+<span class="kwd">Instance</span> <span class="id">bindm_function_pointwise_proper</span> {<span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>}:<br/>
+&nbsp;&nbsp;<span class="id">Proper</span> ((@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;==&gt; (@<span class="id">PointwiseEUTT</span> <span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;==&gt;  (@<span class="id">EquivUpToTau</span> <span class="id">E</span> <span class="id">Y</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(@<span class="id">bindM</span> <span class="id">E</span> <span class="id">X</span> <span class="id">Y</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof218')">Proof.</div>
+<div class="proofscript" id="proof218">
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">MEX</span> <span class="id">MEX</span>' <span class="id">MEXEQUIV</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">F</span> <span class="id">G</span> <span class="id">FEQUIV</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">PointwiseEUTT</span> <span class="kwd">in</span> <span class="id">FEQUIV</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">MEX</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">MEX</span>'.<br/>
+&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">F</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">G</span>.<br/>
+&nbsp;&nbsp;<span class="id">cofix</span>.<br/>
+&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">MEX</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">MEXEQUIV</span>; <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">FEQUIV</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Admitted.</div>
+<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+<br/>
 <span class="kwd">End</span> <span class="id">MonadVerif</span>.<br/>
 </div>
 <div class="footer"><hr/>Generated by coq2html</div>
