@@ -527,21 +527,22 @@ Definition instr_pt := nat.
 (** *Semantics of basic block execution *)
 Section BASICBLOCK.
   Inductive BBResult :=
-  | BBRBreak: block_id -> BBResult (**r Break from the current BB to the next BB *)
-  | BBRRet: dvalue -> BBResult (**r Return from the function *)
-  | BBRRetVoid: BBResult  (**r Return void from the function *)
-  | BBRCall: function_id (**r function to call *)
+  | BBRBreak: env ->  block_id -> BBResult (**r Break from the current BB to the next BB *)
+  | BBRRet:  dvalue -> BBResult (**r Return from the function *)
+  | BBRRetVoid:  BBResult  (**r Return void from the function *)
+  | BBRCall: env -> (**r environment value *)
+             function_id (**r function to call *)
              -> list (dvalue) (**r parameters *)
              -> instr_id (**r return value ID *)
              -> instr_pt (**r instruction to resume execution from *)
              -> block_id (**r BB to resume execution from *)
              -> BBResult (**r Call a function *)
-  | BBRCallVoid: function_id -> list (dvalue) -> instr_pt -> block_id -> BBResult
+  | BBRCallVoid: env -> function_id -> list (dvalue) -> instr_pt -> block_id -> BBResult
   .
 
-  Definition BBResultFromTermResult (tr: TermResult): BBResult :=
+  Definition BBResultFromTermResult (e: env) (tr: TermResult): BBResult :=
     match tr with
-    | TRBreak bid => BBRBreak bid
+    | TRBreak bid => BBRBreak e bid
     | TRRet v =>  BBRRet v
     | TRRetVoid => BBRRetVoid
     end.
@@ -580,13 +581,13 @@ Section BASICBLOCK.
            (term: terminator)
            (pt: instr_pt): Trace BBResult :=
     match instrs with
-    | [] =>  Trace.mapM BBResultFromTermResult (execTerm tds ge e term)
+    | [] =>  Trace.mapM (BBResultFromTermResult e) (execTerm tds ge e term)
     | cons (id, i) irest =>
       'iresult <- (execInst tds ge e id i);
         match iresult with
         | IRCall fnid args retinstid instid =>
-          Ret (BBRCall fnid args retinstid pt bbid)
-        | IRCallVoid fnid args instid => Ret (BBRCallVoid fnid args pt bbid)
+          Ret (BBRCall e fnid args retinstid pt bbid)
+        | IRCallVoid fnid args instid => Ret (BBRCallVoid e fnid args pt bbid)
         | IREnvEffect e' => execBBInstrs tds ge e' bbid irest term (pt + 1)%nat
         | IRNone => execBBInstrs tds ge e bbid irest term (pt + 1)%nat
         end
@@ -647,10 +648,17 @@ Section FUNCTION.
   Inductive FunctionResult :=
   | FRReturn: dvalue -> FunctionResult
   | FRReturnVoid: FunctionResult
-  | FRCall: function_id -> list (dvalue) -> instr_id -> 
-            pc -> FunctionResult
-  | FRCallVoid: function_id -> list (dvalue) ->
-                pc -> FunctionResult.
+  | FRCall: env
+            -> function_id
+            -> list (dvalue)
+            -> instr_id
+            -> pc
+            -> FunctionResult
+  | FRCallVoid: env
+                -> function_id
+                -> list (dvalue)
+                -> pc
+                -> FunctionResult.
 
 
   (** To execute a function, execute the current basic block.
@@ -672,13 +680,13 @@ capabilities of a function call.
     | Some bb =>
       'bbres <- execBB tds ge e bb;
         match bbres with
-        | BBRBreak bbid' => execFunctionAtBBId tds ge e CFG fnid bbid' 
+        | BBRBreak e' bbid' => execFunctionAtBBId tds ge e' CFG fnid bbid' 
         | BBRRet dv => Ret (FRReturn dv)
         | BBRRetVoid => Ret FRReturnVoid
-        | BBRCall fnid args retinstid instid bbid =>
-          Ret (FRCall fnid args retinstid (instid, bbid, fnid))
-        | BBRCallVoid fnid args instid bbid =>
-          Ret (FRCallVoid fnid args (instid, bbid, fnid))
+        | BBRCall e' fnid args retinstid instid bbid =>
+          Ret (FRCall e' fnid args retinstid (instid, bbid, fnid))
+        | BBRCallVoid e' fnid args instid bbid =>
+          Ret (FRCallVoid e' fnid args (instid, bbid, fnid))
         end
     end.
 
@@ -701,13 +709,13 @@ capabilities of a function call.
     | Some bb =>
       'bbres <- execBBAfterLoc tds ge e bb loc;
         match bbres with
-        | BBRBreak bbid' => execFunctionAtBBId tds ge e CFG fnid bbid' 
+        | BBRBreak e' bbid' => execFunctionAtBBId tds ge e' CFG fnid bbid' 
         | BBRRet dv => Ret (FRReturn dv)
         | BBRRetVoid => Ret FRReturnVoid
-        | BBRCall fnid args retinstid instid bbid =>
-          Ret (FRCall fnid args retinstid (instid, bbid, fnid))
-        | BBRCallVoid fnid args instid bbid =>
-          Ret (FRCallVoid fnid args (instid, bbid, fnid))
+        | BBRCall e' fnid args retinstid instid bbid =>
+          Ret (FRCall e' fnid args retinstid (instid, bbid, fnid))
+        | BBRCallVoid e' fnid args instid bbid =>
+          Ret (FRCallVoid e' fnid args (instid, bbid, fnid))
         end
     end.
     
@@ -791,17 +799,17 @@ Section INTERPRETER.
                              Tau (execInterpreter ge e s' MCFG (IRResumeFunction pc))
                            | _ => Err "incorrect stack frame"
                            end
-          | FRCall callfnid argvals retinstid pc =>
+          | FRCall e' callfnid argvals retinstid pc =>
             
                                Tau (execInterpreter ge
-                                                    e
-                                                    (cons (KRet e retinstid pc) s)
+                                                    e'
+                                                    (cons (KRet e' retinstid pc) s)
                                                     MCFG
                                                     (IREnterFunction callfnid argvals))
-          | FRCallVoid callfnid args pc =>
+          | FRCallVoid e' callfnid args pc =>
             Tau (execInterpreter ge
                             e
-                            (cons (KRet_void e pc) s)
+                            (cons (KRet_void e' pc) s)
                             MCFG
                             (IREnterFunction callfnid args))
                      end
@@ -941,14 +949,15 @@ Lemma force_exec_bb_instrs:
     (pt: instr_pt),
     execBBInstrs tds ge e bbid instrs term pt  ≡ 
     match instrs with
-    | [] =>  Trace.mapM BBResultFromTermResult (execTerm tds ge e term)
+    | [] =>  Trace.mapM (BBResultFromTermResult e) (execTerm tds ge e term)
     | cons (id, i) irest =>
       'iresult <- (execInst tds ge e id i);
         match iresult with
         | IRCall fnid args retinstid instid =>
-          Ret (BBRCall fnid args retinstid pt bbid)
-        | IRCallVoid fnid args instid => Ret (BBRCallVoid fnid args pt bbid)
-        | _ => execBBInstrs tds ge e bbid irest term (pt + 1)%nat
+          Ret (BBRCall e fnid args retinstid pt bbid)
+        | IRCallVoid fnid args instid => Ret (BBRCallVoid e fnid args pt bbid)
+        | IREnvEffect e' => execBBInstrs tds ge e' bbid irest term (pt + 1)%nat
+        | IRNone => execBBInstrs tds ge e bbid irest term (pt + 1)%nat
         end
     end.
 Proof.
@@ -968,13 +977,13 @@ Lemma force_exec_function_at_bb_id:
     execFunctionAtBBId tds ge e  CFG fnid bbid ≡
       'bbres <- execBB tds ge e bb;
         match bbres with
-        | BBRBreak bbid' => execFunctionAtBBId tds ge e CFG fnid bbid' 
+        | BBRBreak e' bbid' => execFunctionAtBBId tds ge e' CFG fnid bbid' 
         | BBRRet dv => Ret (FRReturn dv)
         | BBRRetVoid => Ret FRReturnVoid
-        | BBRCall fnid args retinstid instid bbid =>
-          Ret (FRCall fnid args retinstid (instid, bbid, fnid))
-        | BBRCallVoid fnid args instid bbid =>
-          Ret (FRCallVoid fnid args (instid, bbid, fnid))
+        | BBRCall e' fnid args retinstid instid bbid =>
+          Ret (FRCall e' fnid args retinstid (instid, bbid, fnid))
+        | BBRCallVoid e' fnid args instid bbid =>
+          Ret (FRCallVoid e' fnid args (instid, bbid, fnid))
         end.
 Proof.
 Admitted.
