@@ -1050,20 +1050,26 @@ Lemma force_exec_function_at_bb_id:
     (ge: genv)
     (CFG: cfg)
     (fnid: function_id)
-    (bbid: block_id)
+    (bbid: block_id) (oprev_blk_id: option block_id)
     (bb:block)
     (BLK: find_block (blks CFG) bbid = Some bb),
-    execFunctionAtBBId tds ge e  CFG fnid bbid ≡
-      'bbres <- execBB tds ge e bb;
-        match bbres with
-        | BBRBreak e' bbid' => execFunctionAtBBId tds ge e' CFG fnid bbid' 
-        | BBRRet dv => Ret (FRReturn dv)
-        | BBRRetVoid => Ret FRReturnVoid
-        | BBRCall e' fnid args retinstid instid bbid =>
-          Ret (FRCall e' fnid args retinstid (instid, bbid, fnid))
-        | BBRCallVoid e' fnid args instid bbid =>
-          Ret (FRCallVoid e' fnid args (instid, bbid, fnid))
-        end.
+    execFunctionAtBBId tds ge e  CFG fnid oprev_blk_id 
+                       bbid ≡
+                       match find_block (blks CFG) bbid with
+                       | None => 
+                         Err "no block found"
+                       | Some bb =>
+                         'bbres <- execBB tds ge e oprev_blk_id bb;
+                           match bbres with
+                           | BBRBreak e' bbid' => execFunctionAtBBId tds ge e' CFG fnid (Some bbid) bbid' 
+                           | BBRRet dv => Ret (FRReturn dv)
+                           | BBRRetVoid => Ret FRReturnVoid
+                           | BBRCall e' fnid args retinstid instid bbid =>
+                             Ret (FRCall e' fnid args retinstid (instid, bbid, fnid))
+                           | BBRCallVoid e' fnid args instid bbid =>
+                             Ret (FRCallVoid e' fnid args (instid, bbid, fnid))
+                           end
+                       end.
 Proof.
 Admitted.
 
