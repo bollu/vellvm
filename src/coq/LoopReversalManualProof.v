@@ -37,7 +37,6 @@ Require Import ZMicromega.
 Import IO.DV.
 Import Trace.MonadVerif.
 Require Nsatz.
-Require Import polyir.
 
 Import ListNotations.
 Open Scope Z_scope.
@@ -268,45 +267,89 @@ Hint Transparent SS.init_state.
 Hint Unfold SS.init_state.
 
 
-(** I need to show that the trace is finite to be able to "peek into"
-the effect of memory **)
-Lemma exec_main_function_has_finite_trace: forall (n: nat),
-  TraceFinite (SST.execFunction []
-              (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
-                 (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
-              (mainCFG n) (Name "main")).
-Proof.
-  Opaque SST.execBB.
-  Opaque SST.step_sem_tiered.
-  Opaque SST.execBB.
-  Opaque SST.execBBInstrs.
-  Opaque SST.execBBAfterLoc.
-  Opaque SST.execFunctionAtBBId.
-  Opaque Trace.bindM.
 
-  intros.
-  unfold SST.execFunction.
-  simpl.
-  unfold simpleProgramInitBBId.
-  (** universe stuff goes wrong
-  rewrite SST.force_exec_function_at_bb_id
-    with (tds:=[])
-         (ge:=(SST.ENV.add (Name "main") (DVALUE_Addr (M.size M.empty, 0))
-                           (SST.ENV.empty dvalue)))
-         (e:=(SST.env_of_assoc []))
-         (CFG:=mainCFG n)
-         (fnid:= (Name "main"))
-         (bbid:=Name "init").
-   **)
+(** *Instruction effects *)
+
+(** Effect of alloca *)
+Lemma effect_alloca:  forall 
+             (tds: typedefs)
+             (ge:  SST.genv)
+             (e: SST.env)
+             (id: instr_id)
+             (name: string)
+             (nbytes: Z)
+             (i: instr)
+             (mem: M.memory)
+             (ID: id = fst (alloca_array name nbytes))
+             (INST: i = snd (alloca_array name nbytes)),
+             exists t,
+               M.memEffect mem (SST.execInst tds ge e id i) ≡ t.
+Proof.
 Abort.
+
+(** Effect of store *)
+Lemma effect_store: forall
+             (tds: typedefs)
+             (ge:  SST.genv)
+             (e: SST.env)
+             (id: instr_id)
+             (i: instr)
+             (mem: M.memory)
+             (val ix: texp),
+             exists t,
+               M.memEffect mem (SST.execInst tds ge e id  (inst_store val ix)) ≡ t.
+Abort.
+
+(** *Basic block effects *)
+Lemma exec_bbInit: forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (mem: M.memory),
+    exists t,
+      M.memEffect mem (SST.execBB tds ge e (bbInit n)) ≡ t.
+Abort.
+             
+
+Lemma exec_bbInitRewrite: forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (mem: M.memory),
+    exists t,
+      M.memEffect mem (SST.execBB tds ge e (bbInitRewrite n)) ≡ t.
+Abort.
+
+Lemma exec_bbLoop: forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (mem: M.memory),
+    exists t,
+      M.memEffect mem (SST.execBB tds ge e (bbLoop n)) ≡ t.
+Abort.
+
+Lemma exec_bbLoopRewrite: forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (mem: M.memory),
+    exists t,
+      M.memEffect mem (SST.execBB tds ge e (bbLoopRewrite n)) ≡ t.
+Abort.
+              
+
+(** *Full effects *)
+
+
 
 (** tiered semantics is already paying off, I can look at what happens
 when I execute a function **)
-Lemma exec_main_function_orig: forall (n: nat) (initmem: M.memory),
-  M.memD initmem (SST.execFunction []
+Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory) exists eff,
+  M.memEffect initmem (SST.execFunction []
               (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
                  (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
-              (mainCFG n) (Name "main")) ≡ Ret (SST.FRReturn (DVALUE_I32  (Int32.repr 1%Z))).
+              (mainCFG n) (Name "main")) ≡ eff.
 Proof.
   Opaque SST.step_sem_tiered.
   Opaque SST.execBBInstrs.
