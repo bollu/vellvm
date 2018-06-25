@@ -480,7 +480,7 @@ Section INSTRUCTION.
          *)
         | _ => Err  "call got non-function pointer"
         end
-    |  _, _ => Err "foo"
+    |  _, _ => Err "unimplemented instruction"
     end.
 End INSTRUCTION.
 
@@ -503,7 +503,7 @@ Section TERMINATOR.
     'dv <- eval_exp tds ge e (Some (eval_typ tds t)) op;
       Ret (TRRet dv)
         
-  |  TERM_Ret_void =>Ret (TRRetVoid)
+  | TERM_Ret_void =>Ret (TRRetVoid)
       
   | TERM_Br (t,op) br1 br2 =>
     'dv <- eval_exp tds ge e(Some (eval_typ tds t)) op; 
@@ -516,6 +516,7 @@ Section TERMINATOR.
             | _ => failwith "Br got non-bool value"
           end;
     Ret (TRBreak br)
+  | TERM_Br_1 bid => Ret (TRBreak bid)
   | _ => Err "unimplemented terminator"
   end.
 End TERMINATOR.

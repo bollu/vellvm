@@ -341,8 +341,8 @@ Lemma exec_bbInit: forall (n: nat)
     (ge: SST.genv)
     (e: SST.env)
     (mem: M.memory),
-    exists t,
-      M.memEffect mem (SST.execBB tds ge e (bbInit n)) ≡ t.
+      M.memEffect mem (SST.execBB tds ge e (bbInit n)) ≡
+                  (Ret (M.add (M.size mem) (M.init_block 8) mem, SST.BBRBreak (Name "loop"))).
 Proof.
   intros.
   unfold SST.execBB.
@@ -354,8 +354,16 @@ Proof.
   unfold M.make_empty_block.
   rewrite @Trace.matchM with (i := M.memEffect _ _).
   simpl.
-  (** TODO: fix the missing terminator? **)
-Abort.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  rewrite normalize_type_equation.
+  unfold i32PTRTY.
+  Opaque M.init_block.
+  simpl.
+  unfold SST.BBResultFromTermResult.
+  simpl.
+  euttnorm.
+Qed.
              
 
 Lemma exec_bbInitRewrite: forall (n: nat)
