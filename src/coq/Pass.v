@@ -1059,12 +1059,42 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma cfg_preservation_implies_exec_interpreter_preservation:
+  forall (cfgp: CFGPass)
+    (PRESERVE_CFG_EFFECT: forall
+             (tds: typedefs)
+             (ge: genv)
+             (e: env)
+             (CFG: cfg)
+             (fnid: function_id)
+             (m: M.memory),
+        M.memEffect m (execFunction tds ge e CFG fnid) ≡
+        M.memEffect m (execFunction tds ge e (cfgp CFG) fnid))
+    (ge: genv)
+    (e: env)
+    (s: stack)
+    (MCFG: mcfg)
+    (m: M.memory) (fnid: function_id) (args: list dvalue),
+  M.memEffect m (execInterpreter ge e s MCFG (IREnterFunction fnid args)) ≡
+                  M.memEffect m (execInterpreter ge e s (monomap cfgp MCFG) (IREnterFunction fnid args)).
+Proof.
+  intros.
+  
+
 (*
 
        (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] MCFG ir))
   ≡ M.memD M.empty
       (bindM (init_state_tiered MCFG "main")
          (fun '(ir, ge) => step_sem_tiered ge (ENV.empty dvalue) [] (monomap cfgp MCFG) ir))
+ *)
+
+
+(* 
+    (execInterpreter ge e s MCFG r
+     ≫= (fun rnext : InterpreterResult => step_sem_tiered ge e s MCFG rnext))
+  ≡ M.memEffect m
+      (execInterpreter ge e s (monomap cfgp MCFG) r
 *)
 Lemma cfg_preservation_implies_step_sem_preservation:
   forall (cfgp: CFGPass)
@@ -1086,45 +1116,39 @@ Lemma cfg_preservation_implies_step_sem_preservation:
     M.memEffect m (step_sem_tiered ge e s MCFG r) ≡
                 M.memEffect m (step_sem_tiered ge e s (monomap cfgp MCFG) r).
 Proof.
-  intros.
-  apply eutt_coinduction_principle.
   intros until ge.
   generalize dependent ge.
   cofix CIH.
 
-  intros.
-
   destruct r.
-
-  - rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ MCFG _).
-    rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ (monomap _ _) _).
+  - intros.
+    rewrite @Trace.matchM with (i := (step_sem_tiered _ _ _ MCFG  (IRDone v))).
+    rewrite @Trace.matchM with (i :=  (step_sem_tiered _ _ _ (monomap _ MCFG)  (IRDone v))).
     simpl.
     reflexivity.
     Guarded.
-
-  - rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ MCFG _).
-    rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ (monomap _ _) _).
-    simpl.
-    admit.
-    Guarded.
-
-  - rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ MCFG _).
-    rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ (monomap _ _) _).
-    simpl.
-    destruct fres; simpl.
-    + destruct s.
-     * rewrite @Trace.matchM at 1.
-       rewrite @Trace.matchM.
-       simpl.
-       constructor.
-       Guarded.
-       rewrite CIH.
-       Guarded.
-       rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ MCFG _).
-     *rewrite @Trace.matchM with (i := step_sem_tiered _ _ _ (monomap _ _) _).
+  - intros.
+    repeat rewrite force_step_sem_tiered.
+    setoid_replace (M.memEffect m
+    (execInterpreter ge e s MCFG (IREnterFunction fnid args)
+                     ≫= (fun rnext : InterpreterResult => step_sem_tiered ge e s MCFG rnext)))
+      with
         
-  - admit. 
-Admitted.
+        (bindM (M.memEffect m (execInterpreter ge e s MCFG (IREnterFunction fnid args)))
+                         (fun out =>
+                            M.memEffect
+                              (fst out)
+                              ((fun rnext : InterpreterResult => step_sem_tiered ge e s MCFG rnext)
+                                 (snd out)))).
+    + 
+    + apply M.memEffect_commutes_with_bind.
+Abort.
+  
+
+    
+    
+    
+
 
 
 Lemma cfg_preservation_implies_program_preservation:
