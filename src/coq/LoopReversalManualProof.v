@@ -371,9 +371,28 @@ Lemma exec_bbInitRewrite: forall (n: nat)
     (ge: SST.genv)
     (e: SST.env)
     (mem: M.memory),
-    exists t,
-      M.memEffect mem (SST.execBB tds ge e (bbInitRewrite n)) ≡ t.
-Abort.
+      M.memEffect mem (SST.execBB tds ge e (bbInitRewrite n)) ≡
+                  (Ret
+                     (M.add (M.size mem) (M.make_empty_block DTYPE_Pointer) mem,
+                      SST.BBRBreak (Name "loop"))).
+Proof.
+  intros.
+  simpl.
+  unfold bbInitRewrite.
+  unfold SST.execBB.
+  simpl.
+  
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  unfold SST.BBResultFromTermResult.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  rewrite normalize_type_equation.
+  unfold i32PTRTY.
+  euttnorm.
+Qed.
 
 Lemma exec_bbLoop: forall (n: nat)
     (tds: typedefs)
