@@ -587,7 +587,8 @@ Section BASICBLOCK.
         | IRCall fnid args retinstid instid =>
           Ret (BBRCall fnid args retinstid pt bbid)
         | IRCallVoid fnid args instid => Ret (BBRCallVoid fnid args pt bbid)
-        | _ => execBBInstrs tds ge e bbid irest term (pt + 1)%nat
+        | IREnvEffect e' => execBBInstrs tds ge e' bbid irest term (pt + 1)%nat
+        | IRNone => execBBInstrs tds ge e bbid irest term (pt + 1)%nat
         end
     end.
 
