@@ -1339,16 +1339,15 @@ Lemma eutt_coinduction_principle: forall E X (P: M E X -> M E X -> Prop)
         (exists (k2: Y -> M E X),
             t2 = Vis e k2 /\
             ((forall (y: Y), P (k1 y) (k2 y)))))
-    (TAU: forall t1 t2 t1',
-        P t1 t2 ->
-            t1 = Tau t1' /\
-            (exists t2', t2 = Tau t2' /\ P t1' t2'))
-    (ERR: forall t1 t2 s , t1 = Err (Event:=E) (X:=X) s ->
+    (TAU: forall t1 t2,
+        P (Tau t1) t2 ->
+            (exists t2', t2 = Tau t2' /\ P t1 t2'))
+    (ERR: forall t1 t2 s , P t1 t2 ->  t1 = Err (Event:=E) (X:=X) s ->
                 exists s', t2 = Err (Event:=E) (X:=X) s'),
     (forall (t1 t2 : M E X), P t1 t2 -> EquivUpToTau t1 t2).
 Proof.
   intros until P.
-  cofix.
+  cofix CIH.
   intros until t2.
   intros P_TRACES.
   destruct t1.
@@ -1364,13 +1363,14 @@ Proof.
     constructor.
     Guarded.
     intros.
-    apply eutt_coinduction_principle; auto.
-  + assert (T2TAU:  exists t2' : M E X, t2 = Tau t2' /\ P t1 t2').
+    apply CIH; auto.
+  + 
+    assert (T2TAU:  exists t2' : M E X, t2 = Tau t2' /\ P  t1 t2').
     eapply TAU; eauto.
     destruct T2TAU as [t2' [T2TAu TEQUIV]].
     subst.
     constructor.
-    apply eutt_coinduction_principle; auto.
+    apply CIH; auto.
   +
     assert (T2ERR: exists s', t2 = Err s').
     apply ERR with (t1 := (Err s)) (s := s); eauto.
