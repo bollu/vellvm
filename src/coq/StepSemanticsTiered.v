@@ -260,7 +260,6 @@ Section IN_TYPEDEFS_CONTEXT.
       so that our proofs about these objects don't drag in the entire mcfg. This makes showing
       semantic preservation at least theoretically cleaner.
   *)
-  Print LLVMAst.
   Variable tds: LLVMAst.typedefs.
 
 Definition eval_typ (t:typ) : dtyp :=

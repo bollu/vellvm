@@ -48,11 +48,6 @@ Set Contextual Implicit.
 
 Require Import Vellvm.Memory.
 
-From Coq Require Import ssreflect ssrfun ssrbool.
-Set Implicit Arguments.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
-
 
 Section LOOPREV.
 
@@ -417,6 +412,7 @@ Lemma exec_bbInit_exec_bbInitRewrite_equiv:
 Proof.
   intros.
   rewrite exec_bbInit.
+  rewrite exec_bbInitRewrite.
   reflexivity.
 Qed.
 
@@ -452,6 +448,8 @@ Lemma exec_bbLoop_from_init: forall (n: nat)
     (ge: SST.genv)
     (e: SST.env)
     (mem: M.memory)
+    (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (M.size mem, 0)))
+    (MEMATARR: exists mem0, mem = M.add (M.size mem) (M.make_empty_block DTYPE_Pointer) mem0)
   t,
     M.memEffect mem (SST.execBB tds ge e (Some (blk_id (bbInit n))) (bbLoop n)) ≡ t.
                 
@@ -460,28 +458,43 @@ Proof.
   Opaque SST.execInst.
   intros.
   simpl.
+  destruct MEMATARR as [MEM0 MEMATARR].
   
   unfold SST.execBB.
   unfold SST.evalPhis.
   rewrite M.memEffect_commutes_with_bind.
-  rewrite exec_bbLoop_phis_from_init.
+  setoid_rewrite exec_bbLoop_phis_from_init; auto.
   rewrite bindM_Ret.
   rewrite SST.force_exec_bb_instrs.
   simpl.
 
 
   rewrite M.memEffect_commutes_with_bind.
+  setoid_rewrite effect_store; eauto.
+  simpl.
+  rewrite SST.lookup_env_hd; auto.
+  simpl.
+  euttnorm.
+  M.forcemem.
+  rewrite SST.lookup_env_tl; auto.
+  rewrite EATARR.
+  simpl.
+  euttnorm.
+  M.forcemem.
+  simpl.
 
-  
 Abort.
 
-Lemma exec_bbLoopRewrite: forall (n: nat)
+Lemma exec_bbLoop_from_bbLoop: forall (n: nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
     (mem: M.memory),
     exists t,
-      M.memEffect mem (SST.execBB tds ge e (bbLoopRewrite n)) ≡ t.
+      M.memEffect mem (SST.execBB tds ge e
+                                  (Some (blk_id (bbLoop n)))
+                                  (bbLoop n)) ≡ t.
+Proof.
 Abort.
               
 
@@ -491,7 +504,7 @@ Abort.
 
 (** tiered semantics is already paying off, I can look at what happens
 when I execute a function **)
-Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory), exists eff,
+Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory) eff,
   M.memEffect initmem (SST.execFunction []
               (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
                  (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
@@ -508,17 +521,46 @@ Proof.
 
   (* Force function evaluation *)
   unfold simpleProgramInitBBId.
-  rewrite SST.force_exec_function_at_bb_id with (bb := bbInit n); auto.
+  setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
+  simpl.
+  setoid_rewrite M.memEffect_commutes_with_bind.
+
+  (* Nice, proof composition! *)
+  setoid_rewrite exec_bbInit.
+
+  euttnorm.
+  setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
+  simpl.
+  rewrite M.memEffect_commutes_with_bind; eauto.
+
+
+  assert (EVAL_LOOP_FROM_INIT: forall eff,
+         (M.memEffect (M.add (M.size  (a:= M.mem_block) initmem) (M.make_empty_block DTYPE_Pointer) initmem)
+       (SST.execBB []
+          (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:= M.mem_block) M.empty, 0))
+             (SST.ENV.empty dvalue))
+          (SST.add_env (Name "arr") (DVALUE_Addr (M.size initmem, 0))
+                       (SST.env_of_assoc [])) (Some (Name "init")) (bbLoop n)))
+           ≡ eff).
+  intros.
+  unfold SST.execBB.
+  rewrite M.memEffect_commutes_with_bind; eauto.
+  rewrite  exec_bbLoop_phis_from_init.
+  euttnorm.
+  rewrite SST.force_exec_bb_instrs.
+  simpl.
+  rewrite M.memEffect_commutes_with_bind; eauto.
+  setoid_rewrite effect_store.
+  simpl.
+  euttnorm.
+  M.forcemem.
+
+  (** we are now evaluating the GEP **)
+  simpl.
 
   
 
   (* force BB evaluation *)
-  Transparent SST.execBB.
-  unfold SST.execBB.
-
-  rewrite SST.force_exec_bb_instrs.
-  euttnorm.
-  euttnorm.
 Abort.
   
 
@@ -547,7 +589,7 @@ Proof.
   simpl.
   euttnorm.
 
-  M.forcememd.
+  M.forcemem.
   euttnorm.
   
   unfold SST.initialize_globals_tiered. simpl.
@@ -567,12 +609,8 @@ Proof.
   rewrite @Trace.matchM with (i := SST.execInterpreter _ _ _ _ _ ).
   simpl.
   rewrite M.rewrite_memD_as_memEffect.
-  M.forcememd.
+  M.forcemem.
   euttnorm.
-  
-  rewrite @Trace.matchM with (i := SST.step_sem_tiered _ _ _ _ _ ).
-  unfold SST.step_sem_tiered.
-  unfold SST.execInterpreter.
 Abort.
   
 (* Lemma I care about *)
@@ -583,3 +621,4 @@ Proof.
   intros.
   unfold run_mcfg_with_memory_tiered.
 Abort.
+  

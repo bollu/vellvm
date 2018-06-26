@@ -10,12 +10,6 @@ Import ListNotations.
 Require Import Setoid Morphisms Relations.
 Require Import Vellvm.Trace.
 
-
-From mathcomp Require ssreflect ssrbool ssrfun bigop.
-Import ssreflect.SsrSyntax.
-Set Implicit Arguments.
-Unset Strict Implicit.
-Unset Printing Implicit Defensive.
 Import Trace.MonadVerif.
 
 Set Implicit Arguments.
@@ -801,7 +795,8 @@ Proof.
       forcemem.
       rewrite MEMSTEP.
       forcemem.
-      
+      auto.
+
     + euttnorm.
       destruct p eqn:P.
       subst.
