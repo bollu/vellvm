@@ -16,6 +16,7 @@ Import ssreflect.SsrSyntax.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Import Trace.MonadVerif.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
@@ -516,7 +517,22 @@ Close Scope list_scope.
 Opaque add_all_index.
 
 
-(** Theorems about the interactions of memory with traces **)
+Create HintDb forcememb.
+(** *Theorems about the interactions of memory with traces* *)
+Lemma force_memD_ret:
+  forall { X: Type}
+    (x:  Trace X)
+    (mem: memory),
+    memD mem  (Trace.Ret x) ≡ Trace.Ret x.
+Proof.
+  intros.
+  rewrite @Trace.matchM with (i := memD _ _).
+  simpl.
+  reflexivity.
+Defined.
+
+Hint Rewrite @force_memD_ret : forcememb.
+
 Lemma force_memD_vis:
   forall { X Y: Type}
     (e: LLVMIO.IO Y)
@@ -537,17 +553,19 @@ Proof.
 Defined.
 
 
-Lemma force_memD_ret:
-  forall { X: Type}
-    (x:  Trace X)
+Hint Rewrite @force_memD_vis : forcememb.
+Lemma force_memD_tau:
+  forall {X: Type} (x: Trace X)
     (mem: memory),
-    memD mem  (Trace.Ret x) ≡ Trace.Ret x.
+    memD (X:=X) mem  (Trace.Tau x) ≡ memD mem x.
 Proof.
   intros.
   rewrite @Trace.matchM with (i := memD _ _).
   simpl.
-  reflexivity.
+  euttnorm.
 Defined.
+
+Hint Rewrite @force_memD_tau : forcememb.
 
 
 Lemma force_memD_err:
@@ -562,10 +580,78 @@ Proof.
   reflexivity.
 Defined.
 
-Ltac forcememd := do [rewrite force_memD_ret | rewrite force_memD_vis |
-                     rewrite force_memD_err]; simpl; auto.
 
-Import Trace.MonadVerif.
+Hint Rewrite @force_memD_err : forcememb.
+
+
+Lemma force_memEffect_ret:
+  forall { X: Type}
+    (x:  Trace X)
+    (mem: memory),
+    memEffect mem  (Trace.Ret x) ≡ Trace.Ret (mem, x).
+Proof.
+  intros.
+  rewrite @Trace.matchM with (i := memEffect _ _).
+  simpl.
+  reflexivity.
+Defined.
+
+
+Hint Rewrite @force_memEffect_ret : forcememb.
+
+
+Lemma force_memEffect_vis:
+  forall { X Y: Type}
+    (e: LLVMIO.IO Y)
+    (k: Y -> Trace X)
+    (mem: memory),
+    memEffect mem  (Trace.Vis e k) ≡
+    match mem_step e mem with
+    | inl _ => Trace.Err "uninterpretiable IO call"
+    | inr (m', v) => Trace.Tau (memEffect m' (k v))
+    end.
+Proof.
+  intros.
+  rewrite @Trace.matchM with (i := memEffect _ _).
+  simpl.
+  destruct (mem_step e mem).
+  - constructor.
+  - destruct p. reflexivity.
+Defined.
+
+
+Hint Rewrite @force_memEffect_vis : forcememb.
+
+Lemma force_memEffect_tau:
+  forall { X: Type}
+    (x:  Trace X)
+    (mem: memory),
+    memEffect mem  (Trace.Tau x) ≡ memEffect mem x.
+Proof.
+  intros.
+  rewrite @Trace.matchM with (i := memEffect _ _).
+  simpl.
+  euttnorm.
+Defined.
+
+
+Hint Rewrite @force_memEffect_tau : forcememb.
+
+
+Lemma force_memEffect_err:
+  forall {X: Type}
+    (s:String.string)
+    (mem: memory),
+    memEffect (X:=X) mem  (Trace.Err s) ≡ Trace.Err s.
+Proof.
+  intros.
+  rewrite @Trace.matchM with (i := memEffect _ _).
+  simpl.
+  reflexivity.
+Defined.
+
+Hint Rewrite @force_memEffect_err : forcememb.
+Ltac forcemem := autorewrite with forcememb.
 
 
 Lemma memD_commutes_tauN: forall (X: Type) n (x: Trace X) mem,
@@ -712,9 +798,9 @@ Proof.
     simpl.
     destruct (mem_step e m) eqn:MEMSTEP.
     + euttnorm.
-      forcememd.
+      forcemem.
       rewrite MEMSTEP.
-      forcememd.
+      forcemem.
       
     + euttnorm.
       destruct p eqn:P.
@@ -727,7 +813,7 @@ Proof.
       destruct (mem_effect_fin m0 (FINK y)) eqn:EFF'.
       inversion EFF; subst.
       euttnorm.
-      forcememd.
+      forcemem.
       rewrite MEMSTEP.
       euttnorm.
 Defined.
@@ -800,7 +886,8 @@ Proof.
     Guarded.
     rewrite (@Trace.matchM) with (i := memEffect _ _); simpl.
     euttnorm.
-    forcememd.
+    forcemem.
+    reflexivity.
     Guarded.
 Defined.
 
