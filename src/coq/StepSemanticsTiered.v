@@ -16,6 +16,7 @@ Require Coq.Structures.OrderedTypeEx.
 Require Import compcert.lib.Integers compcert.lib.Floats.
 
 Require Import Vellvm.Classes.
+Require Import Vellvm.LLVMAst.
 Require Import Vellvm.Util.
 Require Import Vellvm.Trace.
 Require Import Vellvm.LLVMAst.
@@ -100,19 +101,21 @@ Module StepSemanticsTiered(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A))
 
   (** *Theorems about the environment *)
   Section ENVFACTS.
-    
-    Lemma lookup_env_hd : forall {X: Type} id dv (e: ENV.t X),
-      lookup_env (add_env id dv e) id =
-      mret dv.
+        (** Lookup on an aliasing add, aka gss *)
+    Lemma lookup_env_hd : forall {X: Type} (id: ENV.key) (dv: X) (e: ENV.t X),
+      lookup_env (add_env id dv e) id = mret dv.
     Proof.
       intros.
       unfold lookup_env. 
       unfold add_env.
       erewrite ENV.find_1; auto.
       apply ENV.add_1; auto.
-    Qed.  
+    Qed.
 
-    Lemma lookup_env_tl : forall {X: Type} id1 v1 (e: ENV.t X) id2,
+
+
+    (** Lookup on a non-aliasing add, aka gso *)
+    Lemma lookup_env_tl : forall {X: Type} (id1 id2: ENV.key) (v1: X) (e: ENV.t X),
         id1 <> id2 -> lookup_env (add_env id1 v1 e) id2 = lookup_env e id2.
     Proof.
       intros.
@@ -144,19 +147,21 @@ Module StepSemanticsTiered(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A))
     Qed.  
 
 
+    (** Extract information from a lookup-of-add *)
     Lemma lookup_add_env_inv :
-      forall {X: Type} id1 v (e: ENV.t X) id2 u
+      forall {X: Type} (id1 id2: ENV.key) (u v: X) (e: ENV.t X)
+             {ID_EQ_DEC: forall id1 id2: ENV.key, {id1 = id2} + {id1 <> id2}}
              (Hl: lookup_env (add_env id1 v e) id2 = mret u),
         (id1 = id2 /\ v = u) \/ (id1 <> id2 /\ lookup_env e id2 = mret u).
     Proof.
       intros.
-      assert (ID_EQ_DEC: {id1 = id2}+ {id1 <> id2}).
+
+      assert (ID12_EQ_DEC: {id1 = id2}+ {id1 <> id2}).
       auto.
 
-      destruct (ID_EQ_DEC).
+      destruct (ID12_EQ_DEC); subst.
       - (* id1 = id2 *)
         left.
-        subst.
         split; auto.
 
         rewrite lookup_env_hd in Hl.
@@ -255,7 +260,8 @@ Section IN_TYPEDEFS_CONTEXT.
       so that our proofs about these objects don't drag in the entire mcfg. This makes showing
       semantic preservation at least theoretically cleaner.
   *)
-  Variable tds: typedefs.
+  Print LLVMAst.
+  Variable tds: LLVMAst.typedefs.
 
 Definition eval_typ (t:typ) : dtyp :=
   TypeUtil.normalize_type tds t.
