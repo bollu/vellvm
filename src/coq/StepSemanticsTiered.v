@@ -98,6 +98,77 @@ Module StepSemanticsTiered(A:MemoryAddress.ADDRESS)(LLVMIO:LLVM_INTERACTIONS(A))
   
   Definition add_env := ENV.add.
 
+  (** *Theorems about the environment *)
+  Section ENVFACTS.
+    
+    Lemma lookup_env_hd : forall {X: Type} id dv (e: ENV.t X),
+      lookup_env (add_env id dv e) id =
+      mret dv.
+    Proof.
+      intros.
+      unfold lookup_env. 
+      unfold add_env.
+      erewrite ENV.find_1; auto.
+      apply ENV.add_1; auto.
+    Qed.  
+
+    Lemma lookup_env_tl : forall {X: Type} id1 v1 (e: ENV.t X) id2,
+        id1 <> id2 -> lookup_env (add_env id1 v1 e) id2 = lookup_env e id2.
+    Proof.
+      intros.
+      unfold lookup_env.
+      unfold add_env.
+
+      destruct (ENV.find id2 e) eqn: FINDID2.
+      - (** Some x **)
+        assert (ID2_MAPSTO: ENV.MapsTo id2 x e).
+        apply ENV.find_2; auto.
+
+        assert (ID2_MAPSTO_ADDED_E': ENV.MapsTo id2 x (ENV.add id1 v1 e)).
+        apply ENV.add_2; auto.
+        erewrite ENV.find_1; eauto.
+
+        
+
+      - assert (ID2_NOT_IN: ~ ENV.In  id2 e).
+        rewrite ENVFacts.not_find_in_iff; auto.
+
+        assert (ID2_NOT_IN_E': ~ ENV.In id2 (ENV.add id1 v1 e)).
+        intros CONTRA.
+        rewrite ENVFacts.add_in_iff in CONTRA.
+        destruct CONTRA; try contradiction.
+
+        rewrite ENVFacts.not_find_in_iff in ID2_NOT_IN_E'.
+        rewrite ID2_NOT_IN_E'.
+        auto.
+    Qed.  
+
+
+    Lemma lookup_add_env_inv :
+      forall {X: Type} id1 v (e: ENV.t X) id2 u
+             (Hl: lookup_env (add_env id1 v e) id2 = mret u),
+        (id1 = id2 /\ v = u) \/ (id1 <> id2 /\ lookup_env e id2 = mret u).
+    Proof.
+      intros.
+      assert (ID_EQ_DEC: {id1 = id2}+ {id1 <> id2}).
+      auto.
+
+      destruct (ID_EQ_DEC).
+      - (* id1 = id2 *)
+        left.
+        subst.
+        split; auto.
+
+        rewrite lookup_env_hd in Hl.
+        inversion Hl; auto.
+        
+      - (* id1 <> id2 *)
+        right.
+        split; auto.
+        erewrite <- lookup_env_tl; eauto.
+    Qed.      
+  End ENVFACTS.
+
   
   Section CONVERSIONS.
   (* Conversions can't go into DynamicValues because Int2Ptr and Ptr2Int casts 
@@ -1074,5 +1145,11 @@ Proof.
 Admitted.
 
 Ltac forcesst := do [rewrite force_step_sem_tiered |
-                    rewrite force_exec_function_at_bb_id].
+                     rewrite force_exec_function_at_bb_id].
+
+(** *Opacity: make all the exec functions opaque so they don't unfold *)
+Opaque execBB.
+Opaque execBBInstrs.
+Opaque execFunction.
+Opaque execInterpreter.
 End StepSemanticsTiered.
