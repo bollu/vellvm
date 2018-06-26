@@ -340,15 +340,16 @@ Lemma exec_bbInit: forall (n: nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
-    (mem: M.memory), 
-      M.memEffect mem (SST.execBB tds ge e (bbInit n)) ≡
-                  (Ret (M.add (M.size mem) (M.init_block 8) mem,
-                        SST.BBRBreak (SST.add_env (Name "arr") (DVALUE_Addr (M.size mem, 0)) e)
-                                     (Name "loop"))).
+    (mem: M.memory),
+    M.memEffect mem (SST.execBB tds ge e None (bbInit n)) ≡
+                 Ret (M.add (M.size mem) (M.make_empty_block DTYPE_Pointer) mem,
+                      SST.BBRBreak (SST.add_env (Name "arr") (DVALUE_Addr (M.size mem, 0)) e) (Name "loop")).
 Proof.
   intros.
   unfold SST.execBB.
+  unfold SST.evalPhis.
   unfold bbInit.
+  
   simpl.
   rewrite @Trace.matchM with (i := M.memEffect _ _).
   simpl.
@@ -365,6 +366,9 @@ Proof.
   unfold SST.BBResultFromTermResult.
   simpl.
   euttnorm.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  reflexivity.
 Qed.
              
 
@@ -373,7 +377,7 @@ Lemma exec_bbInitRewrite: forall (n: nat)
     (ge: SST.genv)
     (e: SST.env)
     (mem: M.memory), 
-      M.memEffect mem (SST.execBB tds ge e (bbInitRewrite n)) ≡
+      M.memEffect mem (SST.execBB tds ge e None (bbInitRewrite n)) ≡
                   (Ret
             (M.add (M.size mem) (M.make_empty_block DTYPE_Pointer) mem,
             SST.BBRBreak (SST.add_env (Name "arr") (DVALUE_Addr (M.size mem, 0)) e)
@@ -383,6 +387,7 @@ Proof.
   simpl.
   unfold bbInitRewrite.
   unfold SST.execBB.
+  unfold SST.evalPhis.
   simpl.
   
   rewrite @Trace.matchM with (i := M.memEffect _ _).
@@ -395,16 +400,20 @@ Proof.
   rewrite normalize_type_equation.
   unfold i32PTRTY.
   euttnorm.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  reflexivity.
 Qed.
 
+(** Equivalence of init BBs *)
 Lemma exec_bbInit_exec_bbInitRewrite_equiv:
    forall (n: nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
     (mem: M.memory), 
-     M.memEffect mem (SST.execBB tds ge e (bbInitRewrite n)) ≡
-                 M.memEffect mem (SST.execBB tds ge e (bbInit n)).
+     M.memEffect mem (SST.execBB tds ge e None (bbInitRewrite n)) ≡
+                 M.memEffect mem (SST.execBB tds ge e None (bbInit n)).
 Proof.
   intros.
   rewrite exec_bbInit.
@@ -412,15 +421,54 @@ Proof.
   reflexivity.
 Qed.
 
-  
+(** Since we can factor `memEffect`, we can reason separately about phi
+    node evaluation *)
+Lemma exec_bbLoop_phis_from_init:
+  forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (mem: M.memory),
+      M.memEffect mem (SST.evalPhis tds ge e (Some simpleProgramInitBBId) (blk_phis (bbLoop n))) ≡ (Ret (mem, SST.add_env (Name "iv") (DVALUE_I32 (Int32.repr 0)) e)).
+Proof.
+  intros.
+  unfold SST.evalPhis.
+  unfold bbLoop. simpl.
+  rewrite @Trace.matchM with (i := bindM _ _).
+  simpl.
+  rewrite @Trace.matchM with (i := SST.evalPhi tds ge _ _ _ _).
+  simpl.
+  rewrite normalize_type_equation.
+  simpl.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  rewrite @Trace.matchM with (i := M.memEffect _ _).
+  simpl.
+  euttnorm.
+Qed.
 
-Lemma exec_bbLoop: forall (n: nat)
+Lemma exec_bbLoop_from_init: forall (n: nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
     (mem: M.memory),
     exists t,
-      M.memEffect mem (SST.execBB tds ge e (bbLoop n)) ≡ t.
+      M.memEffect mem (SST.execBB tds ge e (Some (blk_id (bbInit n))) (bbLoop n)) ≡ t.
+Proof.
+  intros.
+  simpl.
+  
+  unfold SST.execBB.
+  unfold SST.evalPhis.
+  unfold SST.evalPhi.
+  unfold bbLoop.
+  simpl.
+  rewrite normalize_type_equation.
+  simpl.
+  euttnorm.
+  
 Abort.
 
 Lemma exec_bbLoopRewrite: forall (n: nat)
