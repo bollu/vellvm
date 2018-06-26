@@ -961,6 +961,15 @@ Proof.
   apply eutt_refl.
 Defined.
 
+Lemma mapM_Ret: forall (A B: Type) (E: Type -> Type) (a: A) (f: A -> B),
+    mapM (E:=E) f (Ret a) ≡ Ret (f a).
+Proof.
+  intros.
+  rewrite (@matchM) with (i := mapM (_) _).
+  simpl.
+  reflexivity.
+Qed.
+
 
 (* Show theorems about bind being proper wrt equivalences *)
 Lemma bindM_Ret: forall (A B: Type) (E: Type -> Type ) (a: A) (f: A -> M E B),
@@ -1514,6 +1523,7 @@ Proof.
 Defined.
 
 Create HintDb euttnormdb.
+Hint Rewrite (@mapM_Ret) : euttnormdb.
 Hint Rewrite (@bindM_assoc) : euttnormdb.
 Hint Rewrite (@bindM_Ret) : euttnormdb.
 Hint Rewrite (@bindM_Ret_2) : euttnormdb.

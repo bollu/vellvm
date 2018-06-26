@@ -579,10 +579,8 @@ Hint Rewrite @force_memD_err : forcememb.
 
 
 Lemma force_memEffect_ret:
-  forall { X: Type}
-    (x:  Trace X)
-    (mem: memory),
-    memEffect mem  (Trace.Ret x) ≡ Trace.Ret (mem, x).
+  forall {X: Type} mem x,
+    memEffect (X:=X) mem (Trace.Ret x) ≡ Trace.Ret (mem, x).
 Proof.
   intros.
   rewrite @Trace.matchM with (i := memEffect _ _).
@@ -620,6 +618,7 @@ Lemma force_memEffect_tau:
   forall { X: Type}
     (x:  Trace X)
     (mem: memory),
+
     memEffect mem  (Trace.Tau x) ≡ memEffect mem x.
 Proof.
   intros.
@@ -1086,6 +1085,8 @@ Proof.
 Defined.
 
 
+Opaque add_all_index.
+Opaque lookup_all_index.
 
 (*
 Definition run_with_memory prog : option (Trace dvalue) :=

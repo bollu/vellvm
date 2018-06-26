@@ -48,6 +48,9 @@ Set Contextual Implicit.
 
 Require Import Vellvm.Memory.
 
+Opaque M.add_all_index.
+Opaque M.lookup_all_index.
+Opaque M.make_empty_block.
 
 Section LOOPREV.
 
@@ -267,6 +270,28 @@ Definition LoopWriteSet (n: nat) : list nat := seq 1 n.
 Hint Transparent SS.init_state.
 Hint Unfold SS.init_state.
 
+(** *Expresssion effects *)
+Lemma eval_exp_ident: forall
+    (tds: typedefs)
+    (ot: option dtyp)
+    (t: dtyp)
+    (ge: SST.genv)
+    (e: SST.env)
+    (name: string)
+    (val: dvalue),
+    SST.eval_exp tds ge (SST.add_env (Name name) val e) ot (exp_ident name) ≡
+                 Ret val.
+Proof.
+  intros.
+  unfold SST.eval_exp.
+  simpl.
+  rewrite SST.lookup_env_hd.
+  simpl.
+  reflexivity.
+Qed.
+
+Opaque SST.eval_exp.
+
 
 
 (** *Instruction effects *)
@@ -295,14 +320,7 @@ Proof.
   simpl.
   M.forcemem.
   euttnorm.
-  M.forcemem.
-  (** Check why I need this here **)
-  rewrite -> @Trace.matchM with (i := M.memEffect _ _).
-  simpl.
-  auto.
 Qed.
-Check (IVoid).
-
 (** Effect of store *)
 Lemma effect_store: forall
              (tds: typedefs)
@@ -313,20 +331,24 @@ Lemma effect_store: forall
              (valt ixt: typ)
              (vale ixe: exp)
              (IDVAL: exists (i: LLVMAst.int), id = IVoid i),
-               M.memEffect mem
-                           (SST.execInst tds
-                                         ge
-                                         e
-                                         id
-                                         (inst_store
-                                            (valt, vale)
-       
-                                     (ixt, ixe))) ≡
-                           M.memEffect mem
-                           (bindM (SST.eval_exp tds ge e (Some (SST.eval_typ tds valt)) vale)
-                                  (fun dv : dvalue =>
-                                     bindM (SST.eval_exp tds ge e (Some (SST.eval_typ tds ixt)) ixe)
-                                           (fun v : dvalue => Vis (IO.Store v dv) (fun _ : () => Ret SST.IRNone)))).
+    M.memEffect
+      mem
+      (SST.execInst tds
+                    ge
+                    e
+                    id
+                    (inst_store
+                       (valt, vale)
+                       
+                       (ixt, ixe))) ≡
+      M.memEffect mem
+      (bindM
+         (SST.eval_exp tds ge e
+                       (Some (SST.eval_typ tds valt))
+                       vale)
+         (fun dv : dvalue =>
+            bindM (SST.eval_exp tds ge e (Some (SST.eval_typ tds ixt)) ixe)
+                  (fun v : dvalue => Vis (IO.Store v dv) (fun _ : () => Ret SST.IRNone)))).
 Proof.
   intros.
   unfold inst_store.
@@ -338,6 +360,8 @@ Proof.
   unfold SST.execInst.
   euttnorm.
 Qed.
+
+Opaque SST.execInst.
 
 (** *Basic block effects *)
 Lemma exec_bbInit: forall (n: nat)
@@ -359,14 +383,16 @@ Proof.
   M.forcemem.
   simpl.
   euttnorm.
-  unfold M.make_empty_block.
 
-  rewrite -> @Trace.matchM with (i := M.memEffect _ _).
   simpl.
-  unfold SST.eval_typ.
+  rewrite M.memEffect_commutes_with_bind.
+  rewrite effect_alloca; eauto.
   rewrite normalize_type_equation.
   unfold i32PTRTY.
   euttnorm.
+  euttnorm.
+  M.forcemem.
+  reflexivity.
 Qed.
              
 
@@ -392,11 +418,14 @@ Proof.
   simpl.
   euttnorm.
   unfold SST.BBResultFromTermResult.
-  rewrite -> @Trace.matchM with (i := M.memEffect _ _).
-  simpl.
+  rewrite M.memEffect_commutes_with_bind.
+  rewrite effect_alloca; eauto.
+  euttnorm.
   unfold SST.eval_typ.
   rewrite normalize_type_equation.
   unfold i32PTRTY.
+  euttnorm.
+  M.forcemem.
   euttnorm.
 Qed.
 
@@ -441,28 +470,31 @@ Proof.
   rewrite -> @Trace.matchM with (i := M.memEffect _ _).
   simpl.
   euttnorm.
-Qed.
+
+  (** TODO: rewrite eval_exp theories **)
+Admitted.
 
 Lemma exec_bbLoop_from_init: forall (n: nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
-    (mem: M.memory)
-    (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (M.size mem, 0)))
-    (MEMATARR: exists mem0, mem = M.add (M.size mem) (M.make_empty_block DTYPE_Pointer) mem0)
+    (mem initmem: M.memory)
+    (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (M.size initmem, 0)))
+    (MEMATARR: mem = (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem))
   t,
     M.memEffect mem (SST.execBB tds ge e (Some (blk_id (bbInit n))) (bbLoop n)) ≡ t.
                 
 Proof.
   Opaque SST.execBBInstrs.
   Opaque SST.execInst.
+  Opaque SST.eval_exp.
   intros.
   simpl.
-  destruct MEMATARR as [MEM0 MEMATARR].
   
   unfold SST.execBB.
   unfold SST.evalPhis.
   rewrite M.memEffect_commutes_with_bind.
+
   setoid_rewrite exec_bbLoop_phis_from_init; auto.
   rewrite bindM_Ret.
   rewrite SST.force_exec_bb_instrs.
@@ -479,10 +511,49 @@ Proof.
   rewrite SST.lookup_env_tl; auto.
   rewrite EATARR.
   simpl.
+  Opaque SST.execBBInstrs.
+  repeat progress (autorewrite with euttnormdb).
+  euttnorm.
+
+  (* From this program:
+
+       (Vis
+          (IO.GEP (SST.eval_typ tds (arr_ty n)) (DVALUE_Addr (M.size mem, 0))
+             [DVALUE_I32 (Int32.repr 0)]) *)
+  M.forcemem.
+  simpl.
+  rewrite MEMATARR.
+  rewrite M.lookup_add.
   euttnorm.
   M.forcemem.
   simpl.
+  rewrite M.lookup_add.
+  euttnorm.
+  M.forcemem.
+  unfold SST.eval_typ.
+  rewrite normalize_type_equation.
+  unfold arr_ty.
+  simpl.
 
+  unfold TRIPCOUNT.
+
+  assert (NAT_LE_0: Z.of_nat n <=? Int32.unsigned (Int32.repr 0) = true).
+  simpl.
+  admit.
+
+  destruct (Z.of_nat n <=? Int32.unsigned (Int32.repr 0)); try (inversion NAT_LE_0; fail).
+  simpl.
+  M.forcemem.
+  euttnorm.
+  
+
+  (* From the whole program:
+
+        M.lookup (M.size initmem)
+          (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem)
+  *)
+
+  rewrite MEMATARR.
 Abort.
 
 Lemma exec_bbLoop_from_bbLoop: forall (n: nat)
@@ -550,13 +621,25 @@ Proof.
   rewrite SST.force_exec_bb_instrs.
   simpl.
   rewrite M.memEffect_commutes_with_bind; eauto.
-  setoid_rewrite effect_store.
+  setoid_rewrite effect_store; eauto.
   simpl.
   euttnorm.
+
+  (* (Vis
+          (IO.GEP (SST.eval_typ [] (arr_ty n)) (DVALUE_Addr (M.size initmem, 0))
+* )
+  (* We now have the Vis node for the GEP *)
   M.forcemem.
 
   (** we are now evaluating the GEP **)
   simpl.
+  rewrite M.lookup_add; auto.
+  euttnorm.
+  M.forcemem.
+  unfold SST.eval_typ. simpl. rewrite normalize_type_equation. simpl.
+  rewrite M.lookup_add; auto.
+  euttnorm.
+  M.forcemem.
 
   
 
