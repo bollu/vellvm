@@ -34,6 +34,7 @@ Require Import FSets.FMapAVL.
 Require Import Integers.
 Require Coq.Structures.OrderedTypeEx.
 Require Import ZMicromega.
+Require Import Bool.
 Import IO.DV.
 Import Trace.MonadVerif.
 
@@ -358,7 +359,6 @@ Proof.
   euttnorm.
 Qed.
 
-Check (Int32.eq).
 Lemma eval_exp_eq_when_neq:
   forall (n: nat)
     (tds: typedefs)
@@ -366,10 +366,11 @@ Lemma eval_exp_eq_when_neq:
     (e: SST.env)
     (val: int32)
     (name: string)
-    (NEQ: (Int32.eq val (Int32.repr (TRIPCOUNT n)) =? false)%bool)
+    (NEQ: Int32.eq val (Int32.repr (TRIPCOUNT n)) = false)
     (LOOKUPIV: SST.lookup_env e (Name name) = mret (DVALUE_I32 val)),
     SST.eval_exp tds ge e None
-                 (exp_eq (exp_ident name) (exp_const_z (TRIPCOUNT n))) ≡ Err "foo".
+                 (exp_eq (exp_ident name) (exp_const_z (TRIPCOUNT n))) ≡
+                 Ret (DVALUE_I1 Int1.zero).
 Proof.
   intros.
   simpl.
@@ -382,6 +383,38 @@ Proof.
   unfold eval_i32_icmp.
   simpl.
   unfold TRIPCOUNT.
+  rewrite NEQ.
+  euttnorm.
+Qed.
+
+
+Lemma eval_exp_eq_when_eq:
+  forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (val: int32)
+    (name: string)
+    (EQ: Int32.eq val (Int32.repr (TRIPCOUNT n)) = true)
+    (LOOKUPIV: SST.lookup_env e (Name name) = mret (DVALUE_I32 val)),
+    SST.eval_exp tds ge e None
+                 (exp_eq (exp_ident name) (exp_const_z (TRIPCOUNT n))) ≡
+                 Ret (DVALUE_I1 Int1.one).
+Proof.
+  intros.
+  simpl.
+  rewrite LOOKUPIV.
+  euttnorm.
+  unfold SST.eval_typ; rewrite normalize_type_equation.
+  euttnorm.
+  unfold eval_icmp.
+  simpl.
+  unfold eval_i32_icmp.
+  simpl.
+  unfold TRIPCOUNT.
+  rewrite EQ.
+  euttnorm.
+Qed.
 
 Opaque SST.eval_exp.
 
@@ -670,6 +703,16 @@ Proof.
   rewrite exec_inst_op.
   all: cycle 1.
   unfold SST.eval_op.
+  simpl.
+  rewrite eval_exp_eq_when_neq.
+  eauto.
+  all: cycle 1.
+  simpl.
+  rewrite SST.lookup_env_hd.
+  eauto.
+  all: cycle 1.
+  simpl.
+  
 Abort.
 
 Lemma exec_bbLoop_from_bbLoop: forall (n: nat)
