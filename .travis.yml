@@ -29,7 +29,7 @@ env:
   - TEST_TARGET="8.8.0"
 
 before_script:
-  - source ./ci/keep_alive.sh
+  -  ./ci/keep_alive.sh &
 
 install:
   - opam init -j ${NJOBS} --compiler=${COMPILER} -n -y
