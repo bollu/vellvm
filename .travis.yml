@@ -29,21 +29,13 @@ install:
 - opam init -j ${NJOBS} --compiler=${COMPILER} -n -y
 - eval $(opam config env)
 - opam config var root
-- opam install -j ${NJOBS} -y ocamlfind camlp5 ${EXTRA_OPAM}
-- opam list
-- git clone --depth 1 -b ${TEST_TARGET} https://github.com/coq/coq.git coq-${TEST_TARGET}
-- cd coq-${TEST_TARGET}
-- ./configure -native-compiler no -local -coqide no
-- make -j ${NJOBS}
-- cd -
+- opam repo add coq-released http://coq.inria.fr/opam/released
+- opam install -j ${NJOBS} coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET}
+- opam install -j ${NJOBS} -y ocamlfind camlp5 ${EXTRA_OPAM} 
 
 script:
 - export PATH=`pwd`/coq-${TEST_TARGET}/bin:$PATH
-- cd lib/CompCert &&  ./configure x86_64-linux && make -j2  && cd ../../
+- cd lib/CompCert &&  ./configure x86_64-linux && make -j; cd ../../
 - make -j ${NJOBS} -C lib/paco/src 
-- echo 'Building vellvm...' && echo -en 'travis_fold:start:vellvm.build\\r'
 - make -j ${NJOBS} -C src/
-- echo 'Build successful...' && echo -en 'travis_fold:end:vellvm.build\\r'
-- echo 'Running test suite...' && echo -en 'travis_fold:start:vellvm.test\\r'
 - cd src && ./vellvm --test
-- echo 'Done running test suite...' && echo -en 'travis_fold:end:vellvm.test\\r'
