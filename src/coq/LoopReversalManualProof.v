@@ -274,7 +274,6 @@ Hint Unfold SS.init_state.
 Lemma eval_exp_ident: forall
     (tds: typedefs)
     (ot: option dtyp)
-    (t: dtyp)
     (ge: SST.genv)
     (e: SST.env)
     (name: string)
@@ -289,6 +288,30 @@ Proof.
   simpl.
   reflexivity.
 Qed.
+
+(* 
+Lemma eval_exp_gep:
+  forall (tds: typedefs)
+    (ot: option dtyp)
+    (ge: SST.genv)
+    (e: SST.env)
+    (name: string)
+    (val: dvalue),
+    SST.eval_exp tds ge e ot (GEP)
+*)
+
+(* 
+Lemma eval_exp_const: 
+    (tds: typedefs)
+    (ot: option dtyp)
+    (t: dtyp)
+    (ge: SST.genv)
+    (e: SST.env),
+    (SST.eval_exp tds ge e ot  EXP_Integer (x:int)
+
+                        
+  (SST.eval_exp tds ge (SST.add_env (Name "iv") (DVALUE_I32 (Int32.repr 0)) e)
+*)
 
 Opaque SST.eval_exp.
 
@@ -504,6 +527,13 @@ Proof.
   rewrite M.memEffect_commutes_with_bind.
   setoid_rewrite effect_store; eauto.
   simpl.
+  rewrite eval_exp_ident; eauto.
+  euttnorm.
+  M.forcemem.
+  rewrite eval_exp_gep.
+  
+  
+  unfold exp_const_z.
   rewrite SST.lookup_env_hd; auto.
   simpl.
   euttnorm.
