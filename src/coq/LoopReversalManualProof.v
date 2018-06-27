@@ -36,7 +36,6 @@ Require Coq.Structures.OrderedTypeEx.
 Require Import ZMicromega.
 Import IO.DV.
 Import Trace.MonadVerif.
-Require Nsatz.
 
 Import ListNotations.
 Open Scope Z_scope.
@@ -44,6 +43,15 @@ Open Scope string_scope.
 
 Set Implicit Arguments.
 Set Contextual Implicit.
+
+(** SSReflect **)
+
+From Coq Require Import ssreflect ssrfun ssrbool.
+Set Implicit Arguments.
+Unset Strict Implicit.
+From Coq Require ssreflect.
+Import ssreflect.SsrSyntax.
+Set Printing Implicit Defensive.
 
 
 Require Import Vellvm.Memory.
@@ -291,8 +299,6 @@ Qed.
 
 Lemma eval_exp_gep:
   forall (tds: typedefs)
-    (ot: option dtyp)
-    (t: typ)
     (ge: SST.genv)
     (e: SST.env)
     (arrval ivval: dvalue)
@@ -429,12 +435,13 @@ Proof.
   simpl.
   rewrite M.memEffect_commutes_with_bind.
   rewrite effect_alloca; eauto.
-  rewrite normalize_type_equation.
   unfold i32PTRTY.
   euttnorm.
   euttnorm.
   M.forcemem.
-  reflexivity.
+  unfold SST.eval_typ.
+  rewrite normalize_type_equation.
+  auto.
 Qed.
              
 
@@ -483,7 +490,6 @@ Lemma exec_bbInit_exec_bbInitRewrite_equiv:
 Proof.
   intros.
   rewrite exec_bbInit.
-  rewrite exec_bbInitRewrite.
   reflexivity.
 Qed.
 
@@ -513,7 +519,7 @@ Proof.
   simpl.
   euttnorm.
 
-  (** TODO: rewrite eval_exp theories **)
+  (** TODO: rewrite eval_exp_const theories **)
 Admitted.
 
 Lemma exec_bbLoop_from_init: forall (n: nat)
@@ -550,9 +556,16 @@ Proof.
   euttnorm.
   M.forcemem.
   rewrite eval_exp_gep.
+  (** I shouldn't have to do this :( *)
+  all: cycle -2.
+  rewrite SST.lookup_env_tl; auto.
+  rewrite EATARR.
+  eauto.
+  rewrite SST.lookup_env_hd; auto.
   
   
   unfold exp_const_z.
+  rewrite eval_exp_gep.
   rewrite SST.lookup_env_hd; auto.
   simpl.
   euttnorm.
