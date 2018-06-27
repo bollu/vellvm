@@ -508,7 +508,7 @@ Section INSTRUCTION.
              (i: instr): Trace InstResult :=
     match id, i with
     | IId id, INSTR_Op op =>
-      'dv <- eval_op ge e op;
+      'dv <- eval_op tds ge e op;
         Trace.Ret (IREnvEffect (add_env id dv e))
     | IId id, INSTR_Load _ t (u,ptr) _ =>
       'dv <- eval_exp tds ge e (Some (eval_typ tds u)) ptr;
