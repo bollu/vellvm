@@ -131,7 +131,7 @@ Definition exp_eq (v1: exp) (v2: exp): exp :=
   OP_ICmp Eq (i32TY) v1 v2.
 
 Definition exp_increment_ident (name: string): exp :=
-  exp_add (exp_ident "name") (exp_const_z 1).
+  exp_add (exp_ident name) (exp_const_z 1).
 
 Definition simpleProgramInitBBId : block_id := Name "init".
 Definition bbInit: block := 
@@ -338,6 +338,51 @@ Lemma eval_exp_const:
   (SST.eval_exp tds ge (SST.add_env (Name "iv") (DVALUE_I32 (Int32.repr 0)) e)
 *)
 
+Lemma eval_exp_increment_ident:
+  forall (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (ivval: dvalue)
+    (name: string)
+    (LOOKUPIV: SST.lookup_env e (Name name) = mret ivval),
+  SST.eval_exp tds ge e None
+               (exp_increment_ident name) ≡
+               IO.lift_err_d (eval_iop (Add false false) ivval (DVALUE_I32 (Int32.repr 1)))
+    [eta Ret (X:=dvalue)] .
+Proof.
+  intros.
+  simpl.
+  rewrite LOOKUPIV.
+  euttnorm.
+  unfold SST.eval_typ; rewrite normalize_type_equation.
+  euttnorm.
+Qed.
+
+Check (Int32.eq).
+Lemma eval_exp_eq_when_neq:
+  forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (val: int32)
+    (name: string)
+    (NEQ: (Int32.eq val (Int32.repr (TRIPCOUNT n)) =? false)%bool)
+    (LOOKUPIV: SST.lookup_env e (Name name) = mret (DVALUE_I32 val)),
+    SST.eval_exp tds ge e None
+                 (exp_eq (exp_ident name) (exp_const_z (TRIPCOUNT n))) ≡ Err "foo".
+Proof.
+  intros.
+  simpl.
+  rewrite LOOKUPIV.
+  euttnorm.
+  unfold SST.eval_typ; rewrite normalize_type_equation.
+  euttnorm.
+  unfold eval_icmp.
+  simpl.
+  unfold eval_i32_icmp.
+  simpl.
+  unfold TRIPCOUNT.
+
 Opaque SST.eval_exp.
 
 
@@ -426,6 +471,7 @@ Proof.
   rewrite VALE_VALUE.
   euttnorm.
 Qed.
+
   
 
 Opaque SST.execInst.
@@ -605,65 +651,25 @@ Proof.
   (* TODO: fix the opening of add_all_index *)
   (* evaluate iv.next *)
   rewrite SST.force_exec_bb_instrs.
-  
-  
-
-  
-  
-  
-  
-  unfold exp_const_z.
-  rewrite eval_exp_gep.
-  rewrite SST.lookup_env_hd; auto.
+  rewrite exec_inst_op; cycle 1.
+  unfold SST.eval_op.
   simpl.
-  euttnorm.
-  M.forcemem.
-  rewrite SST.lookup_env_tl; auto.
-  rewrite EATARR.
+  rewrite eval_exp_increment_ident.
+  all: cycle 1.
+  rewrite SST.lookup_env_hd.
+  eauto.
+  all: cycle 1.
   simpl.
-  Opaque SST.execBBInstrs.
-  repeat progress (autorewrite with euttnormdb).
+  eauto.
   euttnorm.
 
-  (* From this program:
 
-       (Vis
-          (IO.GEP (SST.eval_typ tds (arr_ty n)) (DVALUE_Addr (M.size mem, 0))
-             [DVALUE_I32 (Int32.repr 0)]) *)
-  M.forcemem.
-  simpl.
-  rewrite MEMATARR.
-  rewrite M.lookup_add.
-  euttnorm.
-  M.forcemem.
-  simpl.
-  rewrite M.lookup_add.
-  euttnorm.
-  M.forcemem.
-  unfold SST.eval_typ.
-  rewrite normalize_type_equation.
-  unfold arr_ty.
-  simpl.
-
-  unfold TRIPCOUNT.
-
-  assert (NAT_LE_0: Z.of_nat n <=? Int32.unsigned (Int32.repr 0) = true).
-  simpl.
-  admit.
-
-  destruct (Z.of_nat n <=? Int32.unsigned (Int32.repr 0)); try (inversion NAT_LE_0; fail).
-  simpl.
-  M.forcemem.
-  euttnorm.
   
-
-  (* From the whole program:
-
-        M.lookup (M.size initmem)
-          (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem)
-  *)
-
-  rewrite MEMATARR.
+  (* eval checking of iv.next *)
+  rewrite SST.force_exec_bb_instrs.
+  rewrite exec_inst_op.
+  all: cycle 1.
+  unfold SST.eval_op.
 Abort.
 
 Lemma exec_bbLoop_from_bbLoop: forall (n: nat)
