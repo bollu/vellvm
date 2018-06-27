@@ -416,12 +416,15 @@ Lemma exec_inst_op: forall
              (e: SST.env)
              (vale: exp)
              (dvale: dvalue)
-             (name: string),
-    SST.execInst tds ge e (IId (Name name)) (INSTR_Op vale) ≡ Err "foo".
+             (name: string)
+             (VALE_VALUE: SST.eval_op tds ge e vale ≡ Ret dvale) ,
+    SST.execInst tds ge e (IId (Name name)) (INSTR_Op vale) ≡
+                 Ret (SST.IREnvEffect (SST.add_env (Name name) dvale e)).
 Proof.
   intros.
   simpl.
-  constructor.
+  rewrite VALE_VALUE.
+  euttnorm.
 Qed.
   
 
