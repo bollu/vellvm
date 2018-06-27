@@ -289,16 +289,35 @@ Proof.
   reflexivity.
 Qed.
 
-(* 
 Lemma eval_exp_gep:
   forall (tds: typedefs)
     (ot: option dtyp)
+    (t: typ)
     (ge: SST.genv)
     (e: SST.env)
-    (name: string)
-    (val: dvalue),
-    SST.eval_exp tds ge e ot (GEP)
-*)
+    (arrval ivval: dvalue)
+    (LOOKUPARR: SST.lookup_env e (Name "arr") = mret arrval)
+    (LOOKUPIV: SST.lookup_env e (Name "iv") = mret ivval)
+    (n:nat),
+    SST.eval_exp tds ge e
+                 (Some (SST.eval_typ tds (arr_ty n)))
+             (OP_GetElementPtr (arr_ty n) (TYPE_Pointer (arr_ty n), exp_ident "arr")
+                               [texp_ident "iv"]) ≡
+              Vis (IO.GEP (DTYPE_Array (Z.of_nat n) (DTYPE_I 32)) arrval [ivval])
+              (fun x : dvalue => Ret x).
+Proof.
+  intros.
+  simpl.
+  rewrite LOOKUPARR.
+  euttnorm.
+  rewrite LOOKUPIV.
+  euttnorm.
+  unfold arr_ty, SST.eval_typ.
+  simpl.
+  repeat rewrite normalize_type_equation.
+  unfold TRIPCOUNT.
+  auto.
+Qed.
 
 (* 
 Lemma eval_exp_const: 
