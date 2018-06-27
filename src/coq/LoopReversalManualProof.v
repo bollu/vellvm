@@ -409,6 +409,22 @@ Proof.
   euttnorm.
 Qed.
 
+(** ***Evaluate INSTR_OP *)
+Lemma exec_inst_op: forall
+             (tds: typedefs)
+             (ge:  SST.genv)
+             (e: SST.env)
+             (vale: exp)
+             (dvale: dvalue)
+             (name: string),
+    SST.execInst tds ge e (IId (Name name)) (INSTR_Op vale) ≡ Err "foo".
+Proof.
+  intros.
+  simpl.
+  constructor.
+Qed.
+  
+
 Opaque SST.execInst.
 
 (** *Basic block effects *)
@@ -523,6 +539,7 @@ Proof.
 Admitted.
 
 Lemma exec_bbLoop_from_init: forall (n: nat)
+    (N_GEQ_1: (n >= 1)%nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
@@ -562,6 +579,34 @@ Proof.
   rewrite EATARR.
   eauto.
   rewrite SST.lookup_env_hd; auto.
+  euttnorm.
+  M.forcemem.
+  simpl.
+  rewrite MEMATARR.
+  rewrite M.lookup_add; auto.
+  euttnorm.
+  M.forcemem.
+  simpl.
+  rewrite M.lookup_add; auto.
+  euttnorm.
+  M.forcemem.
+
+  assert (N_NOT_LEQ_0: Z.of_nat n <=? Int32.unsigned (Int32.repr 0) = false).
+  (** since n >= 1, n is not <= 0 **)
+  admit.
+
+  rewrite N_NOT_LEQ_0.
+  simpl.
+  euttnorm.
+  simpl.
+  (* TODO: fix the opening of add_all_index *)
+  (* evaluate iv.next *)
+  rewrite SST.force_exec_bb_instrs.
+  
+  
+
+  
+  
   
   
   unfold exp_const_z.
