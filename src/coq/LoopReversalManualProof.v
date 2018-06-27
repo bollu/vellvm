@@ -618,7 +618,7 @@ Proof.
   simpl.
   euttnorm.
 
-  (** TODO: rewrite eval_exp_const theories **)
+  setoid_rewrite eval_exp_const.
 Admitted.
 
 Lemma exec_bbLoop_from_init: forall (n: nat)
