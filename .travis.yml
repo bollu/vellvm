@@ -32,7 +32,8 @@ install:
 - opam init -j ${NJOBS} --compiler=${COMPILER} -n -y
 - eval $(opam config env)
 - opam config var root
-- opam repo add coq-released http://coq.inria.fr/opam/released
+# this somehow fails the second time...
+- opam repo add coq-released http://coq.inria.fr/opam/released || true
 - opam install -y --verbose -j ${NJOBS} coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET}
 - opam install -y --verbose -j ${NJOBS} coq-mathcomp-ssreflect
 - opam install -y --verbose -j ${NJOBS} ocamlfind camlp5 ${EXTRA_OPAM} 
