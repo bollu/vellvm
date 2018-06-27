@@ -326,18 +326,19 @@ Proof.
   auto.
 Qed.
 
-(* 
-Lemma eval_exp_const: 
+Lemma eval_exp_const:  forall
     (tds: typedefs)
-    (ot: option dtyp)
-    (t: dtyp)
     (ge: SST.genv)
-    (e: SST.env),
-    (SST.eval_exp tds ge e ot  EXP_Integer (x:int)
+    (e: SST.env)
+  (z: Z),
+    SST.eval_exp tds ge e (Some (DTYPE_I 32)) (exp_const_z z)  ≡
+                 Ret (DVALUE_I32 (Int32.repr z)).
+Proof.
+  intros.
+  simpl.
+  reflexivity.
+Qed.
 
-                        
-  (SST.eval_exp tds ge (SST.add_env (Name "iv") (DVALUE_I32 (Int32.repr 0)) e)
-*)
 
 Lemma eval_exp_increment_ident:
   forall (tds: typedefs)
