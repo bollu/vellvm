@@ -32,7 +32,7 @@ install:
 - opam repo add coq-released http://coq.inria.fr/opam/released
 - opam install -y -j ${NJOBS} coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET}
 - opam install -y -j ${NJOBS} coq-mathcomp-ssreflect
-- opam install -y -j ${NJOBS} -y ocamlfind camlp5 ${EXTRA_OPAM} 
+- opam install -y -j ${NJOBS} ocamlfind camlp5 ${EXTRA_OPAM} 
 
 script:
 - export PATH=`pwd`/coq-${TEST_TARGET}/bin:$PATH
