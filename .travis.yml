@@ -28,25 +28,26 @@ env:
   - TEST_TARGET="8.7.2"
   - TEST_TARGET="8.8.0"
 
-install:
-- opam init -j ${NJOBS} --compiler=${COMPILER} -n -y
-- eval $(opam config env)
-- opam config var root
-# this somehow fails the second time...
-- opam repo add coq-released http://coq.inria.fr/opam/released || true
-- opam install -y --verbose -j ${NJOBS} coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET} -y
-- opam install -y --verbose -j ${NJOBS} coq-mathcomp-ssreflect
-- opam install -y --verbose -j ${NJOBS} ocamlfind camlp5 ${EXTRA_OPAM} 
-
 before_script:
-- source ./ci/keep_alive.sh
+  - source ./ci/keep_alive.sh
+
+install:
+  - opam init -j ${NJOBS} --compiler=${COMPILER} -n -y
+  - eval $(opam config env)
+  - opam config var root
+  # this somehow fails the second time...
+  - opam repo add coq-released http://coq.inria.fr/opam/released || true
+  - opam install -y --verbose -j ${NJOBS} coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET} -y
+  - opam install -y --verbose -j ${NJOBS} coq-mathcomp-ssreflect
+  - opam install -y --verbose -j ${NJOBS} ocamlfind camlp5 ${EXTRA_OPAM} 
+
 
 script:
-- eval $(opam config env)
-- opam config var root
-# Look at how Coq builds compcert for their test suite
-# https://github.com/coq/coq/blob/b67b8ab65448a63cb53517ab9dfccb3b4d541d77/dev/ci/ci-compcert.sh
-- cd lib/CompCert &&  ./configure x86_64-linux -ignore-coq-version && make -j; cd ../../
-- make -j ${NJOBS} -C lib/paco/src 
-- make -j ${NJOBS} -C src/
-- cd src && ./vellvm --test
+  - eval $(opam config env)
+  - opam config var root
+  # Look at how Coq builds compcert for their test suite
+  # https://github.com/coq/coq/blob/b67b8ab65448a63cb53517ab9dfccb3b4d541d77/dev/ci/ci-compcert.sh
+  - cd lib/CompCert &&  ./configure x86_64-linux -ignore-coq-version && make -j; cd ../../
+  - make -j ${NJOBS} -C lib/paco/src 
+  - make -j ${NJOBS} -C src/
+  - cd src && ./vellvm --test
