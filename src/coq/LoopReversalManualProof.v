@@ -58,6 +58,8 @@ Set Printing Implicit Defensive.
 Require Import Vellvm.Memory.
 
 Opaque M.add_all_index.
+Opaque M.add.
+Opaque M.serialize_dvalue.
 Opaque M.lookup_all_index.
 Opaque M.make_empty_block.
 
@@ -631,28 +633,9 @@ Lemma exec_bbLoop_from_init:
     (MEMATARR: mem = (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem)),
   
     M.memEffect mem (SST.execBB tds ge e (Some (blk_id (bbInit n))) (bbLoop n)) ≡
-                 Ret
+             Ret
     (M.add (M.size initmem)
-       (M.add_all_index
-          [M.Byte
-             (Byte.repr
-                ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256 / 256 / 256 / 256 /
-                  256) mod 256));
-          M.Byte
-            (Byte.repr
-               ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256 / 256 / 256 / 256)
-                mod 256));
-          M.Byte
-            (Byte.repr
-               ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256 / 256 / 256) mod 256));
-          M.Byte
-            (Byte.repr
-               ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256 / 256) mod 256));
-          M.Byte
-            (Byte.repr ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256) mod 256));
-          M.Byte (Byte.repr ((Int32.unsigned (Int32.repr 0) / 256 / 256) mod 256));
-          M.Byte (Byte.repr ((Int32.unsigned (Int32.repr 0) / 256) mod 256));
-          M.Byte (Byte.repr (Int32.unsigned (Int32.repr 0) mod 256))]
+       (M.add_all_index (M.serialize_dvalue (DVALUE_I32 (Int32.repr 0)))
           (Int32.unsigned (Int32.repr 0) * 8) (M.make_empty_block DTYPE_Pointer))
        (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem),
     SST.BBRBreak
@@ -694,6 +677,8 @@ Proof.
   rewrite SST.lookup_env_hd; auto.
   euttnorm.
   M.forcemem.
+  
+  (** MEM is OK here **)
   simpl.
   rewrite MEMATARR.
   rewrite M.lookup_add; auto.
@@ -702,6 +687,7 @@ Proof.
   simpl.
   rewrite M.lookup_add; auto.
   euttnorm.
+  (** MEM is too large here **)
   M.forcemem.
 
   assert (N_NOT_LEQ_0: Z.of_nat n <=? Int32.unsigned (Int32.repr 0) = false).
@@ -711,6 +697,7 @@ Proof.
   rewrite N_NOT_LEQ_0.
   simpl.
   euttnorm.
+  (** MEM is too large here **)
   simpl.
   (* TODO: fix the opening of add_all_index *)
   (* evaluate iv.next *)
@@ -761,7 +748,7 @@ Proof.
   repeat progress euttnorm.
   M.forcemem.
   auto.
-Qed.
+Admitted.
 
 Lemma exec_bbLoop_from_bbLoop: forall (n: nat)
     (tds: typedefs)
