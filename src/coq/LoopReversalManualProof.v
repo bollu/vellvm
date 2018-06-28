@@ -1116,6 +1116,11 @@ Proof.
   euttnorm.
 Qed.
 
+
+(** TODO: create a function that shows what memory looks like on n iterations **)
+Fixpoint create_mem_effect_of_loop (n: nat) (m: M.memory): M.memory := m.
+
+
   
 (** *Full effects *)
 
@@ -1123,12 +1128,12 @@ Qed.
 
 (** tiered semantics is already paying off, I can look at what happens
 when I execute a function **)
-Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory) eff
+Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory) 
   (N_GT_1: (n > 1)%nat),
-  M.memEffect initmem (SST.execFunction []
+  Trace.mapM fst (M.memEffect initmem (SST.execFunction []
               (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
                  (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
-              (mainCFG n) (Name "main")) ≡ eff.
+              (mainCFG n) (Name "main"))) ≡ Ret (create_mem_effect_of_loop n initmem).
 Proof.
   Opaque SST.step_sem_tiered.
   Opaque SST.execBBInstrs.
@@ -1161,53 +1166,8 @@ Proof.
   setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
   simpl.
   rewrite M.memEffect_commutes_with_bind; eauto.
-  rewrite exec_bbLoop_from_bbLoop.
 Abort.
   
-
-                                              
-
-(** Show this spurious proof to experiment with unfolding our new
-definition of program semantics **)
-Lemma run_mcfg_with_memory_orig:
-  forall (n: nat),
-    run_mcfg_with_memory_tiered (program n) ≡ 
-                                Ret (DVALUE_I32  (Int32.repr 1%Z)).
-Proof.
-  intros.
-  unfold run_mcfg_with_memory_tiered.
-  unfold SST.init_state_tiered.
-  unfold SST.build_global_environment_tiered.
-  unfold SST.allocate_globals_tiered.
-  simpl.
-  euttnorm.
-
-  unfold SST.register_functions_tiered.
-  simpl.
-  euttnorm.
-
-  unfold SST.register_declaration_tiered.
-  simpl.
-  euttnorm.
-
-  M.forcemem.
-  euttnorm.
-  
-  unfold SST.initialize_globals_tiered. simpl.
-  euttnorm.
-
-  rewrite SST.force_step_sem_tiered.
-  simpl.
-  
-  (** Need the opacity to make sure that Coq does not "unfold" too much **)
-  Opaque SST.execBB.
-  Opaque SST.step_sem_tiered.
-  Opaque SST.execFunction.
-  Opaque Trace.bindM.
-
-  
-  simpl.
-Abort.
   
 (* Lemma I care about *)
 Theorem looprev_same_semantics:
