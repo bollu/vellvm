@@ -628,9 +628,39 @@ Lemma exec_bbLoop_from_init:
     (e: SST.env)
     (mem initmem: M.memory)
     (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (M.size initmem, 0)))
-    (MEMATARR: mem = (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem))
-  t,
-    M.memEffect mem (SST.execBB tds ge e (Some (blk_id (bbInit n))) (bbLoop n)) ≡ t.
+    (MEMATARR: mem = (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem)),
+  
+    M.memEffect mem (SST.execBB tds ge e (Some (blk_id (bbInit n))) (bbLoop n)) ≡
+                 Ret
+    (M.add (M.size initmem)
+       (M.add_all_index
+          [M.Byte
+             (Byte.repr
+                ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256 / 256 / 256 / 256 /
+                  256) mod 256));
+          M.Byte
+            (Byte.repr
+               ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256 / 256 / 256 / 256)
+                mod 256));
+          M.Byte
+            (Byte.repr
+               ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256 / 256 / 256) mod 256));
+          M.Byte
+            (Byte.repr
+               ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256 / 256) mod 256));
+          M.Byte
+            (Byte.repr ((Int32.unsigned (Int32.repr 0) / 256 / 256 / 256) mod 256));
+          M.Byte (Byte.repr ((Int32.unsigned (Int32.repr 0) / 256 / 256) mod 256));
+          M.Byte (Byte.repr ((Int32.unsigned (Int32.repr 0) / 256) mod 256));
+          M.Byte (Byte.repr (Int32.unsigned (Int32.repr 0) mod 256))]
+          (Int32.unsigned (Int32.repr 0) * 8) (M.make_empty_block DTYPE_Pointer))
+       (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem),
+    SST.BBRBreak
+      (SST.add_env (Name "cond") (DVALUE_I1 Int1.zero)
+         (SST.add_env (Name "iv.next")
+            (DVALUE_I32 (Int32.add (Int32.repr 0) (Int32.repr 1)))
+            (SST.add_env (Name "iv") (DVALUE_I32 (Int32.repr 0)) e))) 
+      (Name "loop")).
                 
 Proof.
   Opaque SST.execBBInstrs.
@@ -728,9 +758,10 @@ Proof.
   euttnorm.
   (** Missing eutt proper instance for mapM **)
   rewrite eval_exp_ident.
-  
-  
-Abort.
+  repeat progress euttnorm.
+  M.forcemem.
+  auto.
+Qed.
 
 Lemma exec_bbLoop_from_bbLoop: forall (n: nat)
     (tds: typedefs)
@@ -803,7 +834,7 @@ Proof.
 
   (* (Vis
           (IO.GEP (SST.eval_typ [] (arr_ty n)) (DVALUE_Addr (M.size initmem, 0))
-* )
+*)
   (* We now have the Vis node for the GEP *)
   M.forcemem.
 
