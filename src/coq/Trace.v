@@ -1336,6 +1336,29 @@ Proof.
   rewrite H.
   reflexivity.
 Defined.
+
+
+Lemma mapM_proper_wrt_eutt:
+  forall {A B: Type} {E: Type -> Type} (a a': M E A) (f: A -> B),
+    a ≡ a' -> mapM  f a ≡ mapM f a'.
+Proof.
+Admitted.
+
+
+Instance mapm_eutt_proper {E X Y}:
+  Proper (eq ==> (@EquivUpToTau E X) ==> (@EquivUpToTau E Y)) (@mapM E X Y).
+Proof.
+  intros.
+  intros MEX MEX'.
+  intros MEX_EQ_MEX'.
+
+  intros F G.
+  intros F_EQ_G.
+  subst.
+
+  apply mapM_proper_wrt_eutt.
+  assumption.
+Defined.
   
 
 
