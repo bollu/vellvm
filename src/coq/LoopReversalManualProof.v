@@ -300,6 +300,26 @@ Proof.
   reflexivity.
 Qed.
 
+
+Lemma eval_exp_ident': forall
+    (tds: typedefs)
+    (ot: option dtyp)
+    (ge: SST.genv)
+    (e: SST.env)
+    (name: string)
+    (val: dvalue)
+    (EATIDENT: (SST.lookup_env e (Name name)) = mret val),
+    SST.eval_exp tds ge e ot (exp_ident name) ≡
+                 Ret val.
+Proof.
+  intros.
+  unfold SST.eval_exp.
+  simpl.
+  rewrite EATIDENT.
+  simpl.
+  reflexivity.
+Qed.
+
 Lemma eval_exp_gep:
   forall (tds: typedefs)
     (ge: SST.genv)
@@ -750,7 +770,39 @@ Proof.
   auto.
 Admitted.
 
-Lemma exec_bbLoop_from_bbLoop: forall (n: nat)
+
+
+Lemma exec_bbLoop_phis_from_loop:
+  forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (ivnextval: dvalue)
+    (EATIVNEXT: SST.lookup_env e (Name "iv.next") = mret ivnextval)
+    (mem: M.memory),
+    M.memEffect mem (SST.evalPhis tds ge e (Some (blk_id (bbLoop n))) (blk_phis (bbLoop n))) ≡ 
+  Ret (mem, SST.add_env (Name "iv") ivnextval e).
+Proof.
+  intros.
+  unfold SST.evalPhis.
+  unfold bbLoop. simpl.
+  euttnorm.
+  unfold SST.evalPhi.
+  simpl.
+  unfold SST.eval_typ.
+  rewrite normalize_type_equation.
+  simpl.
+  
+  rewrite M.memEffect_commutes_with_bind.
+  rewrite eval_exp_ident'; eauto.
+  M.forcemem.
+  euttnorm.
+  M.forcemem.
+  auto.
+Qed.
+
+
+Lemma exec_bbLoop_from_bbLoop_until_terminator: forall (n: nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
@@ -759,6 +811,18 @@ Lemma exec_bbLoop_from_bbLoop: forall (n: nat)
                                   (Some (blk_id (bbLoop n)))
                                   (bbLoop n)) ≡ Err "foo".
 Proof.
+  Opaque SST.execBBInstrs.
+  Opaque SST.execInst.
+  Opaque SST.eval_exp.
+
+  intros.
+  unfold SST.execBB.
+  rewrite M.memEffect_commutes_with_bind.
+
+  setoid_rewrite exec_bbLoop_phis_from_loop; auto.
+  rewrite bindM_Ret.
+  rewrite SST.force_exec_bb_instrs.
+  simpl.
 Admitted.
               
 
@@ -852,11 +916,6 @@ Proof.
 
   
   simpl.
-  rewrite @Trace.matchM with (i := SST.execInterpreter _ _ _ _ _ ).
-  simpl.
-  rewrite M.rewrite_memD_as_memEffect.
-  M.forcemem.
-  euttnorm.
 Abort.
   
 (* Lemma I care about *)
