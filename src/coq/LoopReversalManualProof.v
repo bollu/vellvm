@@ -613,16 +613,16 @@ Proof.
   simpl.
   euttnorm.
   M.forcemem.
-  (* again, why can't I rewrite with memEffect_ret? *)
-  rewrite -> @Trace.matchM with (i := M.memEffect _ _).
-  simpl.
+  rewrite eval_exp_const.
   euttnorm.
+  M.forcemem.
+  auto.
+Qed.
 
-  setoid_rewrite eval_exp_const.
-Admitted.
-
-Lemma exec_bbLoop_from_init: forall (n: nat)
-    (N_GEQ_1: (n >= 1)%nat)
+Lemma exec_bbLoop_from_init:
+  forall (n: nat)
+    (N_GT_1: (n > 1)%nat)
+                               
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
@@ -705,14 +705,30 @@ Proof.
   all: cycle 1.
   unfold SST.eval_op.
   simpl.
-  rewrite eval_exp_eq_when_neq.
-  eauto.
+  rewrite eval_exp_eq_when_neq; eauto.
   all: cycle 1.
   simpl.
   rewrite SST.lookup_env_hd.
   eauto.
   all: cycle 1.
   simpl.
+  unfold TRIPCOUNT.
+  simpl.
+  rewrite Int.add_unsigned.
+  repeat rewrite Int.repr_unsigned.
+  assert (N_NEQ_1: Int32.eq (Int32.repr 1) (Int32.repr (Z.of_nat n)) = false).
+  admit.
+  apply N_NEQ_1.
+
+
+  (* done with loop *)
+  (* eval branch *)
+  euttnorm.
+  rewrite SST.force_exec_bb_instrs.
+  euttnorm.
+  (** Missing eutt proper instance for mapM **)
+  rewrite eval_exp_ident.
+  
   
 Abort.
 
