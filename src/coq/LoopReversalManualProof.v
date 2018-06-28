@@ -1009,22 +1009,86 @@ Lemma exec_bbLoop_from_bbLoop_inner_iterations:
     (EATIVNEXT: SST.lookup_env e (Name "iv.next") = mret (DVALUE_I32 ivnextval)),
     M.memEffect mem (SST.execBB tds ge e
                                 (Some (blk_id (bbLoop n)))
-                                (bbLoop n)) ≡ Err "foo".
+                                (bbLoop n)) ≡
+                
+  Ret
+    (M.add (M.size initmem)
+       (M.add_all_index (M.serialize_dvalue (DVALUE_I32 ivnextval))
+          (Int32.unsigned ivnextval * 8) (M.make_empty_block DTYPE_Pointer))
+       (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem),
+    SST.BBRBreak
+      (SST.add_env (Name "cond") (DVALUE_I1 Int1.zero)
+         (SST.add_env (Name "iv.next")
+            (DVALUE_I32 (Int32.add ivnextval (Int32.repr 1)))
+            (SST.add_env (Name "iv") (DVALUE_I32 ivnextval) e))) 
+      (Name "loop")).
 Proof.
   intros.
   rewrite exec_bbLoop_from_bbLoop_spine; eauto.
   Locate "<=?".
-  assert (N_LEQ_IVNEXTVAL: reflect ((Z.of_nat n <= Int32.unsigned ivnextval)) (Z.of_nat n <=? Int32.unsigned ivnextval)).
+  assert (N_LEQ_IVNEXTVAL: reflect ((Z.of_nat n <= Int32.unsigned ivnextval))
+                                   (Z.of_nat n <=? Int32.unsigned ivnextval)).
   apply Z.leb_spec0.
   destruct N_LEQ_IVNEXTVAL; try omega.
 
 
-  Int32.eq (Int32.add ivnextval (Int32.repr 1)) (Int32.repr (Z.of_nat n))
+  assert (IVNEXTVAL_NEQ_N: Int32.eq ivnextval  (Int32.repr (Z.of_nat n)) = false).
+  apply Int32.eq_false.
+  admit.
 
-  
-  
-              
+  rewrite IVNEXTVAL_NEQ_N.
+  simpl.
+  euttnorm.
+  M.forcemem.
+  euttnorm.
+Admitted.
 
+
+Lemma exec_bbLoop_from_bbLoop_final_iteration:
+  forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (ivnextval: int32)
+    (IVNEXT_EQ_N: Int32.unsigned ivnextval = Z.of_nat n)
+    (initmem mem: M.memory)
+    (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (M.size initmem, 0)))
+    (MEMATARR: mem = (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem))
+    (EATIVNEXT: SST.lookup_env e (Name "iv.next") = mret (DVALUE_I32 ivnextval)),
+    M.memEffect mem (SST.execBB tds ge e
+                                (Some (blk_id (bbLoop n)))
+                                (bbLoop n)) ≡
+                Ret
+    (M.add (M.size initmem)
+       (M.add_all_index (M.serialize_dvalue (DVALUE_I32 ivnextval)) 0
+          (M.make_empty_block DTYPE_Pointer))
+       (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem),
+    SST.BBRBreak
+      (SST.add_env (Name "cond") (DVALUE_I1 Int1.one)
+         (SST.add_env (Name "iv.next")
+            (DVALUE_I32 (Int32.add ivnextval (Int32.repr 1)))
+            (SST.add_env (Name "iv") (DVALUE_I32 ivnextval) e))) 
+      (Name "exit")).
+Proof.
+  intros.
+  rewrite exec_bbLoop_from_bbLoop_spine; eauto.
+  assert (N_LEQ_IVNEXTVAL: reflect ((Z.of_nat n <= Int32.unsigned ivnextval))
+                                   (Z.of_nat n <=? Int32.unsigned ivnextval)).
+  apply Z.leb_spec0.
+  destruct N_LEQ_IVNEXTVAL; try omega.
+
+
+  assert (IVNEXTVAL_NEQ_N: Int32.eq ivnextval  (Int32.repr (Z.of_nat n)) = true).
+  rewrite <- IVNEXT_EQ_N.
+  rewrite Int32.repr_unsigned.
+  apply Int32.eq_true.
+
+  rewrite IVNEXTVAL_NEQ_N.
+  simpl.
+  euttnorm.
+  M.forcemem.
+  euttnorm.
+Qed.
 (** *Full effects *)
 
 
