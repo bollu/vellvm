@@ -1089,6 +1089,34 @@ Proof.
   M.forcemem.
   euttnorm.
 Qed.
+
+
+Lemma exec_exit:
+  forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (prev: block_id)
+    (valdvalue: dvalue)
+    (ENVATVAL: SST.lookup_env e (Name "val") = mret valdvalue)
+    (mem: M.memory),
+    M.memEffect mem (SST.execBB tds ge e (Some prev)
+                                (bbExit)) ≡
+                 M.memEffect mem (Ret (SST.BBRRet valdvalue)).
+Proof.
+  intros.
+  unfold SST.execBB.
+  simpl.
+  unfold SST.evalPhis.
+  euttnorm.
+
+  rewrite SST.force_exec_bb_instrs.
+  simpl.
+  rewrite eval_exp_ident'; eauto.
+  euttnorm.
+Qed.
+
+  
 (** *Full effects *)
 
 
