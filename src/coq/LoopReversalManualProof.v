@@ -164,7 +164,7 @@ Definition bbLoop :=
                                            "arr"
                                            (texp_ident "iv")));
                    (IId (Name "iv.next"), INSTR_Op (exp_increment_ident "iv"));
-                   (IId (Name "cond"), INSTR_Op (exp_eq (exp_ident "iv.next")
+                   (IId (Name "cond"), INSTR_Op (exp_eq (exp_ident "iv")
                                                        (exp_const_z TRIPCOUNT)
                 ))];
                 
@@ -808,17 +808,13 @@ Proof.
   rewrite eval_exp_eq_when_neq; eauto.
   all: cycle 1.
   simpl.
+  rewrite SST.lookup_env_tl; auto.
   rewrite SST.lookup_env_hd.
   eauto.
   all: cycle 1.
-  simpl.
-  unfold TRIPCOUNT.
-  simpl.
-  rewrite Int.add_unsigned.
-  repeat rewrite Int.repr_unsigned.
-  assert (N_NEQ_1: Int32.eq (Int32.repr 1) (Int32.repr (Z.of_nat n)) = false).
+  assert (N_NEQ_0: Int32.eq (Int32.repr 0) (Int32.repr (Z.of_nat n)) = false).
   admit.
-  apply N_NEQ_1.
+  apply N_NEQ_0.
 
 
   (* done with loop *)
@@ -882,8 +878,7 @@ Lemma exec_bbLoop_from_bbLoop_spine: forall (n: nat)
       M.memEffect mem (SST.execBB tds ge e
                                   (Some (blk_id (bbLoop n)))
                                   (bbLoop n)) ≡
-                  
-  M.memEffect
+                   M.memEffect
     (M.add (M.size initmem)
        (M.add_all_index (M.serialize_dvalue (DVALUE_I32 ivnextval))
           match
@@ -898,8 +893,7 @@ Lemma exec_bbLoop_from_bbLoop_spine: forall (n: nat)
     (mapM
        (SST.BBResultFromTermResult
           (SST.add_env (Name "cond")
-             (if
-               Int32.eq (Int32.add ivnextval (Int32.repr 1)) (Int32.repr (Z.of_nat n))
+             (if Int32.eq ivnextval (Int32.repr (Z.of_nat n))
               then DVALUE_I1 Int1.one
               else DVALUE_I1 Int1.zero)
              (SST.add_env (Name "iv.next")
@@ -907,8 +901,7 @@ Lemma exec_bbLoop_from_bbLoop_spine: forall (n: nat)
                 (SST.add_env (Name "iv") (DVALUE_I32 ivnextval) e))))
        (bindM
           match
-            (if
-              Int32.eq (Int32.add ivnextval (Int32.repr 1)) (Int32.repr (Z.of_nat n))
+            (if Int32.eq ivnextval (Int32.repr (Z.of_nat n))
              then DVALUE_I1 Int1.one
              else DVALUE_I1 Int1.zero)
           with
@@ -929,6 +922,8 @@ Lemma exec_bbLoop_from_bbLoop_spine: forall (n: nat)
           | DVALUE_Array _ => Err "Br got non-bool value"
           | DVALUE_Vector _ => Err "Br got non-bool value"
           end (fun br : block_id => Ret (SST.TRBreak br)))).
+
+                  
 Proof.
   Opaque SST.execBBInstrs.
   Opaque SST.execInst.
@@ -988,6 +983,7 @@ Proof.
   unfold SST.eval_op.
   rewrite eval_exp_eq.
   eauto.
+  rewrite SST.lookup_env_tl; eauto.
   rewrite SST.lookup_env_hd; eauto.
   euttnorm.
   M.forcemem.
@@ -998,6 +994,35 @@ Proof.
   rewrite eval_exp_ident.
   euttnorm.
 Qed.
+
+
+Lemma exec_bbLoop_from_bbLoop_inner_iterations:
+  forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (ivnextval: int32)
+    (IVNEXT_LT_N: Int32.unsigned ivnextval < Z.of_nat n)
+    (initmem mem: M.memory)
+    (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (M.size initmem, 0)))
+    (MEMATARR: mem = (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem))
+    (EATIVNEXT: SST.lookup_env e (Name "iv.next") = mret (DVALUE_I32 ivnextval)),
+    M.memEffect mem (SST.execBB tds ge e
+                                (Some (blk_id (bbLoop n)))
+                                (bbLoop n)) ≡ Err "foo".
+Proof.
+  intros.
+  rewrite exec_bbLoop_from_bbLoop_spine; eauto.
+  Locate "<=?".
+  assert (N_LEQ_IVNEXTVAL: reflect ((Z.of_nat n <= Int32.unsigned ivnextval)) (Z.of_nat n <=? Int32.unsigned ivnextval)).
+  apply Z.leb_spec0.
+  destruct N_LEQ_IVNEXTVAL; try omega.
+
+
+  Int32.eq (Int32.add ivnextval (Int32.repr 1)) (Int32.repr (Z.of_nat n))
+
+  
+  
               
 
 (** *Full effects *)
