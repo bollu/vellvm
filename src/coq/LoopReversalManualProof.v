@@ -755,12 +755,11 @@ Lemma exec_bbLoop_from_bbLoop: forall (n: nat)
     (ge: SST.genv)
     (e: SST.env)
     (mem: M.memory),
-    exists t,
       M.memEffect mem (SST.execBB tds ge e
                                   (Some (blk_id (bbLoop n)))
-                                  (bbLoop n)) ≡ t.
+                                  (bbLoop n)) ≡ Err "foo".
 Proof.
-Abort.
+Admitted.
               
 
 (** *Full effects *)
@@ -769,7 +768,8 @@ Abort.
 
 (** tiered semantics is already paying off, I can look at what happens
 when I execute a function **)
-Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory) eff,
+Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory) eff
+  (N_GT_1: (n > 1)%nat),
   M.memEffect initmem (SST.execFunction []
               (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
                  (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
@@ -789,55 +789,24 @@ Proof.
   setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
   simpl.
   setoid_rewrite M.memEffect_commutes_with_bind.
-
-  (* Nice, proof composition! *)
+  (* execute the initial BB *)
   setoid_rewrite exec_bbInit.
 
+  (* Execute the edge from the initial BB to the loop BB *)
+  euttnorm.
+  replace (Name "init") with (blk_id (bbInit n)); auto.
+  setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
+  simpl.
+  rewrite M.memEffect_commutes_with_bind.
+  rewrite exec_bbLoop_from_init; eauto.
+
+
+  (* Execute the edge from the loop BB to the loop BB *)
   euttnorm.
   setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
   simpl.
   rewrite M.memEffect_commutes_with_bind; eauto.
-
-
-  assert (EVAL_LOOP_FROM_INIT: forall eff,
-         (M.memEffect (M.add (M.size  (a:= M.mem_block) initmem) (M.make_empty_block DTYPE_Pointer) initmem)
-       (SST.execBB []
-          (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:= M.mem_block) M.empty, 0))
-             (SST.ENV.empty dvalue))
-          (SST.add_env (Name "arr") (DVALUE_Addr (M.size initmem, 0))
-                       (SST.env_of_assoc [])) (Some (Name "init")) (bbLoop n)))
-           ≡ eff).
-  intros.
-  unfold SST.execBB.
-  rewrite M.memEffect_commutes_with_bind; eauto.
-  rewrite  exec_bbLoop_phis_from_init.
-  euttnorm.
-  rewrite SST.force_exec_bb_instrs.
-  simpl.
-  rewrite M.memEffect_commutes_with_bind; eauto.
-  setoid_rewrite effect_store; eauto.
-  simpl.
-  euttnorm.
-
-  (* (Vis
-          (IO.GEP (SST.eval_typ [] (arr_ty n)) (DVALUE_Addr (M.size initmem, 0))
-*)
-  (* We now have the Vis node for the GEP *)
-  M.forcemem.
-
-  (** we are now evaluating the GEP **)
-  simpl.
-  rewrite M.lookup_add; auto.
-  euttnorm.
-  M.forcemem.
-  unfold SST.eval_typ. simpl. rewrite normalize_type_equation. simpl.
-  rewrite M.lookup_add; auto.
-  euttnorm.
-  M.forcemem.
-
-  
-
-  (* force BB evaluation *)
+  rewrite exec_bbLoop_from_bbLoop.
 Abort.
   
 
