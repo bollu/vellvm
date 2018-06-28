@@ -68,9 +68,6 @@ Section LOOPREV.
   Variable ORIGTRIPCOUNT: nat.
   Definition TRIPCOUNT: Z := Z.of_nat ORIGTRIPCOUNT.
   
-  (* 
-Notation TRIPCOUNT := 100%Z.
-*)
 
 Notation i32TY := (TYPE_I (32%Z)).
 Definition i32ARRTY := (TYPE_Array 2 i32TY).
@@ -281,6 +278,15 @@ Definition LoopWriteSet (n: nat) : list nat := seq 1 n.
 Hint Transparent SS.init_state.
 Hint Unfold SS.init_state.
 
+Create HintDb evaluation.
+Hint Resolve SST.lookup_env_hd: evaluation.
+Hint Resolve SST.lookup_env_tl: evaluation.
+
+
+Hint Rewrite @SST.lookup_env_hd: evaluation.
+Hint Rewrite @SST.lookup_env_tl: evaluation.
+
+
 (** *Expresssion effects *)
 Lemma eval_exp_ident: forall
     (tds: typedefs)
@@ -299,6 +305,9 @@ Proof.
   simpl.
   reflexivity.
 Qed.
+
+Hint Resolve eval_exp_ident: evaluation.
+Hint Rewrite @eval_exp_ident: evaluation.
 
 
 Lemma eval_exp_ident': forall
@@ -319,6 +328,10 @@ Proof.
   simpl.
   reflexivity.
 Qed.
+
+
+Hint Resolve eval_exp_ident': evaluation.
+Hint Rewrite @eval_exp_ident': evaluation.
 
 Lemma eval_exp_gep:
   forall (tds: typedefs)
@@ -348,6 +361,10 @@ Proof.
   auto.
 Qed.
 
+
+Hint Resolve eval_exp_ident': evaluation.
+Hint Rewrite @eval_exp_ident': evaluation.
+
 Lemma eval_exp_const:  forall
     (tds: typedefs)
     (ge: SST.genv)
@@ -361,6 +378,8 @@ Proof.
   reflexivity.
 Qed.
 
+Hint Resolve eval_exp_const: evaluation.
+Hint Rewrite @eval_exp_const: evaluation.
 
 Lemma eval_exp_increment_ident:
   forall (tds: typedefs)
@@ -381,6 +400,11 @@ Proof.
   unfold SST.eval_typ; rewrite normalize_type_equation.
   euttnorm.
 Qed.
+
+
+
+Hint Resolve eval_exp_increment_ident: evaluation.
+Hint Rewrite @eval_exp_increment_ident: evaluation.
 
 Lemma eval_exp_eq_when_neq:
   forall (n: nat)
@@ -410,6 +434,8 @@ Proof.
   euttnorm.
 Qed.
 
+Hint Resolve eval_exp_eq_when_neq: evaluation.
+Hint Rewrite @eval_exp_eq_when_neq: evaluation.
 
 Lemma eval_exp_eq_when_eq:
   forall (n: nat)
@@ -439,6 +465,34 @@ Proof.
   euttnorm.
 Qed.
 
+Hint Resolve eval_exp_eq_when_eq: evaluation.
+Hint Rewrite @eval_exp_eq_when_eq: evaluation.
+
+Lemma eval_exp_eq:
+  forall (n: nat)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (val: int32)
+    (name: string)
+    (LOOKUPIV: SST.lookup_env e (Name name) = mret (DVALUE_I32 val)),
+    SST.eval_exp tds ge e None
+                 (exp_eq (exp_ident name) (exp_const_z (TRIPCOUNT n))) ≡
+                 Ret
+    (if Int32.eq val (Int32.repr (Z.of_nat n))
+     then DVALUE_I1 Int1.one
+     else DVALUE_I1 Int1.zero).
+Proof.
+  intros.
+  simpl.
+  unfold SST.eval_typ; rewrite normalize_type_equation.
+  rewrite LOOKUPIV.
+  euttnorm.
+Qed.
+
+
+Hint Resolve eval_exp_eq: evaluation.
+Hint Rewrite @eval_exp_eq: evaluation.
 Opaque SST.eval_exp.
 
 
@@ -446,7 +500,7 @@ Opaque SST.eval_exp.
 (** *Instruction effects *)
 
 (** Effect of alloca *)
-Lemma effect_alloca:  forall 
+Lemma exec_inst_alloca:  forall 
              (tds: typedefs)
              (ge:  SST.genv)
              (e: SST.env)
@@ -470,8 +524,12 @@ Proof.
   M.forcemem.
   euttnorm.
 Qed.
+
+
+Hint Resolve exec_inst_alloca: evaluation.
+Hint Rewrite @exec_inst_alloca: evaluation.
 (** Effect of store *)
-Lemma effect_store: forall
+Lemma exec_inst_store: forall
              (tds: typedefs)
              (ge:  SST.genv)
              (e: SST.env)
@@ -510,6 +568,10 @@ Proof.
   euttnorm.
 Qed.
 
+
+Hint Resolve exec_inst_store: evaluation.
+Hint Rewrite @exec_inst_store: evaluation.
+
 (** ***Evaluate INSTR_OP *)
 Lemma exec_inst_op: forall
              (tds: typedefs)
@@ -527,9 +589,10 @@ Proof.
   rewrite VALE_VALUE.
   euttnorm.
 Qed.
-
   
 
+Hint Resolve exec_inst_op: evaluation.
+Hint Rewrite @exec_inst_op: evaluation.
 Opaque SST.execInst.
 
 (** *Basic block effects *)
@@ -555,7 +618,7 @@ Proof.
 
   simpl.
   rewrite M.memEffect_commutes_with_bind.
-  rewrite effect_alloca; eauto.
+  rewrite exec_inst_alloca; eauto.
   unfold i32PTRTY.
   euttnorm.
   euttnorm.
@@ -589,7 +652,7 @@ Proof.
   euttnorm.
   unfold SST.BBResultFromTermResult.
   rewrite M.memEffect_commutes_with_bind.
-  rewrite effect_alloca; eauto.
+  rewrite exec_inst_alloca; eauto.
   euttnorm.
   unfold SST.eval_typ.
   rewrite normalize_type_equation.
@@ -683,7 +746,7 @@ Proof.
 
 
   rewrite M.memEffect_commutes_with_bind.
-  setoid_rewrite effect_store; eauto.
+  setoid_rewrite exec_inst_store; eauto.
   simpl.
   rewrite eval_exp_ident; eauto.
   euttnorm.
@@ -802,28 +865,139 @@ Proof.
 Qed.
 
 
-Lemma exec_bbLoop_from_bbLoop_until_terminator: forall (n: nat)
+
+
+(** The spine of the computation when evaluating from the backedge,
+with the conditionals left in. This can be refined based on things that are
+known about the program *)
+Lemma exec_bbLoop_from_bbLoop_spine: forall (n: nat)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
-    (mem: M.memory),
+    (ivnextval: int32)
+    (initmem mem: M.memory)
+    (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (M.size initmem, 0)))
+    (MEMATARR: mem = (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem))
+    (EATIVNEXT: SST.lookup_env e (Name "iv.next") = mret (DVALUE_I32 ivnextval)),
       M.memEffect mem (SST.execBB tds ge e
                                   (Some (blk_id (bbLoop n)))
-                                  (bbLoop n)) ≡ Err "foo".
+                                  (bbLoop n)) ≡
+                  
+  M.memEffect
+    (M.add (M.size initmem)
+       (M.add_all_index (M.serialize_dvalue (DVALUE_I32 ivnextval))
+          match
+            (if Z.of_nat n <=? Int32.unsigned ivnextval
+             then None
+             else Some (DTYPE_I 32, Int32.unsigned ivnextval * 8))
+          with
+          | Some (_, offset) => offset
+          | None => 0
+          end (M.make_empty_block DTYPE_Pointer))
+       (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem))
+    (mapM
+       (SST.BBResultFromTermResult
+          (SST.add_env (Name "cond")
+             (if
+               Int32.eq (Int32.add ivnextval (Int32.repr 1)) (Int32.repr (Z.of_nat n))
+              then DVALUE_I1 Int1.one
+              else DVALUE_I1 Int1.zero)
+             (SST.add_env (Name "iv.next")
+                (DVALUE_I32 (Int32.add ivnextval (Int32.repr 1)))
+                (SST.add_env (Name "iv") (DVALUE_I32 ivnextval) e))))
+       (bindM
+          match
+            (if
+              Int32.eq (Int32.add ivnextval (Int32.repr 1)) (Int32.repr (Z.of_nat n))
+             then DVALUE_I1 Int1.one
+             else DVALUE_I1 Int1.zero)
+          with
+          | DVALUE_Addr _ => Err "Br got non-bool value"
+          | DVALUE_I1 comparison_bit =>
+              if Int1.eq comparison_bit Int1.one
+              then Ret (Name "exit")
+              else Ret (Name "loop")
+          | DVALUE_I32 _ => Err "Br got non-bool value"
+          | DVALUE_I64 _ => Err "Br got non-bool value"
+          | DVALUE_Double _ => Err "Br got non-bool value"
+          | DVALUE_Float _ => Err "Br got non-bool value"
+          | DVALUE_Undef => Err "Br got non-bool value"
+          | DVALUE_Poison => Err "Br got non-bool value"
+          | DVALUE_None => Err "Br got non-bool value"
+          | DVALUE_Struct _ => Err "Br got non-bool value"
+          | DVALUE_Packed_struct _ => Err "Br got non-bool value"
+          | DVALUE_Array _ => Err "Br got non-bool value"
+          | DVALUE_Vector _ => Err "Br got non-bool value"
+          end (fun br : block_id => Ret (SST.TRBreak br)))).
 Proof.
   Opaque SST.execBBInstrs.
   Opaque SST.execInst.
   Opaque SST.eval_exp.
+  Opaque M.lookup.
 
   intros.
   unfold SST.execBB.
   rewrite M.memEffect_commutes_with_bind.
 
-  setoid_rewrite exec_bbLoop_phis_from_loop; auto.
-  rewrite bindM_Ret.
+  setoid_rewrite exec_bbLoop_phis_from_loop; eauto.
+  euttnorm.
+
+  (* Now we ave evaluted PHI nodes, time to evaluate instructions *)
+  (** Compute store **)
+  rewrite SST.force_exec_bb_instrs.
+  rewrite M.memEffect_commutes_with_bind.
+  rewrite exec_inst_store; eauto.
+  rewrite eval_exp_ident.
+  euttnorm.
+  rewrite eval_exp_gep; try (eauto 2 with evaluation).
+  all: cycle -1.
+  (* Why did eauto not find this? *)
+  rewrite SST.lookup_env_tl; eauto.
+  euttnorm.
+  M.forcemem.
+  simpl.
+  rewrite MEMATARR.
+  rewrite M.lookup_add.
+  simpl.
+  euttnorm.
+  M.forcemem.
+
+  simpl.
+  rewrite M.lookup_add.
+  euttnorm.
+  M.forcemem.
+  euttnorm.
+
+  
+  
+  (** Compute iv.next **)
+  rewrite SST.force_exec_bb_instrs.
+  rewrite M.memEffect_commutes_with_bind.
+  rewrite exec_inst_op; cycle -1.
+  unfold SST.eval_op.
+  rewrite eval_exp_increment_ident; simpl; eauto with evaluation; simpl; eauto.
+
+  euttnorm.
+  M.forcemem.
+  euttnorm.
+
+  (** evaluate condition **)
+  rewrite SST.force_exec_bb_instrs.
+  rewrite M.memEffect_commutes_with_bind.
+  rewrite exec_inst_op; cycle -1.
+  unfold SST.eval_op.
+  rewrite eval_exp_eq.
+  eauto.
+  rewrite SST.lookup_env_hd; eauto.
+  euttnorm.
+  M.forcemem.
+  euttnorm.
+  
   rewrite SST.force_exec_bb_instrs.
   simpl.
-Admitted.
+  rewrite eval_exp_ident.
+  euttnorm.
+Qed.
               
 
 (** *Full effects *)
