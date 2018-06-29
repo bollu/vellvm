@@ -828,8 +828,14 @@ It is at function level execution that [CoFixpoint] enters back into
 the game, since we can provide no guarantees about the termination
 capabilities of a function call.
    *)
-  CoFixpoint execFunctionAtBBId (tds: typedefs)(ge: genv) (e: env)
-             (CFG: cfg) (fnid: function_id) (oprev_blk_id: option block_id) (bbid: block_id): 
+  CoFixpoint execFunctionAtBBId
+             (tds: typedefs)
+             (ge: genv)
+             (e: env)
+             (CFG: cfg)
+             (fnid: function_id)
+             (oprev_blk_id: option block_id)
+             (bbid: block_id): 
     Trace FunctionResult :=
     match find_block (blks CFG) bbid with
     | None => 
@@ -1158,6 +1164,6 @@ Ltac forcesst := do [rewrite force_step_sem_tiered |
 (** *Opacity: make all the exec functions opaque so they don't unfold *)
 Opaque execBB.
 Opaque execBBInstrs.
-Opaque execFunction.
+Opaque execFunctionAtBBId.
 Opaque execInterpreter.
 End StepSemanticsTiered.
