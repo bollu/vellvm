@@ -1189,57 +1189,44 @@ Definition nat_to_int32 (n: nat): int32 :=
   Int32.repr (Z.of_nat n).
 
 (** *Effect of memory by one iteration *)
-Definition mem_effect_at_iteration (blockloc: Z) (i: nat) (m: M.memory): M.memory :=
+Definition mem_effect_at_iteration (blockloc: Z) (i: nat) (mem: M.memory): M.memory :=
              (M.add blockloc
                     (M.add_all_index (M.serialize_dvalue (DVALUE_I32 (nat_to_int32 i)))
-                                     (Int32.unsigned (nat_to_int32 i) * 8) (M.make_empty_block DTYPE_Pointer)) m).
+                                     (Int32.unsigned (nat_to_int32 i) * 8) (M.make_empty_block DTYPE_Pointer)) mem).
   
 
 
-(** *Effect of memory by n iterations *)
-Fixpoint create_mem_effect_of_loop_rec
-         (blockloc: Z)
-         (i: nat)
-         (n: nat)
-         (m: M.memory): M.memory :=
-  match n with
-  | O => m
-  | S n' => create_mem_effect_of_loop_rec
-             blockloc
-             (i + 1)
-             n'
-             (mem_effect_at_iteration blockloc i m)
-  end.
+(** *Effect of memory by n iterations of the loop *)
+Definition schedule := nat -> nat.
+Definition VIV := nat.
+Definition UB := nat.
+Inductive exec_loop: Z -> schedule -> VIV -> UB -> M.memory -> M.memory -> Prop :=
+| exec_loop_exit:  forall  (blockloc: Z) (s: schedule) (viv: nat) (ub: nat) (mem: M.memory),
+    (viv >= ub)%nat -> exec_loop blockloc s viv ub mem mem
+| exec_loop_loop : forall (blockloc: Z)
+                     (s: schedule)
+                     (viv: nat)
+                     (ub: nat)
+                     (mem1 mem2 mem3: M.memory)
+                     (VIV_INRANGE: (viv < ub)%nat)
+                     (ITER_EFFECT: mem_effect_at_iteration blockloc (s viv) mem1 = mem2),
+    exec_loop blockloc s (viv + 1)%nat ub mem2 mem3 ->
+    exec_loop blockloc s viv ub mem1 mem3.
 
+Definition schedule_id (viv: nat): nat := viv.
+Definition schedule_rev (MAXN: nat)(viv: nat): nat := MAXN - viv + 1.
 
-(** *Helper to unfold mem_effect_loop_rec  *)
-Lemma force_create_mem_effect_of_loop_rec:
-  
-         forall (blockloc: Z)
-         (i: nat)
-         (n: nat)
-         (m: M.memory),
-           create_mem_effect_of_loop_rec blockloc i n m =
-  match n with
-  | O => m
-  | S n' => create_mem_effect_of_loop_rec
-             blockloc
-             (i + 1)
-             n'
-             (mem_effect_at_iteration blockloc i m)
-  end.
+Definition schedule_witness (s: schedule) : Prop := True.
+
+Theorem all_bijective_schedules_in_range_are_equal:
+  forall (s: schedule)
+    (WITNESS: schedule_witness s)
+    blockid viv ub mem1 mem2,
+    exec_loop blockid schedule_id viv ub mem1 mem2 = 
+    exec_loop blockid s viv ub mem1 mem2.
 Proof.
-  intros.
-  simpl.
-  induction n; auto.
-Qed.
+Admitted.
 
-Opaque create_mem_effect_of_loop_rec.
-
-
-(** *Helper to hide i *)
-Definition create_mem_effect_of_loop (blockloc: Z) (n: nat) (m: M.memory) : M.memory  :=
-  create_mem_effect_of_loop_rec blockloc 0 n m.
 
 
 (** *Relate execution of program of length (S n) to program of length n *)
@@ -1269,6 +1256,7 @@ Abort.
 (** *Full effects *)
 
 (** *For experimentation, see how to execute the main function *)
+(* 
 Lemma mem_effect_main_function_orig:
   forall (n: nat)
     (e: SST.env)
@@ -1283,7 +1271,7 @@ Lemma mem_effect_main_function_orig:
                      ge
                      e
                      (mainCFG n) (Name "main"))) ≡
-                     Ret (create_mem_effect_of_loop
+                     Ret (create_mem_effect_of_loop 
                    (M.size initmem)
                    n
                    (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem)).
@@ -1494,4 +1482,4 @@ Proof.
   intros.
   unfold run_mcfg_with_memory_tiered.
 Abort.
-  
+*)
