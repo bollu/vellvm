@@ -1263,6 +1263,39 @@ Proof.
       
 
     +  (* Sn > 1 *)
+      simpl.
+
+      (* work through the loop execution *)
+      
+      (* Force function evaluation *)
+      unfold simpleProgramInitBBId.
+      setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
+      simpl.
+      setoid_rewrite M.memEffect_commutes_with_bind.
+      (* execute the initial BB *)
+      setoid_rewrite exec_bbInit.
+
+      (* Execute the edge from the initial BB to the loop BB *)
+      euttnorm.
+      replace (Name "init") with (blk_id (bbInit 0)); auto.
+      setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
+      simpl.
+      rewrite M.memEffect_commutes_with_bind.
+      rewrite exec_bbLoop_from_init; eauto.
+
+      destruct (Int32.eq (Int32.repr 1) (Int32.repr (Z.of_nat (S (S n))))) eqn:ONE_EQ_SSN.
+      * (* contra, 1 = SSN *)
+        admit.
+
+      * euttnorm.
+      M.forcemem.
+      euttnorm.
+
+
+      
+      (* Execute loop BB *)
+      (** I should change my induction hypothesis to only talk about executing the loop BB **)
+      
       admit.
 Admitted.
   
