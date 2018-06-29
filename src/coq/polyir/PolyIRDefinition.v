@@ -397,9 +397,19 @@ Module Type POLYHEDRAL_THEORY.
   (** Returns whether one point is lex smaller than the other *)
   Parameter getLexminPoint: ParamsT -> PolyT -> PointT.
 
+  (** Returns whether one point is lex smaller than the other *)
+  Parameter getLexmaxPoint: ParamsT -> PolyT -> PointT.
+  
+  (** Find the next point that is within the polyhedra which is
+    one smaller in terms of lex order. return Nothing if not possible *)
+  Parameter getPrevLexPoint:ParamsT ->
+                                   PolyT ->
+                                   PointT ->
+                                   option (PointT).
+
   (** Find the next point that is within the polyhedra which is
     one larger in terms of lex order. return Nothing if not possible *)
-  Parameter getNextLexPoint: ParamsT ->
+  Parameter getLexNextPoint: ParamsT ->
                                    PolyT ->
                                    PointT ->
                                    option (PointT).
@@ -460,19 +470,14 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
   Definition AccessFunction := P.AffineFnT. (**r Access function to model where to read or write from *)
   Inductive MemoryAccess :=
-  | MAStore: Ident (**r name *)
+  | MAStore: ChunkNum (**r name *)
                     -> AccessFunction
                     -> (list Value -> Value) (**r value *)    
                     -> MemoryAccess
-  | MALoad: Ident (**r name *)
+  | MALoad: ChunkNum (**r name *)
                    -> AccessFunction
                    -> MemoryAccess.
 
-  Record ScopEnvironment :=
-    mkScopEnvironment {
-        scopenvParams: P.ParamsT;
-        scopenvIdentToChunkNum: ZMap.t (option ChunkNum);
-      }.
 
   (** Note that for now, we don't care what is stored or loaded, because
 conceptually, we don't actually care either. We just want to make sure
@@ -512,55 +517,10 @@ that the reads/writes are modeled *)
     @zipWith X Y (X * Y) (fun x y => (x, y)) xs ys.
 
 
-  (* Build on the abstraction of memory to store into an array *)
-  Definition storeArray (arrayIdent: Ident)
-             (ix: list Value)
-             (val: Value)
-             (se: ScopEnvironment)
-             (mem: Memory) : Memory :=
-    match (scopenvIdentToChunkNum se) ## arrayIdent with
-    | Some chnk => storeMemory chnk ix val mem
-    | None => mem
-    end.
 
-  Definition evalAccessFunction (se: ScopEnvironment) (viv : P.PointT)
-             (accessfn: P.AffineFnT): option (list Z) := Some [].
+  Definition evalAccessFunction (viv : P.PointT)
+             (accessfn: P.AffineFnT): (list Z) :=  [].
     
-
-
-  (* 
-    (** Numbers represented with highest position to the _right_. So, 100 would be "0 0 1"
-    Essentially, the input is "flipped" from the normal human order.
-   **)
-    (** Find a way to signal "no more" without also erroring out**)
-    Fixpoint findLexNextValue_ (vs: list Value)
-             (limits: list Value): option (list Value) :=
-      match (vs,limits) with
-      | ([], []) => None
-      | (v::vs', l::ls') => if true
-                           then Some ((v+1)%Z::vs')
-                           else option_map (cons 0%Z) (findLexNextValue_ vs' ls')
-      | (_, _) => None
-      end.
-   *)
-  
-
-  (** Numbers represented with highest position to the _left_. So, 100 would be "1 0 0"
-    Limits represent the "base" of that given digit. If the number exceeds the base,
-    it rolls over. If a number is not possible, then it returns a None
-
-    Definition findLexNextValue (vs: list Value) (limits: list Value): option (list Value) :=
-      findLexNextValue_ (List.rev vs) (List.rev limits).
-
-    (* Set all the given induction variables in the environment *)
-    Definition setIndvarsInEnv (ebegin: Environment) (ivs: list Ident) (vs: list Value): Environment :=
-      List.fold_left
-        (fun e iv_v => setIndvarInEnv e (fst iv_v) (snd iv_v))
-        (zip ivs vs) ebegin.
-   *)
-
-  
-
 
   Definition getMemAccessLoadRelation (ma: MemoryAccess) : P.AffineRelT :=
     match ma with
@@ -673,21 +633,118 @@ the scop stmts domain *)
       P.isPointInPoly viv (scopStmtDomain ss).
 
     
-  Definition runMemoryAccess (se: ScopEnvironment)
+    (* 
+  Definition runMemoryAccess
              (viv: P.PointT)
              (memacc: MemoryAccess)
              (mem: Memory): option Memory :=
     match memacc with
-    | MAStore name accessfn valfn  =>
+    | MAStore chunk accessfn valfn  =>
       
-      option_map (fun accessix => storeArray name
+      option_map (fun accessix =>storeMemory  chunk
                                    accessix
                                    (valfn accessix)
-                                   se
                                    mem)
-                 (evalAccessFunction se viv accessfn)
     | MALoad  _ _=> None
     end.
+  *)
+
+  Definition viv := P.PointT.
+  Inductive exec_memory_accesss:  viv -> Memory -> MemoryAccess -> Memory -> Prop :=
+  | exec_store:
+      forall (viv: P.PointT)
+        (memacc: MemoryAccess)
+        (initmem: Memory)
+        (accessfn: AccessFunction)
+        (accessix: list Value)
+        (ACCESSIX: evalAccessFunction viv accessfn = accessix)
+        (storefn: list Value -> Value)
+        (storeval: Value)
+        (chunk: ChunkNum),
+        exec_memory_accesss viv
+                            initmem
+                            (MAStore chunk accessfn storefn)
+                            (storeMemory chunk accessix (storefn accessix) initmem).
+
+
+  Inductive exec_scop_stmt: viv -> Memory -> ScopStmt -> Memory -> Prop :=
+  | exec_stmt_nil:
+      forall (viv: P.PointT)
+        (initmem: Memory)
+        (domain: P.PolyT)
+        (schedule: P.AffineFnT),
+        exec_scop_stmt viv initmem (mkScopStmt domain schedule []) initmem
+  | exec_stmt_cons:
+      forall (viv: P.PointT)
+        (domain: P.PolyT)
+        (PT_IN_DOMAIN: P.isPointInPoly viv domain = true)
+        (schedule: P.AffineFnT)
+        (mas: list MemoryAccess)
+        (ma: MemoryAccess)
+        (memstmt: Memory)
+        (initmem: Memory)
+        (MEMSTMT: exec_scop_stmt viv initmem (mkScopStmt domain schedule mas) memstmt)
+        (memnew: Memory)
+        (MEMNEW_FROM_MEMSTMT: exec_memory_accesss viv initmem ma memnew),
+        exec_scop_stmt viv initmem (mkScopStmt domain schedule (cons ma mas)) memnew
+  .
+
+  Definition getScopDomain (scop: Scop) : P.PolyT. Admitted.
+  Definition exec_scop_at_point (params: P.ParamsT) (viv: viv)
+             (mem: Memory)
+             (scop: Scop)
+             (mem': Memory): Prop. Admitted.
+                                    
+
+
+  Inductive exec_scop_from_lexmin: P.ParamsT -> viv -> Memory -> Scop -> Memory -> viv -> Prop :=
+    (* 
+  | exec_scop_at_lexmax:
+      forall (initmem mem : Memory)
+        (scop: Scop)
+        (params: P.ParamsT)
+        (vivmax: viv)
+        (vivbegin: viv)
+        (EXECPREV: exec_scop_from_lexmin params vivbegin initmem scop mem vivmax)
+        (MAX: P.getLexNextPoint params (getScopDomain scop) vivmax = None),
+        exec_scop_from_lexmin params
+                              vivbegin
+                              initmem
+                              scop
+                              mem
+                              vivmax
+                              *)
+  | exec_scop_begin:
+      forall (initmem mem: Memory)
+        (scop: Scop)
+        (params: P.ParamsT)
+        (vivmin: viv)
+        (VIVMIN: vivmin = (P.getLexminPoint params (getScopDomain scop))),
+        exec_scop_from_lexmin params
+                              vivmin
+                              initmem
+                              scop
+                              initmem
+                              vivmin
+  | exec_scop_middle:
+      forall (initmem mem1 mem2: Memory)
+        (scop: Scop)
+        (params: P.ParamsT)
+        (vivbegin vivcur vivnext: viv)
+        (NEXT: Some vivnext = P.getLexNextPoint params (getScopDomain scop)vivcur),
+        exec_scop_from_lexmin params vivbegin initmem scop mem1  vivcur ->
+        exec_scop_at_point params vivcur mem1 scop mem2 ->
+        exec_scop_from_lexmin params vivbegin initmem scop mem2 vivnext.
+        
+    
+
+      
+       
+        
+        
+
+
+
                  
   
   (** TODO: make loads an actual statement in the PolyIR language **)
@@ -718,7 +775,8 @@ the scop stmts domain *)
              (initmem: Memory): option Memory :=
     option_traverse_fold_left
       initmem (fun m ss => evalScopStmt ss viv se m)
-      (getActiveScopStmtsInScop s viv) .
+      (getActiveScopStmtsInScop s viv).
+
     
     
   Fixpoint evalPointsInScopFromVIV
