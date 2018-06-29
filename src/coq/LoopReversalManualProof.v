@@ -50,7 +50,6 @@ Set Contextual Implicit.
 From Coq Require Import ssreflect ssrfun ssrbool.
 Set Implicit Arguments.
 Unset Strict Implicit.
-From Coq Require ssreflect.
 Import ssreflect.SsrSyntax.
 Set Printing Implicit Defensive.
 
@@ -894,8 +893,9 @@ Lemma exec_bbLoop_from_bbLoop_spine: forall (n: nat)
     (ivnextval: int32)
     (initmem mem: M.memory)
     (arrblockidx: Z)
+    (arrblock: M.mem_block)
     (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (arrblockidx, 0)))
-    (MEMATARR: mem = (M.add arrblockidx (M.make_empty_block DTYPE_Pointer) initmem))
+    (MEMATARR: mem = (M.add arrblockidx arrblock initmem))
     (EATIVNEXT: SST.lookup_env e (Name "iv.next") = mret (DVALUE_I32 ivnextval)),
       M.memEffect mem (SST.execBB tds ge e
                                   (Some (blk_id (bbLoop n)))
@@ -910,8 +910,7 @@ Lemma exec_bbLoop_from_bbLoop_spine: forall (n: nat)
           with
           | Some (_, offset) => offset
           | None => 0
-          end (M.make_empty_block DTYPE_Pointer))
-       (M.add arrblockidx (M.make_empty_block DTYPE_Pointer) initmem))
+          end arrblock) (M.add arrblockidx arrblock initmem))
     (mapM
        (SST.BBResultFromTermResult
           (SST.add_env (Name "cond")
@@ -926,7 +925,8 @@ Lemma exec_bbLoop_from_bbLoop_spine: forall (n: nat)
        (bindM
           match
             (if
-              Int32.eq (Int32.add ivnextval (Int32.repr 1)) (Int32.repr (Z.of_nat n))
+              Int32.eq (Int32.add ivnextval (Int32.repr 1))
+                (Int32.repr (Z.of_nat n))
              then DVALUE_I1 Int1.one
              else DVALUE_I1 Int1.zero)
           with
@@ -1028,23 +1028,25 @@ Lemma exec_bbLoop_from_bbLoop_inner_iterations:
     (IVNEXT_PLUS_1_LT_N: Int32.unsigned ivnextval + 1 < Z.of_nat n)
     (initmem mem: M.memory)
     (arrblockidx: Z)
+    (arrblock: M.mem_block)
     (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (arrblockidx, 0)))
-    (MEMATARR: mem = (M.add arrblockidx (M.make_empty_block DTYPE_Pointer) initmem))
+    (MEMATARR: mem = (M.add arrblockidx arrblock initmem))
     (EATIVNEXT: SST.lookup_env e (Name "iv.next") = mret (DVALUE_I32 ivnextval)),
     M.memEffect mem (SST.execBB tds ge e
                                 (Some (blk_id (bbLoop n)))
                                 (bbLoop n)) ≡
-                
-  Ret
+                  Ret
     (M.add arrblockidx
        (M.add_all_index (M.serialize_dvalue (DVALUE_I32 ivnextval))
-          (Int32.unsigned ivnextval * 8) (M.make_empty_block DTYPE_Pointer))
-       (M.add arrblockidx (M.make_empty_block DTYPE_Pointer) initmem),
+          (Int32.unsigned ivnextval * 8) arrblock)
+       (M.add arrblockidx arrblock initmem),
     SST.BBRBreak
       (SST.add_env (Name "cond") (DVALUE_I1 Int1.zero)
-         (SST.add_env (Name "iv.next") (DVALUE_I32 (Int32.add ivnextval (Int32.repr 1)))
+         (SST.add_env (Name "iv.next")
+            (DVALUE_I32 (Int32.add ivnextval (Int32.repr 1)))
             (SST.add_env (Name "iv") (DVALUE_I32 ivnextval) e))) 
-      (Name "loop")).
+      (Name "loop")) .
+                
 Proof.
   intros.
   rewrite exec_bbLoop_from_bbLoop_spine; eauto.
@@ -1092,7 +1094,7 @@ Lemma exec_bbLoop_from_bbLoop_final_iteration:
     M.memEffect mem (SST.execBB tds ge e
                                 (Some (blk_id (bbLoop n)))
                                 (bbLoop n)) ≡
-  Ret
+                 Ret
     (M.add arrblockidx
        (M.add_all_index (M.serialize_dvalue (DVALUE_I32 ivnextval))
           (Int32.unsigned ivnextval * 8) (M.make_empty_block DTYPE_Pointer))
@@ -1102,7 +1104,7 @@ Lemma exec_bbLoop_from_bbLoop_final_iteration:
          (SST.add_env (Name "iv.next")
             (DVALUE_I32 (Int32.add ivnextval (Int32.repr 1)))
             (SST.add_env (Name "iv") (DVALUE_I32 ivnextval) e))) 
-      (Name "exit")).
+      (Name "exit")) .
 Proof.
   intros.
   rewrite exec_bbLoop_from_bbLoop_spine; eauto.
@@ -1153,14 +1155,48 @@ Proof.
 Qed.
 
 
+(** *Conditions for bbLoop (S n) = bbloop S n *)
+Lemma exec_bbLoop_from_bbLoop_inner_iterations_decrement_tripcount:
+  forall (n: nat)
+    (NINRANGE: Z.of_nat (S n) <= Int32.max_unsigned)
+    (tds: typedefs)
+    (ge: SST.genv)
+    (e: SST.env)
+    (ivnextval: int32)
+    (IVNEXT_PLUS_1_LT_N: Int32.unsigned ivnextval + 1 < Z.of_nat n)
+    (initmem mem: M.memory)
+    (arrblockidx: Z)
+    (arrblock: M.mem_block)
+    (EATARR: (SST.lookup_env e (Name "arr")) = mret (DVALUE_Addr (arrblockidx, 0)))
+    (MEMATARR: mem = (M.add arrblockidx arrblock initmem))
+    (EATIVNEXT: SST.lookup_env e (Name "iv.next") = mret (DVALUE_I32 ivnextval)),
+    M.memEffect mem (SST.execBB tds ge e
+                                (Some (blk_id (bbLoop n)))
+                                (bbLoop ( S n))) ≡
+    M.memEffect mem (SST.execBB tds ge e
+                                (Some (blk_id (bbLoop n)))
+                                (bbLoop n)).
+Proof.
+  intros.
+  repeat rewrite exec_bbLoop_from_bbLoop_inner_iterations; eauto; zify; omega.
+Qed.
+
+
+
 
 (** TODO: create a function that shows what memory looks like on n iterations **)
 Definition nat_to_int32 (n: nat): int32 :=
   Int32.repr (Z.of_nat n).
 
+(** *Effect of memory by one iteration *)
+Definition mem_effect_at_iteration (blockloc: Z) (i: nat) (m: M.memory): M.memory :=
+             (M.add blockloc
+                    (M.add_all_index (M.serialize_dvalue (DVALUE_I32 (nat_to_int32 i)))
+                                     (Int32.unsigned (nat_to_int32 i) * 8) (M.make_empty_block DTYPE_Pointer)) m).
+  
 
-(** A function that given the original memory state `m` simulates what happens
-when we run the bbLoop on it for `n` iterations *)
+
+(** *Effect of memory by n iterations *)
 Fixpoint create_mem_effect_of_loop_rec
          (blockloc: Z)
          (i: nat)
@@ -1172,12 +1208,11 @@ Fixpoint create_mem_effect_of_loop_rec
              blockloc
              (i + 1)
              n'
-             (M.add blockloc
-                    (M.add_all_index (M.serialize_dvalue (DVALUE_I32 (nat_to_int32 i)))
-                                     (Int32.unsigned (nat_to_int32 i) * 8) (M.make_empty_block DTYPE_Pointer)) m)
+             (mem_effect_at_iteration blockloc i m)
   end.
 
 
+(** *Helper to unfold mem_effect_loop_rec  *)
 Lemma force_create_mem_effect_of_loop_rec:
   
          forall (blockloc: Z)
@@ -1191,9 +1226,7 @@ Lemma force_create_mem_effect_of_loop_rec:
              blockloc
              (i + 1)
              n'
-             (M.add blockloc
-                    (M.add_all_index (M.serialize_dvalue (DVALUE_I32 (nat_to_int32 i)))
-                                     (Int32.unsigned (nat_to_int32 i) * 8) (M.make_empty_block DTYPE_Pointer)) m)
+             (mem_effect_at_iteration blockloc i m)
   end.
 Proof.
   intros.
@@ -1204,20 +1237,42 @@ Qed.
 Opaque create_mem_effect_of_loop_rec.
 
 
-
-
-
+(** *Helper to hide i *)
 Definition create_mem_effect_of_loop (blockloc: Z) (n: nat) (m: M.memory) : M.memory  :=
   create_mem_effect_of_loop_rec blockloc 0 n m.
 
 
-  
+(** *Relate execution of program of length (S n) to program of length n *)
+(** Roughly, exec (p (S n)) === exec (P n ; loop)) *)
+(** This will not work, so the correct thing to do is to do the compcert thing where we have a
+    - exec n till_i = <inductive proposition like CompCert>
+**)
+Lemma program_sn_execution_as_program_n:
+  forall (n: nat)
+    (N_GE_1: (n >= 1)%nat)
+    (e: SST.env)
+    (ge: SST.genv)
+    (mem initmem: M.memory)
+    (bbprevid: block_id)
+    (ivnextval: int)
+    (arrblockidx: Z)
+    (ENV_AT_ARR: SST.lookup_env e (Name "arr") = mret (DVALUE_Addr (arrblockidx, 0)))
+    (INITMEM_ARR: mem = M.add arrblockidx (M.make_empty_block DTYPE_Pointer) initmem)
+    (N_INRANGE: Z.of_nat n <= Int32.max_unsigned),
+    mapM fst (M.memEffect
+                mem
+                (SST.execFunction [] ge e (mainCFG (S n)) (Name "main"))) ≡
+         mapM (mem_effect_at_iteration arrblockidx (S n))
+         (mapM fst (M.memEffect mem (SST.execFunction [] ge e (mainCFG n) (Name "main")))).
+Proof.
+Abort.
 (** *Full effects *)
 
 (** *For experimentation, see how to execute the main function *)
 Lemma mem_effect_main_function_orig:
   forall (n: nat)
     (e: SST.env)
+    (ge: SST.genv)
     (initmem: M.memory)
     (N_GE_1: (n >= 1)%nat)
     (N_INRANGE: Z.of_nat n <= Int32.max_unsigned),
@@ -1225,12 +1280,13 @@ Lemma mem_effect_main_function_orig:
                   initmem
                   (SST.execFunction
                      []
-                     (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0)) (SST.ENV.empty dvalue)) e (mainCFG n) (Name "main"))) ≡
+                     ge
+                     e
+                     (mainCFG n) (Name "main"))) ≡
                      Ret (create_mem_effect_of_loop
                    (M.size initmem)
                    n
                    (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem)).
-
 Proof.
   intros.
   unfold SST.execFunction.
@@ -1239,15 +1295,49 @@ Proof.
 
   induction n.
 
-  +  rewrite SST.force_exec_function_at_bb_id.
+  +  rewrite SST.force_exec_function_at_bb_id; eauto.
      simpl.
      setoid_rewrite M.memEffect_commutes_with_bind.
      (* execute the initial BB *)
      setoid_rewrite exec_bbMain.
      euttnorm.
 
-  (** Here is where we need our theorem *)
+     
+     rewrite SST.force_exec_function_at_bb_id; eauto.
+     simpl.
+     setoid_rewrite M.memEffect_commutes_with_bind.
+     (* execute the loop bb *)
+     simpl.
+     rewrite exec_bbLoop_from_init; eauto.
+     all: cycle 1.
+     rewrite SST.lookup_env_hd.
+     eauto.
+     all: cycle 1.
+     euttnorm.
+
+     assert (O_PLUS_O_IS_ONE:  Int32.eq (Int32.add (Int32.repr 0) (Int32.repr 1)) (Int32.repr 1)).
+     admit.
+     repeat rewrite O_PLUS_O_IS_ONE.
+     euttnorm.
+     M.forcemem.
+     euttnorm.
+
+     
+
+     
+     rewrite SST.force_exec_function_at_bb_id; eauto.
+     simpl.
+     setoid_rewrite M.memEffect_commutes_with_bind.
+     (* execute the initial BB *)
+     rewrite exec_exit.
+     M.forcemem.
+     euttnorm.
+     M.forcemem.
+     euttnorm.
+
+  + (** Induction hypothesis *)
 Abort.
+
 
 
 (** *Execute the loop in the main function *)
@@ -1273,7 +1363,7 @@ Lemma mem_effect_main_function_exec_loop:
     (NCASES: ((n = 1)%nat /\ bbprevid = Name "main") \/
              ((n > 1)%nat /\ bbprevid = Name "loop" /\
               SST.lookup_env e (Name "iv.next") = mret (DVALUE_I32 ivnextval) /\
-              Int32.unsigned ivnextval + 1<= Z.of_nat n))
+              Int32.unsigned ivnextval + 1 <= Z.of_nat n))
     (arrblockidx: Z)
     (ENV_AT_ARR: SST.lookup_env e (Name "arr") = mret (DVALUE_Addr (arrblockidx, 0)))
     (INITMEM_ARR: mem = M.add arrblockidx (M.make_empty_block DTYPE_Pointer) initmem)
@@ -1303,9 +1393,7 @@ Proof.
 
   - induction n.
 
-
-
-  - (*n = S n *)
+   (*n = S n *)
     intros.
     simpl.
     + (* Sn = 1 *)
@@ -1344,8 +1432,8 @@ Proof.
       euttnorm.
 
     + (* induction case *)
-      
       intros.
+
       
       destruct NCASES as [PREV_MAIN | PREV_LOOP];
         try (destruct PREV_MAIN; omega; fail).
@@ -1359,31 +1447,43 @@ Proof.
       simpl.
       setoid_rewrite M.memEffect_commutes_with_bind.
 
-
-      assert (IVNEXT_CASES: Int32.unsigned ivnextval + 1 < Z.of_nat (S (S n)) \/
-                            Int32.unsigned ivnextval + 1= Z.of_nat (S (S n))).
-      intros.
+      assert (IVNEXTVAL_CASES: Int32.unsigned ivnextval + 1 < Z.of_nat (S (S n))\/
+              Int32.unsigned ivnextval + 1 = Z.of_nat (S (S n))).
       omega.
-      destruct IVNEXT_CASES as [IVNEXT_INNER | IVNEXT_FINAL].
 
-      * (* INNER CASE *)
-        rewrite exec_bbLoop_from_bbLoop_inner_iterations; try omega; try eauto.
+      destruct IVNEXTVAL_CASES as [IV_INNER | IV_EXIT].
+
+      * (* IV_INNER CASE *)
+        rewrite exec_bbLoop_from_bbLoop_inner_iterations; eauto; try (zify; omega; fail).
+        euttnorm.
+        remember ((SST.add_env (Name "cond") (DVALUE_I1 Int1.zero)
+             (SST.add_env (Name "iv.next")
+                (DVALUE_I32 (Int32.add ivnextval (Int32.repr 1)))
+                (SST.add_env (Name "iv") (DVALUE_I32 ivnextval) e)))) as ECUR.
+
+
+        assert (EXEC_MAINCFG_SS_EQUIV_S: (SST.execFunctionAtBBId [] ge ECUR (mainCFG (S (S n))) 
+                                        (Name "main") (Some (Name "loop")) (Name "loop"))
+                  ≡ (SST.execFunctionAtBBId [] ge ECUR (mainCFG (S n))) 
+                  (Name "main") (Some (Name "loop")) (Name "loop")).
         admit.
 
-    + (* FINAL CASE *)
-      rewrite exec_bbLoop_from_bbLoop_final_iteration; try omega; try eauto.
-      euttnorm.
-
-      (* exec exit block*)
-      setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
-      simpl.
-      setoid_rewrite M.memEffect_commutes_with_bind.
-      rewrite exec_exit.
-      M.forcemem.
-      euttnorm.
-
-      
-Admitted.
+        rewrite EXEC_MAINCFG_SS_EQUIV_S.
+        rewrite IHn; eauto; try omega.
+        all: cycle 1.
+        right.
+        repeat split; try auto.
+        admit.
+        rewrite HeqECUR.
+        rewrite SST.lookup_env_tl; auto.
+        rewrite SST.lookup_env_hd; auto.
+        simpl.
+        zify.
+        admit.
+        rewrite HeqECUR.
+        repeat rewrite SST.lookup_env_tl; auto.
+        rewrite ENV_AT_ARR. eauto.
+Abort.
   
   
 (* Lemma I care about *)
