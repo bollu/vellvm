@@ -431,7 +431,7 @@ Module Type POLYHEDRAL_THEORY.
 
 
   (** Definition of union of polyhedra *)
-  Parameter unionPoly:  PolyT -> PolyT -> option PolyT.
+  Parameter unionPoly:  PolyT -> PolyT ->  PolyT.
 
   (** Defines what it means to be a dependence relation. This is the
         over-approximate definition. In particular, it does not ask for
@@ -494,7 +494,6 @@ that the reads/writes are modeled *)
   Record Scop :=
     mkScop {
         scopStmts : list ScopStmt; (**r The statements in this scop *)
-        scopIndvars : list P.DimensionT; (**r Induction variables in this scop *)
       }.
 
   Fixpoint all (bs: list bool): bool :=
@@ -601,103 +600,85 @@ that the reads/writes are modeled *)
              (scop: Scop): option Scop :=
     option_map (fun newScopStmts => {|
                     scopStmts :=  newScopStmts;
-                    scopIndvars := scopIndvars scop;
                   |})
                (option_traverse
                   (List.map (applyScheduleToScopStmt schedule)
                             (scopStmts scop))).
 
-  (** =============PROOF============= **)
-  
-  Lemma applyScheduleToScopStmt_preserves_scop_stmt_domain:
-    forall (ss ss': ScopStmt)
-           (schedule: P.AffineFnT)
-           (MAPPED: applyScheduleToScopStmt schedule ss = Some ss'),
-      scopStmtDomain ss = scopStmtDomain ss'.
-  Proof.
-    intros.
-    unfold applyScheduleToScopStmt in MAPPED.
-    simpl.
+  Section EVALUATION.
+    Definition viv := P.PointT.
+    Inductive exec_memory_accesss:  viv -> Memory -> MemoryAccess -> Memory -> Prop :=
+    | exec_store:
+        forall (viv: P.PointT)
+          (memacc: MemoryAccess)
+          (initmem: Memory)
+          (accessfn: AccessFunction)
+          (accessix: list Value)
+          (ACCESSIX: evalAccessFunction viv accessfn = accessix)
+          (storefn: list Value -> Value)
+          (storeval: Value)
+          (chunk: ChunkNum),
+          exec_memory_accesss viv
+                              initmem
+                              (MAStore chunk accessfn storefn)
+                              (storeMemory chunk accessix (storefn accessix) initmem).
 
-    destruct (P.composeAffineFunction (scopStmtSchedule ss) schedule);
-      simpl; auto; inversion MAPPED; auto.
-  Qed.
 
-  Hint Resolve applyScheduleToScopStmt_preserves_scop_stmt_domain.
-  Hint Rewrite applyScheduleToScopStmt_preserves_scop_stmt_domain.
+    (** Execute a statement. Checks if the statement is active or inactive before
+       execution *)
+    Inductive exec_scop_stmt: viv -> Memory -> ScopStmt -> Memory -> Prop :=
+    | exec_stmt_nil:
+        forall (viv: P.PointT)
+          (initmem: Memory)
+          (domain: P.PolyT)
+          (schedule: P.AffineFnT),
+          exec_scop_stmt viv initmem (mkScopStmt domain schedule []) initmem
+    | exec_stmt_cons_active:
+        forall (viv: P.PointT)
+          (domain: P.PolyT)
+          (PT_IN_DOMAIN: P.isPointInPoly viv domain = true)
+          (schedule: P.AffineFnT)
+          (mas: list MemoryAccess)
+          (ma: MemoryAccess)
+          (memstmt: Memory)
+          (initmem: Memory)
+          (MEMSTMT: exec_scop_stmt viv initmem (mkScopStmt domain schedule mas) memstmt)
+          (memnew: Memory)
+          (MEMNEW_FROM_MEMSTMT: exec_memory_accesss viv initmem ma memnew),
+          exec_scop_stmt viv initmem (mkScopStmt domain schedule (cons ma mas)) memnew
+    | exec_stmt_cons_inactive:
+        forall (viv: P.PointT)
+          (domain: P.PolyT)
+          (PT_IN_DOMAIN: P.isPointInPoly viv domain = false)
+          (schedule: P.AffineFnT)
+          (mas: list MemoryAccess)
+          (initmem: Memory),
+          exec_scop_stmt viv initmem (mkScopStmt domain schedule mas) initmem
+    .
 
+    Inductive exec_scop_at_point: viv -> Memory -> Scop -> Memory -> Prop :=
+    | exec_scop_at_point_nil: forall (viv: viv)
+                                (initmem: Memory)
+                                (scop: Scop)
+                                (mem': Memory),
+        exec_scop_at_point  viv initmem (mkScop []) initmem
+    | exec_scop_at_point_cons:
+        forall (viv: viv)
+          (initmem: Memory)
+          (scop: Scop)
+          (stmt: ScopStmt)
+          (stmts: list ScopStmt)
+          (mem1 mem2: Memory),
+          exec_scop_stmt viv initmem stmt mem1 ->
+          exec_scop_at_point  viv mem1 (mkScop stmts) mem2 ->
+          exec_scop_at_point viv initmem (mkScop (cons stmt stmts)) mem2.
     
-    (* Check if the current value of the induction variables is within
-the scop stmts domain *)
-    Definition isScopStmtActive (viv: P.PointT) (ss: ScopStmt) : bool :=
-      P.isPointInPoly viv (scopStmtDomain ss).
 
+
+    Definition getScopDomain (scop: Scop): P.PolyT :=
+      List.fold_left P.unionPoly (map scopStmtDomain (scopStmts scop)) P.emptyPoly.
     
-    (* 
-  Definition runMemoryAccess
-             (viv: P.PointT)
-             (memacc: MemoryAccess)
-             (mem: Memory): option Memory :=
-    match memacc with
-    | MAStore chunk accessfn valfn  =>
-      
-      option_map (fun accessix =>storeMemory  chunk
-                                   accessix
-                                   (valfn accessix)
-                                   mem)
-    | MALoad  _ _=> None
-    end.
-  *)
-
-  Definition viv := P.PointT.
-  Inductive exec_memory_accesss:  viv -> Memory -> MemoryAccess -> Memory -> Prop :=
-  | exec_store:
-      forall (viv: P.PointT)
-        (memacc: MemoryAccess)
-        (initmem: Memory)
-        (accessfn: AccessFunction)
-        (accessix: list Value)
-        (ACCESSIX: evalAccessFunction viv accessfn = accessix)
-        (storefn: list Value -> Value)
-        (storeval: Value)
-        (chunk: ChunkNum),
-        exec_memory_accesss viv
-                            initmem
-                            (MAStore chunk accessfn storefn)
-                            (storeMemory chunk accessix (storefn accessix) initmem).
-
-
-  Inductive exec_scop_stmt: viv -> Memory -> ScopStmt -> Memory -> Prop :=
-  | exec_stmt_nil:
-      forall (viv: P.PointT)
-        (initmem: Memory)
-        (domain: P.PolyT)
-        (schedule: P.AffineFnT),
-        exec_scop_stmt viv initmem (mkScopStmt domain schedule []) initmem
-  | exec_stmt_cons:
-      forall (viv: P.PointT)
-        (domain: P.PolyT)
-        (PT_IN_DOMAIN: P.isPointInPoly viv domain = true)
-        (schedule: P.AffineFnT)
-        (mas: list MemoryAccess)
-        (ma: MemoryAccess)
-        (memstmt: Memory)
-        (initmem: Memory)
-        (MEMSTMT: exec_scop_stmt viv initmem (mkScopStmt domain schedule mas) memstmt)
-        (memnew: Memory)
-        (MEMNEW_FROM_MEMSTMT: exec_memory_accesss viv initmem ma memnew),
-        exec_scop_stmt viv initmem (mkScopStmt domain schedule (cons ma mas)) memnew
-  .
-
-  Definition getScopDomain (scop: Scop) : P.PolyT. Admitted.
-  Definition exec_scop_at_point (params: P.ParamsT) (viv: viv)
-             (mem: Memory)
-             (scop: Scop)
-             (mem': Memory): Prop. Admitted.
-                                    
-
-
-  Inductive exec_scop_from_lexmin: P.ParamsT -> viv -> Memory -> Scop -> Memory -> viv -> Prop :=
+    Inductive exec_scop_from_lexmin: P.ParamsT -> viv -> Memory -> Scop -> Memory -> viv -> Prop :=
     (* 
   | exec_scop_at_lexmax:
       forall (initmem mem : Memory)
@@ -713,112 +694,48 @@ the scop stmts domain *)
                               scop
                               mem
                               vivmax
-                              *)
-  | exec_scop_begin:
-      forall (initmem mem: Memory)
-        (scop: Scop)
-        (params: P.ParamsT)
-        (vivmin: viv)
-        (VIVMIN: vivmin = (P.getLexminPoint params (getScopDomain scop))),
-        exec_scop_from_lexmin params
-                              vivmin
-                              initmem
-                              scop
-                              initmem
-                              vivmin
-  | exec_scop_middle:
-      forall (initmem mem1 mem2: Memory)
-        (scop: Scop)
-        (params: P.ParamsT)
-        (vivbegin vivcur vivnext: viv)
-        (NEXT: Some vivnext = P.getLexNextPoint params (getScopDomain scop)vivcur),
-        exec_scop_from_lexmin params vivbegin initmem scop mem1  vivcur ->
-        exec_scop_at_point params vivcur mem1 scop mem2 ->
-        exec_scop_from_lexmin params vivbegin initmem scop mem2 vivnext.
-        
-    
+     *)
+    | exec_scop_begin:
+        forall (initmem mem: Memory)
+          (scop: Scop)
+          (params: P.ParamsT)
+          (vivmin: viv)
+          (VIVMIN: vivmin = (P.getLexminPoint params (getScopDomain scop))),
+          exec_scop_from_lexmin params
+                                vivmin
+                                initmem
+                                scop
+                                initmem
+                                vivmin
+    | exec_scop_middle:
+        forall (initmem mem1 mem2: Memory)
+          (scop: Scop)
+          (params: P.ParamsT)
+          (vivbegin vivcur vivnext: viv)
+          (NEXT: Some vivnext = P.getLexNextPoint params (getScopDomain scop)vivcur),
+          exec_scop_from_lexmin params vivbegin initmem scop mem1  vivcur ->
+          exec_scop_at_point vivcur mem1 scop mem2 ->
+          exec_scop_from_lexmin params vivbegin initmem scop mem2 vivnext.
+  End EVALUATION.
 
-      
-       
-        
-        
+  Section PROOF.
+    Lemma applyScheduleToScopStmt_preserves_scop_stmt_domain:
+      forall (ss ss': ScopStmt)
+        (schedule: P.AffineFnT)
+        (MAPPED: applyScheduleToScopStmt schedule ss = Some ss'),
+        scopStmtDomain ss = scopStmtDomain ss'.
+    Proof.
+      intros.
+      unfold applyScheduleToScopStmt in MAPPED.
+      simpl.
 
+      destruct (P.composeAffineFunction (scopStmtSchedule ss) schedule);
+        simpl; auto; inversion MAPPED; auto.
+    Qed.
 
+    Hint Resolve applyScheduleToScopStmt_preserves_scop_stmt_domain.
+    Hint Rewrite applyScheduleToScopStmt_preserves_scop_stmt_domain.
+  End PROOF.
 
-                 
-  
-  (** TODO: make loads an actual statement in the PolyIR language **)
-  Definition evalScopStmt (ss: ScopStmt)
-             (viv: P.PointT)
-             (se: ScopEnvironment)
-             (initmem: Memory) : option Memory :=
-
-    option_traverse_fold_left initmem
-                              (fun mem memacc => runMemoryAccess se viv memacc mem)
-                              (scopStmtMemAccesses ss).
-  
-  
-
-  (** Get the statements whose domain is contained in the current environment **)
-  Definition getActiveScopStmtsInScop
-             (s: Scop)
-             (viv: P.PointT)
-             : list ScopStmt :=
-    List.filter (isScopStmtActive viv) (scopStmts s).
-
-      
-
-
-  Definition evalPointInScop (s: Scop)
-             (se: ScopEnvironment)
-             (viv: P.PointT)
-             (initmem: Memory): option Memory :=
-    option_traverse_fold_left
-      initmem (fun m ss => evalScopStmt ss viv se m)
-      (getActiveScopStmtsInScop s viv).
-
-    
-    
-  Fixpoint evalPointsInScopFromVIV
-           (scop: Scop)
-           (scopDomain: P.PolyT)
-           (params: P.ParamsT)
-           (se: ScopEnvironment)
-           (viv: P.PointT)
-           (mem: Memory)
-           (fuel: nat): option Memory :=
-    match fuel with
-    | O => None
-    | S fuel' =>
-      evalPointInScop scop se  viv mem >>=
-                      (fun mem' => match P.getNextLexPoint params scopDomain viv with
-                                | None => Some mem'
-                                | Some viv' =>evalPointsInScopFromVIV scop
-                                                                     scopDomain
-                                                                     params
-                                                                     se
-                                                                     viv'
-                                                                     mem'
-                                                                     fuel'
-                                end)
-    end.
-
-  Definition getScopDomain (scop: Scop): P.PolyT. Admitted.
-  Definition getScopFuel (scop: Scop): nat. Admitted.
-  
-  Definition evalScop (scop: Scop)
-             (se: ScopEnvironment)
-             (params: P.ParamsT)
-             (mem: Memory) : option Memory := evalPointsInScopFromVIV
-                           scop
-                           (getScopDomain scop)
-                           params
-                           se
-                           (P.getLexminPoint params (getScopDomain scop))
-                           mem
-                           (getScopFuel scop).
-  
-
-  
 End SCOP.
 
