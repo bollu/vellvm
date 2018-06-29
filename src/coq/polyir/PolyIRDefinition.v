@@ -607,6 +607,7 @@ that the reads/writes are modeled *)
 
   Section EVALUATION.
     Definition viv := P.PointT.
+    Definition Schedule := P.AffineFnT.
     Inductive exec_memory_accesss:  viv -> Memory -> MemoryAccess -> Memory -> Prop :=
     | exec_store:
         forall (viv: P.PointT)
@@ -716,25 +717,37 @@ that the reads/writes are modeled *)
           exec_scop_from_lexmin params vivbegin initmem scop mem1  vivcur ->
           exec_scop_at_point vivcur mem1 scop mem2 ->
           exec_scop_from_lexmin params vivbegin initmem scop mem2 vivnext.
+
+    Definition exec_scop (params: P.ParamsT)
+               (initmem: Memory)
+               (scop: Scop)
+               (finalmem: Memory): Prop :=
+      exec_scop_from_lexmin params
+                            (P.getLexminPoint params (getScopDomain scop))
+                            initmem
+                            scop
+                            finalmem
+                            (P.getLexmaxPoint params (getScopDomain scop)).
   End EVALUATION.
 
   Section PROOF.
-    Lemma applyScheduleToScopStmt_preserves_scop_stmt_domain:
-      forall (ss ss': ScopStmt)
-        (schedule: P.AffineFnT)
-        (MAPPED: applyScheduleToScopStmt schedule ss = Some ss'),
-        scopStmtDomain ss = scopStmtDomain ss'.
+
+    Theorem valid_schedule_preserves_semantics:
+      forall (scop scop': Scop)
+        (schedule: Schedule)
+        (NEWSCOP_IS_SCHEDULED_OLDSCOP: Some scop' = applyScheduleToScop schedule scop)
+        (RESPECTSRAW: scheduleRespectsRAW schedule scop)
+        (RESPECTSWAW: scheduleRespectsWAW schedule scop)
+        (initmem finalmem: Memory)
+        (params: P.ParamsT)
+        (EXECSCOP: exec_scop params initmem scop finalmem),
+        exec_scop params initmem scop' finalmem.
     Proof.
-      intros.
-      unfold applyScheduleToScopStmt in MAPPED.
-      simpl.
-
-      destruct (P.composeAffineFunction (scopStmtSchedule ss) schedule);
-        simpl; auto; inversion MAPPED; auto.
-    Qed.
-
-    Hint Resolve applyScheduleToScopStmt_preserves_scop_stmt_domain.
-    Hint Rewrite applyScheduleToScopStmt_preserves_scop_stmt_domain.
+    Admitted.
+        
+        
+        
+        
   End PROOF.
 
 End SCOP.
