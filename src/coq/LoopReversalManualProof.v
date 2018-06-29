@@ -76,12 +76,6 @@ Definition i32PTRTY := (TYPE_Pointer i32TY).
 Definition mkI32 (i: Z): texp := (i32TY, EXP_Integer i).
 
 
-(* Make all constructions of IR in terms of functions *)
-Definition patternMkGEPAtIx (ix: Z)  : texp :=
-  ((TYPE_Array 2 i32TY), OP_GetElementPtr (TYPE_Array 2 (TYPE_I 32%Z))
-                                          (TYPE_Pointer (TYPE_Array 2 (TYPE_I 32%Z)),
-                                           EXP_Ident (ID_Local (Name "x")))
-                                          [(i32TY, EXP_Integer ix)]).
 
 
 
@@ -704,10 +698,11 @@ Proof.
   auto.
 Qed.
 
+
 Lemma exec_bbLoop_from_init:
   forall (n: nat)
-    (N_GT_1: (n > 1)%nat)
-                               
+    (N_GT_1: (n >= 1)%nat)
+    (N_IN_RANGE: Z.of_nat n <= Int32.max_unsigned)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
@@ -720,7 +715,7 @@ Lemma exec_bbLoop_from_init:
     (M.add (M.size initmem)
        (M.add_all_index (M.serialize_dvalue (DVALUE_I32 (Int32.repr 0)))
           (Int32.unsigned (Int32.repr 0) * 8) (M.make_empty_block DTYPE_Pointer))
-       (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem),
+       mem,
     SST.BBRBreak
       (SST.add_env (Name "cond") (DVALUE_I1 Int1.zero)
          (SST.add_env (Name "iv.next")
@@ -775,7 +770,11 @@ Proof.
 
   assert (N_NOT_LEQ_0: Z.of_nat n <=? Int32.unsigned (Int32.repr 0) = false).
   (** since n >= 1, n is not <= 0 **)
-  admit.
+  rewrite Int32.unsigned_repr; cycle 1.
+  compute; split; intros; congruence.
+  destruct (Z.of_nat n <=? 0) eqn:DESTRUCT; auto.
+  rewrite <- Zle_is_le_bool in DESTRUCT.
+  omega.
 
   rewrite N_NOT_LEQ_0.
   simpl.
@@ -813,9 +812,13 @@ Proof.
   eauto.
   all: cycle 1.
   assert (N_NEQ_0: Int32.eq (Int32.repr 0) (Int32.repr (Z.of_nat n)) = false).
-  admit.
-  apply N_NEQ_0.
-
+  unfold Int32.eq.
+  unfold Coqlib.zeq.
+  repeat rewrite Int32.unsigned_repr.
+  destruct (Z.eq_dec 0 (Z.of_nat n)); auto; try omega.
+  split; try omega.
+  split; try omega.
+  auto.
 
   (* done with loop *)
   (* eval branch *)
@@ -827,7 +830,7 @@ Proof.
   repeat progress euttnorm.
   M.forcemem.
   auto.
-Admitted.
+Qed.
 
 
 
@@ -1014,8 +1017,7 @@ Lemma exec_bbLoop_from_bbLoop_inner_iterations:
   Ret
     (M.add (M.size initmem)
        (M.add_all_index (M.serialize_dvalue (DVALUE_I32 ivnextval))
-          (Int32.unsigned ivnextval * 8) (M.make_empty_block DTYPE_Pointer))
-       (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem),
+          (Int32.unsigned ivnextval * 8) (M.make_empty_block DTYPE_Pointer)) mem,
     SST.BBRBreak
       (SST.add_env (Name "cond") (DVALUE_I1 Int1.zero)
          (SST.add_env (Name "iv.next")
@@ -1041,6 +1043,8 @@ Proof.
   euttnorm.
   M.forcemem.
   euttnorm.
+  rewrite MEMATARR.
+  reflexivity.
 Admitted.
 
 
@@ -1117,8 +1121,33 @@ Proof.
 Qed.
 
 
+
 (** TODO: create a function that shows what memory looks like on n iterations **)
-Fixpoint create_mem_effect_of_loop (n: nat) (m: M.memory): M.memory := m.
+Definition nat_to_int32 (n: nat): int32 :=
+  Int32.repr (Z.of_nat n).
+
+
+(** A function that given the original memory state `m` simulates what happens
+when we run the bbLoop on it for `n` iterations *)
+Fixpoint create_mem_effect_of_loop_rec
+         (blockloc: Z)
+         (i: nat)
+         (n: nat)
+         (m: M.memory): M.memory :=
+  match n with
+  | O => m
+  | S n' => create_mem_effect_of_loop_rec
+             blockloc
+             (i + 1)
+             n'
+             (M.add blockloc
+                    (M.add_all_index (M.serialize_dvalue (DVALUE_I32 (nat_to_int32 i)))
+                                     (Int32.unsigned (nat_to_int32 i) * 8) (M.make_empty_block DTYPE_Pointer)) m)
+  end.
+
+
+Definition create_mem_effect_of_loop (blockloc: Z) (n: nat) (m: M.memory) : M.memory :=
+  create_mem_effect_of_loop_rec blockloc 0 n m.
 
 
   
@@ -1133,16 +1162,31 @@ Lemma mem_effect_main_function_orig: forall (n: nat) (initmem: M.memory)
   Trace.mapM fst (M.memEffect initmem (SST.execFunction []
               (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
                  (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
-              (mainCFG n) (Name "main"))) ≡ Ret (create_mem_effect_of_loop n initmem).
+              (mainCFG n) (Name "main"))) ≡ Ret (create_mem_effect_of_loop (M.size initmem) n initmem).
 Proof.
   Opaque SST.step_sem_tiered.
   Opaque SST.execBBInstrs.
   Opaque SST.execBBAfterLoc.
   Opaque SST.execFunctionAtBBId.
   Opaque Trace.bindM.
-  intros.
+  intro n.
   unfold SST.execFunction.
   simpl.
+
+  (* Induction !*)
+  induction n as [zero | n].
+
+  - intros.
+    (* Is this even sensible? :P *)
+    inversion N_GT_1.
+
+  - intros.
+    rename N_GT_1 into SN_GT_1.
+    assert (NCASES: (n > 1 \/ n = 1)%nat).
+    omega.
+    destruct NCASES as [N_GT_1 | N_EQ_1].
+    + admit.
+    + subst.
 
   (* Force function evaluation *)
   unfold simpleProgramInitBBId.
