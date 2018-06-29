@@ -192,7 +192,7 @@ Definition bbExit : block :=
   {| blk_id := Name "exit";
      blk_phis := [];
      blk_code := [];
-     blk_term := (IVoid 10%Z, TERM_Ret (texp_ident "val"));
+     blk_term := (IVoid 10%Z, TERM_Ret (texp_const_z 0))
   |}.
 
 
@@ -1084,10 +1084,10 @@ Lemma exec_bbLoop_from_bbLoop_final_iteration:
     M.memEffect mem (SST.execBB tds ge e
                                 (Some (blk_id (bbLoop n)))
                                 (bbLoop n)) ≡
-                Ret
+  Ret
     (M.add (M.size initmem)
-       (M.add_all_index (M.serialize_dvalue (DVALUE_I32 ivnextval)) 0
-          (M.make_empty_block DTYPE_Pointer))
+       (M.add_all_index (M.serialize_dvalue (DVALUE_I32 ivnextval))
+          (Int32.unsigned ivnextval * 8) (M.make_empty_block DTYPE_Pointer))
        (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem),
     SST.BBRBreak
       (SST.add_env (Name "cond") (DVALUE_I1 Int1.one)
@@ -1122,17 +1122,14 @@ Qed.
 
 
 Lemma exec_exit:
-  forall (n: nat)
-    (tds: typedefs)
+  forall (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
     (prev: block_id)
-    (valdvalue: dvalue)
-    (ENVATVAL: SST.lookup_env e (Name "val") = mret valdvalue)
     (mem: M.memory),
     M.memEffect mem (SST.execBB tds ge e (Some prev)
                                 (bbExit)) ≡
-                 M.memEffect mem (Ret (SST.BBRRet valdvalue)).
+                 M.memEffect mem (Ret (SST.BBRRet (DVALUE_I32 (Int32.repr 0)))).
 Proof.
   intros.
   unfold SST.execBB.
@@ -1142,7 +1139,8 @@ Proof.
 
   rewrite SST.force_exec_bb_instrs.
   simpl.
-  rewrite eval_exp_ident'; eauto.
+  unfold SST.eval_typ. rewrite normalize_type_equation.
+  rewrite eval_exp_const.
   euttnorm.
 Qed.
 
@@ -1185,13 +1183,18 @@ Definition create_mem_effect_of_loop (blockloc: Z) (n: nat) (m: M.memory) : M.me
 when I execute a function **)
 Lemma mem_effect_main_function_orig:
   forall (n: nat)
-    (initmem: M.memory) 
-    (N_GT_1: (n >= 1)%nat)
+    (initmem: M.memory)
+    (blockloc: Z)
+    (N_GE_1: (n >= 1)%nat)
     (N_INRANGE: Z.of_nat n <= Int32.max_unsigned),
   Trace.mapM fst (M.memEffect initmem (SST.execFunction []
               (SST.ENV.add (Name "main") (DVALUE_Addr (M.size  (a:=Z) M.empty, 0))
                  (SST.ENV.empty dvalue)) (SST.env_of_assoc []) 
-              (mainCFG n) (Name "main"))) ≡ Ret (create_mem_effect_of_loop (M.size initmem) n initmem).
+              (mainCFG n) (Name "main"))) ≡
+             Ret (create_mem_effect_of_loop
+                    (M.size initmem)
+                    n
+                    (M.add (M.size initmem) (M.make_empty_block DTYPE_Pointer) initmem)).
 Proof.
   Opaque SST.step_sem_tiered.
   Opaque SST.execBBInstrs.
@@ -1203,19 +1206,18 @@ Proof.
   simpl.
 
   (* Induction !*)
-  induction n as [zero | n].
+  destruct n as [zero | n].
 
-  - intros.
+  - (*n = 0 *)
+    intros.
     (* Is this even sensible? :P *)
-    inversion N_GT_1.
+    inversion N_GE_1.
 
-  - intros.
-    rename N_GT_1 into SN_GT_1.
-    assert (NCASES: (n >= 1 \/ n = 0)%nat).
-    omega.
-    destruct NCASES as [N_GE_1 | N_EQ_0].
-    + admit.
-    + subst.
+  - (*n = S n *)
+    intros.
+    rename N_GE_1 into SN_ET_1.
+    induction n.
+    + (* Sn = 1 *)
       unfold create_mem_effect_of_loop.
       simpl.
 
@@ -1234,14 +1236,35 @@ Proof.
       simpl.
       rewrite M.memEffect_commutes_with_bind.
       rewrite exec_bbLoop_from_init; eauto.
+      simpl.
 
+      assert (INT_SN_EQ_1: Int32.eq (Int32.repr 1) (Int32.repr 1)).
+      auto.
+      rewrite INT_SN_EQ_1.
 
-      (* Execute the edge from the loop BB to the loop BB *)
       euttnorm.
+      M.forcemem.
+      euttnorm.
+
+
+      
+      (* Execute exit BB *)
       setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
       simpl.
-      rewrite M.memEffect_commutes_with_bind; eauto.
-Abort.
+      rewrite M.memEffect_commutes_with_bind.
+      rewrite exec_exit.
+
+      euttnorm.
+      repeat  M.forcemem.
+      repeat euttnorm.
+      repeat M.forcemem.
+      euttnorm.
+
+      
+
+    +  (* Sn > 1 *)
+      admit.
+Admitted.
   
   
 (* Lemma I care about *)
