@@ -1178,6 +1178,35 @@ Fixpoint create_mem_effect_of_loop_rec
   end.
 
 
+Lemma force_create_mem_effect_of_loop_rec:
+  
+         forall (blockloc: Z)
+         (i: nat)
+         (n: nat)
+         (m: M.memory),
+           create_mem_effect_of_loop_rec blockloc i n m =
+  match n with
+  | O => m
+  | S n' => create_mem_effect_of_loop_rec
+             blockloc
+             (i + 1)
+             n'
+             (M.add blockloc
+                    (M.add_all_index (M.serialize_dvalue (DVALUE_I32 (nat_to_int32 i)))
+                                     (Int32.unsigned (nat_to_int32 i) * 8) (M.make_empty_block DTYPE_Pointer)) m)
+  end.
+Proof.
+  intros.
+  simpl.
+  induction n; auto.
+Qed.
+
+Opaque create_mem_effect_of_loop_rec.
+
+
+
+
+
 Definition create_mem_effect_of_loop (blockloc: Z) (n: nat) (m: M.memory) : M.memory  :=
   create_mem_effect_of_loop_rec blockloc 0 n m.
 
@@ -1239,12 +1268,15 @@ Lemma mem_effect_main_function_exec_loop:
     (e: SST.env)
     (ge: SST.genv)
     (mem initmem: M.memory)
-    (N_GE_1: (n >= 1)%nat)
     (bbprevid: block_id)
+    (ivnextval: int)
+    (NCASES: ((n = 1)%nat /\ bbprevid = Name "main") \/
+             ((n > 1)%nat /\ bbprevid = Name "loop" /\
+              SST.lookup_env e (Name "iv.next") = mret (DVALUE_I32 ivnextval) /\
+              Int32.unsigned ivnextval + 1<= Z.of_nat n))
     (arrblockidx: Z)
     (ENV_AT_ARR: SST.lookup_env e (Name "arr") = mret (DVALUE_Addr (arrblockidx, 0)))
     (INITMEM_ARR: mem = M.add arrblockidx (M.make_empty_block DTYPE_Pointer) initmem)
-    (BBPREVID_CASES: ((n = 1)%nat /\ bbprevid = Name "main") \/ ((n > 1)%nat /\ bbprevid = Name "loop"))
     (N_INRANGE: Z.of_nat n <= Int32.max_unsigned),
     mapM fst (M.memEffect
                 mem
@@ -1266,8 +1298,8 @@ Proof.
 
   - (*n = 0 *)
     intros.
-    (* Is this even sensible? :P *)
-    inversion N_GE_1.
+  (* Is this even sensible? :P *)
+    destruct NCASES; destruct H; omega.
 
   - induction n.
 
@@ -1276,11 +1308,10 @@ Proof.
   - (*n = S n *)
     intros.
     simpl.
-    rename N_GE_1 into SN_ET_1.
     + (* Sn = 1 *)
       unfold create_mem_effect_of_loop.
       simpl.
-      destruct BBPREVID_CASES as [PREV_MAIN | PREV_LOOP];
+      destruct NCASES as [PREV_MAIN | PREV_LOOP];
         try (destruct PREV_LOOP; omega).
       destruct PREV_MAIN as [_ PREV_MAIN]; subst.
 
@@ -1313,6 +1344,45 @@ Proof.
       euttnorm.
 
     + (* induction case *)
+      
+      intros.
+      
+      destruct NCASES as [PREV_MAIN | PREV_LOOP];
+        try (destruct PREV_MAIN; omega; fail).
+
+      destruct PREV_LOOP as [NVAL [BBPREV [ENV_AT_IVNEXT IVNEXT_LIMITS]]].
+      subst.
+
+      
+      (* Force evaluation of BB loop from init *)
+      setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
+      simpl.
+      setoid_rewrite M.memEffect_commutes_with_bind.
+
+
+      assert (IVNEXT_CASES: Int32.unsigned ivnextval + 1 < Z.of_nat (S (S n)) \/
+                            Int32.unsigned ivnextval + 1= Z.of_nat (S (S n))).
+      intros.
+      omega.
+      destruct IVNEXT_CASES as [IVNEXT_INNER | IVNEXT_FINAL].
+
+      * (* INNER CASE *)
+        rewrite exec_bbLoop_from_bbLoop_inner_iterations; try omega; try eauto.
+        admit.
+
+    + (* FINAL CASE *)
+      rewrite exec_bbLoop_from_bbLoop_final_iteration; try omega; try eauto.
+      euttnorm.
+
+      (* exec exit block*)
+      setoid_rewrite SST.force_exec_function_at_bb_id; eauto.
+      simpl.
+      setoid_rewrite M.memEffect_commutes_with_bind.
+      rewrite exec_exit.
+      M.forcemem.
+      euttnorm.
+
+      
 Admitted.
   
   
