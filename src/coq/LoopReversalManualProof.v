@@ -1001,6 +1001,7 @@ Qed.
 
 Lemma exec_bbLoop_from_bbLoop_inner_iterations:
   forall (n: nat)
+    (NINRANGE: Z.of_nat n <= Int32.max_unsigned)
     (tds: typedefs)
     (ge: SST.genv)
     (e: SST.env)
@@ -1027,7 +1028,6 @@ Lemma exec_bbLoop_from_bbLoop_inner_iterations:
 Proof.
   intros.
   rewrite exec_bbLoop_from_bbLoop_spine; eauto.
-  Locate "<=?".
   assert (N_LEQ_IVNEXTVAL: reflect ((Z.of_nat n <= Int32.unsigned ivnextval))
                                    (Z.of_nat n <=? Int32.unsigned ivnextval)).
   apply Z.leb_spec0.
@@ -1035,8 +1035,10 @@ Proof.
 
 
   assert (IVNEXTVAL_NEQ_N: Int32.eq ivnextval  (Int32.repr (Z.of_nat n)) = false).
-  apply Int32.eq_false.
-  admit.
+  unfold Int32.eq.
+  repeat rewrite Int32.unsigned_repr; (try split; auto; try omega).
+  unfold Coqlib.zeq.
+  destruct (Z.eq_dec (Int32.unsigned ivnextval) (Z.of_nat n)); auto; try omega.
 
   rewrite IVNEXTVAL_NEQ_N.
   simpl.
@@ -1045,7 +1047,7 @@ Proof.
   euttnorm.
   rewrite MEMATARR.
   reflexivity.
-Admitted.
+Qed.
 
 
 Lemma exec_bbLoop_from_bbLoop_final_iteration:
