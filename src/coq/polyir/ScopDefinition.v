@@ -307,34 +307,41 @@ that the reads/writes are modeled *)
   .
 
   
-    Inductive exec_memory_accesss:  viv -> Memory -> MemoryAccess -> Memory -> Prop :=
+    Inductive exec_memory_accesss:  P.ParamsT -> ScopEnvironment -> viv -> Memory -> MemoryAccess -> Memory -> Prop :=
     | exec_store:
-        forall (viv: P.PointT)
+        forall (params: P.ParamsT)
+          (se: ScopEnvironment)
+          (viv: P.PointT)
           (memacc: MemoryAccess)
           (initmem: Memory)
           (accessfn: AccessFunction)
           (accessix: list Value)
           (ACCESSIX: evalAccessFunction viv accessfn = accessix)
-          (storefn: list Value -> Value)
+          (ssv: ScopStoreValue)
           (storeval: Value)
+          (SSV: exec_scop_store_value params se viv ssv storeval)
           (chunk: ChunkNum),
-          exec_memory_accesss viv
+          exec_memory_accesss params se viv
                               initmem
-                              (MAStore chunk accessfn storefn)
-                              (storeMemory chunk accessix (storefn accessix) initmem).
+                              (MAStore chunk accessfn ssv)
+                              (storeMemory chunk accessix storeval initmem).
 
 
     (** Execute a statement. Checks if the statement is active or inactive before
        execution *)
-    Inductive exec_scop_stmt: viv -> Memory -> ScopStmt -> Memory -> Prop :=
+    Inductive exec_scop_stmt: P.ParamsT -> ScopEnvironment -> viv -> Memory -> ScopStmt -> Memory -> Prop :=
     | exec_stmt_nil:
-        forall (viv: P.PointT)
+        forall (params: P.ParamsT)
+          (se: ScopEnvironment)
+          (viv: P.PointT)
           (initmem: Memory)
           (domain: P.PolyT)
           (schedule: P.AffineFnT),
-          exec_scop_stmt viv initmem (mkScopStmt domain schedule []) initmem
+          exec_scop_stmt params se viv initmem (mkScopStmt domain schedule []) initmem
     | exec_stmt_cons_active:
-        forall (viv: P.PointT)
+        forall (params: P.ParamsT)
+          (se: ScopEnvironment)
+          (viv: P.PointT)
           (domain: P.PolyT)
           (PT_IN_DOMAIN: P.isPointInPoly viv domain = true)
           (schedule: P.AffineFnT)
@@ -342,43 +349,50 @@ that the reads/writes are modeled *)
           (ma: MemoryAccess)
           (memstmt: Memory)
           (initmem: Memory)
-          (MEMSTMT: exec_scop_stmt viv initmem (mkScopStmt domain schedule mas) memstmt)
+          (MEMSTMT: exec_scop_stmt params se viv initmem (mkScopStmt domain schedule mas) memstmt)
           (memnew: Memory)
-          (MEMNEW_FROM_MEMSTMT: exec_memory_accesss viv initmem ma memnew),
-          exec_scop_stmt viv initmem (mkScopStmt domain schedule (cons ma mas)) memnew
+          (MEMNEW_FROM_MEMSTMT: exec_memory_accesss params se viv initmem ma memnew),
+          exec_scop_stmt params se viv initmem (mkScopStmt domain schedule (cons ma mas)) memnew
     | exec_stmt_cons_inactive:
-        forall (viv: P.PointT)
+        forall (params: P.ParamsT)
+          (se: ScopEnvironment)
+          (viv: P.PointT)
           (domain: P.PolyT)
           (PT_IN_DOMAIN: P.isPointInPoly viv domain = false)
           (schedule: P.AffineFnT)
           (mas: list MemoryAccess)
           (initmem: Memory),
-          exec_scop_stmt viv initmem (mkScopStmt domain schedule mas) initmem
+          exec_scop_stmt params se viv initmem (mkScopStmt domain schedule mas) initmem
     .
 
-    Inductive exec_scop_at_point: viv -> Memory -> Scop -> Memory -> Prop :=
-    | exec_scop_at_point_nil: forall (viv: viv)
-                                (initmem: Memory)
-                                (scop: Scop)
-                                (mem': Memory),
-        exec_scop_at_point  viv initmem (mkScop []) initmem
+    Inductive exec_scop_at_point: P.ParamsT -> ScopEnvironment -> viv -> Memory -> Scop -> Memory -> Prop :=
+    | exec_scop_at_point_nil:
+        forall (params: P.ParamsT)
+          (se: ScopEnvironment)
+          (viv: P.PointT)
+          (initmem: Memory)
+          (scop: Scop)
+          (mem': Memory),
+          exec_scop_at_point  params se viv initmem (mkScop []) initmem
     | exec_scop_at_point_cons:
-        forall (viv: viv)
+        forall (params: P.ParamsT)
+          (se: ScopEnvironment)
+          (viv: P.PointT)
           (initmem: Memory)
           (scop: Scop)
           (stmt: ScopStmt)
           (stmts: list ScopStmt)
           (mem1 mem2: Memory),
-          exec_scop_stmt viv initmem stmt mem1 ->
-          exec_scop_at_point  viv mem1 (mkScop stmts) mem2 ->
-          exec_scop_at_point viv initmem (mkScop (cons stmt stmts)) mem2.
+          exec_scop_stmt params se viv initmem stmt mem1 ->
+          exec_scop_at_point  params se viv mem1 (mkScop stmts) mem2 ->
+          exec_scop_at_point params se viv initmem (mkScop (cons stmt stmts)) mem2.
     
 
 
     Definition getScopDomain (scop: Scop): P.PolyT :=
       List.fold_left P.unionPoly (map scopStmtDomain (scopStmts scop)) P.emptyPoly.
     
-    Inductive exec_scop_from_lexmin: P.ParamsT -> viv -> Memory -> Scop -> Memory -> viv -> Prop :=
+    Inductive exec_scop_from_lexmin: P.ParamsT -> ScopEnvironment -> viv -> Memory -> Scop -> Memory -> viv -> Prop :=
     (* 
   | exec_scop_at_lexmax:
       forall (initmem mem : Memory)
@@ -396,12 +410,15 @@ that the reads/writes are modeled *)
                               vivmax
      *)
     | exec_scop_begin:
-        forall (initmem mem: Memory)
+        forall 
+          (se: ScopEnvironment)
+          (initmem mem: Memory)
           (scop: Scop)
           (params: P.ParamsT)
           (vivmin: viv)
           (VIVMIN: vivmin = (P.getLexminPoint params (getScopDomain scop))),
           exec_scop_from_lexmin params
+                                se
                                 vivmin
                                 initmem
                                 scop
@@ -411,17 +428,20 @@ that the reads/writes are modeled *)
         forall (initmem mem1 mem2: Memory)
           (scop: Scop)
           (params: P.ParamsT)
+          (se: ScopEnvironment)
           (vivbegin vivcur vivnext: viv)
           (NEXT: Some vivnext = P.getLexNextPoint params (getScopDomain scop)vivcur),
-          exec_scop_from_lexmin params vivbegin initmem scop mem1  vivcur ->
-          exec_scop_at_point vivcur mem1 scop mem2 ->
-          exec_scop_from_lexmin params vivbegin initmem scop mem2 vivnext.
+          exec_scop_from_lexmin params se vivbegin initmem scop mem1  vivcur ->
+          exec_scop_at_point params se vivcur mem1 scop mem2 ->
+          exec_scop_from_lexmin params se vivbegin initmem scop mem2 vivnext.
 
+    Definition initScopEnvironment : ScopEnvironment. Admitted.
     Definition exec_scop (params: P.ParamsT)
                (initmem: Memory)
                (scop: Scop)
                (finalmem: Memory): Prop :=
       exec_scop_from_lexmin params
+                            initScopEnvironment
                             (P.getLexminPoint params (getScopDomain scop))
                             initmem
                             scop
@@ -520,10 +540,7 @@ that the reads/writes are modeled *)
       destruct (P.isPointInPoly (writeToPoint chunk ix) (writePolyhedra scop))
              eqn: POINTINPOLY_CASES.
       - (* write in poly *)
-
-        assert (WRITE_AT_TIIMEPOINT: exists tp, exists write,
-                     List.In ()
-               )
+        admit.
 
 
         
