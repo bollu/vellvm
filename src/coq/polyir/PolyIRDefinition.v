@@ -95,7 +95,7 @@ Inductive PolyStmt :=
 
 
 (** Memory chunk: allows multidimensional reads and writes **)
-Notation ChunkNum := Z.
+Definition ChunkNum := Z.
 Record MemoryChunk :=
   mkMemoryChunk {
       memoryChunkDim: nat;
@@ -390,6 +390,7 @@ Module Type POLYHEDRAL_THEORY.
   Parameter arePointsRelated: PointT -> PointT -> AffineRelT -> bool.
   (** Check if a point is within a polyhedra *)
   Parameter isPointInPoly: PointT -> PolyT -> bool.
+  Parameter isPointInPolyProp: PointT -> PolyT -> Prop.
 
   (** Returns whether one point is lex smaller than the other *)
   Parameter isLexSmaller: PointT -> PointT -> option (bool).
@@ -732,22 +733,103 @@ that the reads/writes are modeled *)
 
   Section PROOF.
 
+    Create HintDb proofdb.
+
+    Record validSchedule (scop: Scop) (schedule: Schedule) (scop': Scop) : Prop :=
+      mkValidSchedule {
+          NEWSCOP_IS_SCHEDULED_OLDSCOP: (Some scop' = applyScheduleToScop schedule scop);
+          RESPECTSRAW: scheduleRespectsRAW schedule scop;
+          RESPECTSWAW: scheduleRespectsWAW schedule scop;
+        }.
+
+
+    Definition MemExtesionallyEqual (mem1 mem2: Memory): Prop :=
+      forall (chunk: ChunkNum) (ix: list Z),
+        loadMemory chunk ix mem1 = loadMemory chunk ix mem2.
+
+    (** Construct the write polyhedra of the scop,
+        which contains the set of all multidimensional
+    time points that perform a write *)
+    Definition writePolyhedra (scop: Scop): P.PolyT.
+    Admitted.
+
+    (** Convert a write in memory into the abstract multidimensional timepoint **)
+    Definition writeToPoint (chunk: ChunkNum) (ix: list Z): P.PointT.
+    Admitted.
+
+    (** If a point has not been written to, then the value
+        remains unchanged *)
+    Lemma point_not_in_write_polyhedra_implies_value_unchanged:
+      forall (scop: Scop)
+        (initmem finalmem: Memory)
+        (params: P.ParamsT)
+        (EXECSCOP: exec_scop params initmem scop finalmem)
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (POINT_NOT_IN_POLY: P.isPointInPoly (writeToPoint chunk ix)
+                                            (writePolyhedra scop) = false),
+        loadMemory chunk ix finalmem = loadMemory chunk ix initmem.
+    Proof.
+    Admitted.
+
+    Hint Resolve point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
+    Hint Rewrite point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
+
+
+    (** a valid schedule preserves inclusion and exclusion into the write
+    polyhedra **)
+    Lemma valid_schedule_preserves_write_polyhedra_containment:
+      forall (scop scop': Scop)
+        (schedule: Schedule)
+        (VALIDSCHEDULE: validSchedule scop schedule scop')
+        (chunk: ChunkNum)
+        (ix: list Z),
+        P.isPointInPoly
+          (writeToPoint chunk ix)
+          (writePolyhedra scop') = 
+        P.isPointInPoly
+          (writeToPoint chunk ix)
+          (writePolyhedra scop).
+    Proof.
+    Admitted.
+
+    Hint Resolve valid_schedule_preserves_write_polyhedra_containment: proof.
+    Hint Rewrite valid_schedule_preserves_write_polyhedra_containment: proof.
+
+
     Theorem valid_schedule_preserves_semantics:
       forall (scop scop': Scop)
         (schedule: Schedule)
-        (NEWSCOP_IS_SCHEDULED_OLDSCOP: Some scop' = applyScheduleToScop schedule scop)
-        (RESPECTSRAW: scheduleRespectsRAW schedule scop)
-        (RESPECTSWAW: scheduleRespectsWAW schedule scop)
-        (initmem finalmem: Memory)
+        (VALIDSCHEDULE: validSchedule scop schedule scop')
+        (initmem finalmem finalmem': Memory)
         (params: P.ParamsT)
-        (EXECSCOP: exec_scop params initmem scop finalmem),
-        exec_scop params initmem scop' finalmem.
+        (EXECSCOP: exec_scop params initmem scop finalmem)
+        (EXECSCOP': exec_scop params initmem scop' finalmem'),
+        MemExtesionallyEqual finalmem finalmem'.
     Proof.
+      intros.
+      unfold MemExtesionallyEqual.
+
+      intros.
+
+      destruct (P.isPointInPoly (writeToPoint chunk ix) (writePolyhedra scop))
+        as [INPOLY | NOTINPOLY]
+             eqn: POINTINPOLY_CASES.
+      - admit.
+      - (* Write not in poly *)
+        assert (POINTINPOLY': P.isPointInPoly (writeToPoint chunk ix)
+                                              (writePolyhedra scop') = false).
+        rewrite <- POINTINPOLY_CASES.
+        erewrite valid_schedule_preserves_write_polyhedra_containment; eauto.
+
+        assert (LOAD_FINALMEM: loadMemory chunk ix finalmem  = loadMemory chunk ix initmem);
+          eauto with proofdb.
+        
+        assert (LOAD_FINALMEM': loadMemory chunk ix finalmem'  = loadMemory chunk ix initmem);
+          eauto with proofdb.
+
+        congruence.
     Admitted.
-        
-        
-        
-        
   End PROOF.
 
 End SCOP.
