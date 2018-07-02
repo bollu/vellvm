@@ -283,6 +283,7 @@ that the reads/writes are modeled *)
                   (List.map (applyScheduleToScopStmt schedule)
                             (scopStmts scop))).
 
+  (** *Section that define the semantics of scop evaluation *)
   Section EVALUATION.
 
     Definition viv := P.PointT.
@@ -393,22 +394,6 @@ that the reads/writes are modeled *)
       List.fold_left P.unionPoly (map scopStmtDomain (scopStmts scop)) P.emptyPoly.
     
     Inductive exec_scop_from_lexmin: P.ParamsT -> ScopEnvironment -> viv -> Memory -> Scop -> Memory -> viv -> Prop :=
-    (* 
-  | exec_scop_at_lexmax:
-      forall (initmem mem : Memory)
-        (scop: Scop)
-        (params: P.ParamsT)
-        (vivmax: viv)
-        (vivbegin: viv)
-        (EXECPREV: exec_scop_from_lexmin params vivbegin initmem scop mem vivmax)
-        (MAX: P.getLexNextPoint params (getScopDomain scop) vivmax = None),
-        exec_scop_from_lexmin params
-                              vivbegin
-                              initmem
-                              scop
-                              mem
-                              vivmax
-     *)
     | exec_scop_begin:
         forall 
           (se: ScopEnvironment)
@@ -449,9 +434,57 @@ that the reads/writes are modeled *)
                             (P.getLexmaxPoint params (getScopDomain scop)).
   End EVALUATION.
 
-  Section PROOF.
+  (** **Hint database of proof *)
+  Create HintDb proofdb.
 
-    Create HintDb proofdb.
+  (** *Section to reason about last writes *)
+  Section LASTWRITE.
+
+    (** **The definition of a last write in a scop *)
+    Definition IsLastWrite (scop: Scop)
+               (stmt: ScopStmt)
+               (ma: MemoryAccess)
+               (chunk: ChunkNum)
+               (ix: list Z): Prop.
+    Admitted.
+
+    (** **Last write is decidable *)
+    Lemma IsLastWriteDecidable: forall (scop: Scop)
+                                  (stmt: ScopStmt)
+                                  (ma: MemoryAccess)
+                                  (chunk: ChunkNum)
+                                  (ix: list Z),
+        {IsLastWrite scop stmt ma chunk ix} + {~IsLastWrite scop stmt ma chunk ix}.
+    Proof.
+    Admitted.
+
+    Hint Resolve IsLastWriteDecidable: proofdb.
+    Hint Rewrite IsLastWriteDecidable: proofdb.
+
+    (** **If we have a last write, then the value in memory is the value written by the last write *)
+    Lemma LastWriteImposesMemoryValue:
+      forall (scop: Scop)
+        (stmt: ScopStmt)
+        (sched: Schedule)
+        (mem: Memory)
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (accessfn: AccessFunction)
+        (ssv: ScopStoreValue)
+        (viv: viv)
+        (VIV_WITNESS: evalAccessFunction viv accessfn = ix)
+        (LASTWRITE: IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix)
+        (storeval: Value)
+        (se: ScopEnvironment)
+        (params: P.ParamsT)
+        (EXECWRITEVAL: exec_scop_store_value params se viv ssv storeval),
+        loadMemory chunk ix mem = Some storeval.
+    Admitted.
+    
+  End LASTWRITE.
+
+  (** *Section that formalises the proof *)
+  Section PROOF.
 
     Record validSchedule (scop: Scop) (schedule: Schedule) (scop': Scop) : Prop :=
       mkValidSchedule {
@@ -494,26 +527,72 @@ that the reads/writes are modeled *)
     Hint Rewrite point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
 
 
+
+    (** Given a point in a write polyhedra, show that there must exist
+    a corresponding write in the scop *)
+    Lemma point_in_write_polyhedra_implies_write_exists:
+      forall (scop: Scop)
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (POINT_IN_POLY: P.isPointInPoly (writeToPoint chunk ix)
+                                        (writePolyhedra scop) = true),
+      exists accessfn ssv viv,
+        List.In (MAStore chunk accessfn ssv) (getScopMemoryAccessses scop)  /\
+        (evalAccessFunction viv accessfn = ix) /\
+        P.isPointInPoly viv (getScopDomain scop) = true /\
+        IsLastWrite scop (MAStore chunk accessfn ssv).
+    Proof.
+    Admitted.
+      
+          
+    Hint Resolve point_in_write_polyhedra_implies_write_exists: proofdb.
+    Hint Rewrite point_in_write_polyhedra_implies_write_exists: proofdb.
+
+
     (** a valid schedule preserves inclusion and exclusion into the write
     polyhedra **)
-    Lemma valid_schedule_preserves_write_polyhedra_containment:
+    Lemma valid_schedule_preserves_write_polyhedra_non_containment:
       forall (scop scop': Scop)
         (schedule: Schedule)
         (VALIDSCHEDULE: validSchedule scop schedule scop')
         (chunk: ChunkNum)
-        (ix: list Z),
+        (ix: list Z)
+        (NOTINPOLY: P.isPointInPoly
+          (writeToPoint chunk ix)
+          (writePolyhedra scop) = false),
         P.isPointInPoly
           (writeToPoint chunk ix)
-          (writePolyhedra scop') = 
-        P.isPointInPoly
-          (writeToPoint chunk ix)
-          (writePolyhedra scop).
+          (writePolyhedra scop') = false.
     Proof.
     Admitted.
 
-    Hint Resolve valid_schedule_preserves_write_polyhedra_containment: proofdb.
-    Hint Rewrite valid_schedule_preserves_write_polyhedra_containment: proofdb.
+    Hint Resolve valid_schedule_preserves_write_polyhedra_non_containment: proofdb.
+    Hint Rewrite valid_schedule_preserves_write_polyhedra_non_containment: proofdb.
 
+    (** **Last write in SCOP => last write in SCOP'*)
+    Lemma transport_write_along_schedule:
+      forall (scop scop': Scop)
+        (schedule: Schedule)
+        (VALIDSCHEDULE: validSchedule scop schedule scop')
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (INWRITEPOLY: P.isPointInPoly
+          (writeToPoint chunk ix)
+          (writePolyhedra scop) = true)
+        accessfn
+        ssv
+        viv
+        (STORE_IN_SCOP: List.In (MAStore chunk accessfn ssv) (getScopMemoryAccessses scop))
+        (ACCESSFN: evalAccessFunction viv accessfn = ix)
+        (VIV_IN_SCOP: P.isPointInPoly viv (getScopDomain scop) = true)
+        (LASTWRITE: IsLastWrite scop (MAStore chunk accessfn ssv)),
+        IsLastWrite scop' (MAStore chunk accessfn ssv).
+    Proof.
+    Admitted.
+        
+
+    Hint Resolve transport_write_along_schedule: proofdb.
+    Hint Rewrite transport_write_along_schedule: proofdb.
 
     Theorem valid_schedule_preserves_semantics:
       forall (scop scop': Scop)
@@ -531,21 +610,40 @@ that the reads/writes are modeled *)
       intros.
 
       
-        assert (POINTINPOLY': P.isPointInPoly (writeToPoint chunk ix)
-                                              (writePolyhedra scop') =
-                              P.isPointInPoly (writeToPoint chunk ix)
-                                              (writePolyhedra scop));
         eauto with proofdb.
 
       destruct (P.isPointInPoly (writeToPoint chunk ix) (writePolyhedra scop))
              eqn: POINTINPOLY_CASES.
       - (* write in poly *)
+        rename POINTINPOLY_CASES into POINT_IN_POLY.
+
+        assert (WRITEINPOLY: 
+            exists accessfn ssv viv,
+              List.In (MAStore chunk accessfn ssv) (getScopMemoryAccessses scop)  /\
+              (evalAccessFunction viv accessfn = ix) /\
+              P.isPointInPoly viv (getScopDomain scop) = true /\
+              IsLastWrite scop (MAStore chunk accessfn ssv)); auto with proofdb.
+        
+
+        destruct WRITEINPOLY as
+            [accessfn [ssv [viv [MAINSCOP [ACCESSFN_AT_VIV [VIV_IN_POLY VIV_LASTWRITE]]]]]].
+
+
+        assert (LASTWRITE_SCOP': IsLastWrite scop' (MAStore chunk accessfn ssv)).
+        eauto with proofdb.
+        
+
+
+        
         admit.
 
 
         
         
-      -
+      - rename POINTINPOLY_CASES into POINT_NOT_IN_POLY.
+        assert (POINT_NOT_IN_POLY': P.isPointInPoly (writeToPoint chunk ix)
+                                              (writePolyhedra scop') = false);
+          eauto with proofdb.
         (* Write not in poly *)
         assert (LOAD_FINALMEM: loadMemory chunk ix finalmem  = loadMemory chunk ix initmem);
           eauto with proofdb.
