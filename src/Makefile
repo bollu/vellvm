@@ -13,7 +13,7 @@ COQEXEC="$(COQBIN)coqtop" -q -w none $(COQINCLUDES) -batch -load-vernac-source
 MENHIR=menhir
 CP=cp
 
-COQFILES :=  polyir/PolyIRUtil polyir/PolyIRDefinition LLVMAst Classes Util Misc AstLib Dom CFG CFGProp Trace MemoryAddress DynamicValues LLVMIO TypeUtil StepSemantics StepSemanticsTiered Memory Renaming DeadInstr Transform TopLevel  LoopReversalManualProof 
+COQFILES := Crush polyir/PolyIRUtil polyir/PolyIRDefinition LLVMAst Classes Util Misc AstLib Dom CFG CFGProp Trace MemoryAddress DynamicValues LLVMIO TypeUtil StepSemantics StepSemanticsTiered Memory Renaming DeadInstr Transform TopLevel  LoopReversalManualProof 
 
 #  Pass  StoreSwitch  MulAdd  polyir/PolyIRDefinition MulAddProof StoreSwitchProof StoreSwitchManualProof
 OLLVMFILES := 

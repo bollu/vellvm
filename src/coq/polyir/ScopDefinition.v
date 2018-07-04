@@ -8,6 +8,7 @@ Require Import Ring_tac.
 Require Import FunctionalExtensionality.
 Require Import Maps.
 
+Require Import Vellvm.Crush.
 Require Import Vellvm.polyir.PolyIRUtil.
 Require Import Vellvm.polyir.PolyIRDefinition.
 
@@ -57,7 +58,7 @@ Module Type POLYHEDRAL_THEORY.
   (** Some way to map a point with an affine function *)
   Parameter mapPoint: AffineFnT -> PointT -> option (PointT).
   (** Has some way to fill in the free variables *)
-  Parameter evalPoint: ParamsT -> PointT -> option (list Z).
+  Parameter evalPoint: ParamsT -> PointT -> (list Z).
   (** Have some way to compose affine functions *)
   Parameter composeAffineFunction: AffineFnT -> AffineFnT -> AffineFnT.
   (** Compute the inverse of an affine function *)
@@ -157,19 +158,19 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   (** The things that a store expression is allowed to store
    A[i, j, k, ..] = <ScopStore>*)
   Inductive ScopStoreValue :=
-  | SSVIndvarFn: (list Z -> Z) -> ScopStoreValue (**r function of indvars *)
-  | SSVLoadedVal: ScopLoadIdent -> ScopStoreValue (**r store some loaded value *)
+  | SSVIndvarFn (indvarfn: list Z -> Z): ScopStoreValue (**r function of indvars *)
+  | SSVLoadedVal (itostore: ScopLoadIdent): ScopStoreValue (**r store some loaded value *)
   .
 
   Inductive MemoryAccess :=
-  | MAStore: ChunkNum (**r array name *)
-                    -> AccessFunction (**r index expression *)
-                    -> ScopStoreValue (**r value to store *)
-                    -> MemoryAccess
-  | MALoad: ChunkNum (**r name *)
-            -> ScopLoadIdent  (**r abstract store identiffier *)
-            -> AccessFunction (**r index expression *)
-            -> MemoryAccess.
+  | MAStore (chunk: ChunkNum) (**r array name *)
+            (accessfn: AccessFunction) (**r index expression *)
+            (ssv: ScopStoreValue) (**r value to store *)
+            : MemoryAccess
+  | MALoad (chunk: ChunkNum) (**r name *)
+            (loadname: ScopLoadIdent)  (**r abstract store identiffier *)
+            (accessfn: AccessFunction) (**r index expression *)
+            : MemoryAccess.
 
 
   (** Note that for now, we don't care what is stored or loaded, because
@@ -292,7 +293,7 @@ that the reads/writes are modeled *)
                           (se: ScopEnvironment)
                           (params: P.ParamsT)
                           (evalviv: list Z)
-                          (EVALVIV: P.evalPoint params viv = Some evalviv)
+                          (EVALVIV: P.evalPoint params viv = evalviv)
                           (indvarfn: list Z -> Z),
       exec_scop_store_value params se viv (SSVIndvarFn indvarfn) (indvarfn evalviv)
   | eval_ssv_loaded_value: forall (viv: P.PointT)
@@ -462,7 +463,6 @@ that the reads/writes are modeled *)
     Lemma LastWriteImposesMemoryValue:
       forall (scop: Scop)
         (stmt: ScopStmt)
-        (sched: Schedule)
         (mem: Memory)
         (chunk: ChunkNum)
         (ix: list Z)
@@ -479,6 +479,10 @@ that the reads/writes are modeled *)
     Admitted.
     
   End LASTWRITE.
+
+  
+  Hint Resolve LastWriteImposesMemoryValue: proofdb.
+  Hint Rewrite LastWriteImposesMemoryValue: proofdb.
 
   (** *Section that formalises the proof *)
   Section PROOF.
@@ -570,10 +574,9 @@ that the reads/writes are modeled *)
     (** **Last write in SCOP => last write in SCOP'*)
     Lemma transport_write_along_schedule:
       forall (scop scop': Scop)
-        (stmt stmt': ScopStmt)
+        (stmt: ScopStmt)
         (schedule: Schedule)
         (VALIDSCHEDULE: validSchedule scop schedule scop')
-        (STMT': stmt' = applyScheduleToScopStmt schedule stmt)
         (chunk: ChunkNum)
         (ix: list Z)
         (INWRITEPOLY: P.isPointInPoly
@@ -582,13 +585,23 @@ that the reads/writes are modeled *)
         accessfn
         ssv
         viv
-        (STORE_IN_SCOP: List.In (MAStore chunk accessfn ssv) (getScopMemoryAccessses scop))
+        (STMT_IN_SCOP: List.In stmt (scopStmts scop))
+        (STORE_IN_STMT: List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt))
         (ACCESSFN: evalAccessFunction viv accessfn = ix)
         (VIV_IN_SCOP: P.isPointInPoly viv (getScopDomain scop) = true)
         (LASTWRITE: IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix),
-        IsLastWrite scop' stmt' (MAStore chunk accessfn ssv) chunk ix.
+        IsLastWrite scop' (applyScheduleToScopStmt schedule stmt) (MAStore chunk accessfn ssv) chunk ix.
     Proof.
     Admitted.
+
+    (** **Stores of reads are disallowed currrently **)
+    Axiom NoSSVLoadedVal: forall (stmt: ScopStmt) (scop: Scop)
+            (chunk: ChunkNum)
+            (accessfn: AccessFunction)
+            (ident: ScopLoadIdent),
+        In stmt (scopStmts scop)
+        -> In (MAStore chunk accessfn (SSVLoadedVal ident)) (scopStmtMemAccesses stmt)
+        -> False.
         
 
     Hint Resolve transport_write_along_schedule: proofdb.
@@ -623,22 +636,46 @@ that the reads/writes are modeled *)
               List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt)  /\
               (evalAccessFunction viv accessfn = ix) /\
               P.isPointInPoly viv (getScopDomain scop) = true /\
-              IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix); eauto with proofdb.
-        
-
-        destruct WRITEINPOLY as
-            [accessfn [ssv [viv [MAINSCOP [ACCESSFN_AT_VIV [VIV_IN_POLY VIV_LASTWRITE]]]]]].
-
-
-        assert (LASTWRITE_SCOP': IsLastWrite scop' (MAStore chunk accessfn ssv)).
+              IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix).
         eauto with proofdb.
         
 
+        destruct WRITEINPOLY as (stmt & accessfn & ssv & viv &
+                                 STMT_IN_SCOP & MEM_IN_STMT & EVALACCESSFN &
+                                 VIV_IN_DOMAIN & LASTWRITE).
 
-        
-        admit.
+        assert (LASTWRITE_SCOP': 
+                  IsLastWrite scop'
+                              (applyScheduleToScopStmt schedule stmt)
+                              (MAStore chunk accessfn ssv)
+                              chunk
+                              ix).
+        eapply transport_write_along_schedule; try eassumption.
 
+        induction ssv.
+        + (* Pure Function of indvars *)
+          assert (execSSV: forall se, exec_scop_store_value
+                                   params
+                                   se
+                                   viv
+                                   (SSVIndvarFn indvarfn)
+                                   (indvarfn (P.evalPoint params viv))).
+          intros.
+          constructor; auto.
 
+          assert (MEMWRITE: loadMemory chunk ix finalmem =
+                            Some (indvarfn (P.evalPoint params viv))).
+          eapply LastWriteImposesMemoryValue; eauto.
+
+          assert (MEM'WRITE: loadMemory chunk ix finalmem' =
+                 Some (indvarfn (P.evalPoint params viv))).
+          eapply LastWriteImposesMemoryValue; eauto.
+          congruence.
+
+        + (* Function of memory *)
+          assert (AXIOM_CONTRA: False).
+          eapply NoSSVLoadedVal; eassumption.
+          contradiction.
         
         
       - rename POINTINPOLY_CASES into POINT_NOT_IN_POLY.
@@ -653,7 +690,14 @@ that the reads/writes are modeled *)
           eauto with proofdb.
 
         congruence.
-    Admitted.
+
+        (** TODO: I need to track the scopEnvironment in some lemma. This
+        scopEnvironment is never instantiated in execSSV. Somewhere, some theorem should
+        refer to a specific environment **)
+        Unshelve.
+        exact initScopEnvironment.
+        exact initScopEnvironment.
+    Qed.
   End PROOF.
 
 End SCOP.
