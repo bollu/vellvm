@@ -89,6 +89,8 @@ Module Type POLYHEDRAL_THEORY.
   Parameter isPointInPoly: PointT -> PolyT -> bool.
   Parameter isPointInPolyProp: PointT -> PolyT -> Prop.
 
+
+  
   (** Returns whether one point is lex smaller than the other *)
   Parameter isLexSmaller: PointT -> PointT -> option (bool).
 
@@ -190,13 +192,17 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   | MALoad (chunk: ChunkNum) (**r name *)
             (loadname: ScopLoadIdent)  (**r abstract store identiffier *)
             (accessfn: AccessFunction) (**r index expression *)
-            : MemoryAccess.
+    : MemoryAccess.
+
+  (** **Return the access function of this array *)
+  Definition getMAAccessFunction (ma: MemoryAccess): AccessFunction :=
+    match ma with
+    | MAStore _ accessfn _ => accessfn
+    | MALoad _ _ accessfn => accessfn
+    end.
 
 
-  (** Note that for now, we don't care what is stored or loaded, because
-conceptually, we don't actually care either. We just want to make sure
-that the reads/writes are modeled *)
-    Definition Domain := P.PolyT.
+  Definition Domain := P.PolyT.
   Record ScopStmt :=
     mkScopStmt {
         scopStmtDomain: Domain; (**r The domain of the scop statement. That is, interpreted as
@@ -672,26 +678,63 @@ that the reads/writes are modeled *)
 
 
     
-    End WRITES.
+  End WRITES.
+
 
   (** *Section to reason about last writes *)
   Section LASTWRITE.
 
     (** **The definition of a last write in a scop *)
-    Definition IsLastWrite (scop: Scop)
-               (stmt: ScopStmt)
-               (ma: MemoryAccess)
-               (chunk: ChunkNum)
-               (ix: list Z): Prop.
-    Admitted.
+    (* Inductive IsLastWrite: Params -> Scop -> ScopStmt -> MemoryAccess -> ChunkNum -> list Z -> Prop :=
+    | mkLastWrite: forall (scop: Scop)
+                     (stmt: Stmt)
+                     (accessfn: AccessFunction)
+                     (ssv: ScopStoreValue)
+                     (chunk: ChunkNum)
+                     (ix: list Z),
+        MAWriteb params (scopStmtDomain stmt) chunk ix  (MAstore chunk )
+               (params: P.ParamsT)
+               (domain: Domain)
+               (needlechunk: ChunkNum)
+               (needleix: list Z)
+               (memacc: MemoryAccess)
+               *)
+        
+    Record IsLastWrite (params: P.ParamsT)
+           (scop: Scop)
+           (stmt: ScopStmt)
+           (ma: MemoryAccess)
+           (chunk: ChunkNum)
+           (viv: P.PointT)
+           (ix: list Z) : Prop :=
+      mkLastWrite {
+          lastWriteVivIx: ix = evalAccessFunction params (getMAAccessFunction ma) viv;
+          lastWriteWrite: MAWriteb params (scopStmtDomain stmt) chunk ix ma = true;
+          lastWriteLast:
+            forall (ma': MemoryAccess)
+              (viv': P.PointT)
+              (VIV'_IX: ix = evalAccessFunction params (getMAAccessFunction ma) viv')
+              (VIV_LT_VIV': P.isLexSmaller  viv viv' = Some true),
+              MAWriteb params (getScopDomain scop) chunk ix ma = false;
+        }.
+
+    Hint Constructors IsLastWrite: proofdb.
+    Hint Resolve lastWriteVivIx: proofdb.
+    Hint Resolve lastWriteWrite: proofdb.
+    Hint Resolve lastWriteLast: proofdb.
+
+      
 
     (** **Last write is decidable *)
-    Lemma IsLastWriteDecidable: forall (scop: Scop)
-                                  (stmt: ScopStmt)
-                                  (ma: MemoryAccess)
-                                  (chunk: ChunkNum)
-                                  (ix: list Z),
-        {IsLastWrite scop stmt ma chunk ix} + {~IsLastWrite scop stmt ma chunk ix}.
+    Lemma IsLastWriteDecidable: forall(params: P.ParamsT)
+        (scop: Scop)
+        (stmt: ScopStmt)
+        (ma: MemoryAccess)
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (viv: P.PointT),
+        {IsLastWrite params scop stmt ma chunk viv ix} +
+        {~IsLastWrite params scop stmt ma chunk viv ix}.
     Proof.
     Admitted.
 
@@ -710,12 +753,20 @@ that the reads/writes are modeled *)
         (ssv: ScopStoreValue)
         (viv: viv)
         (VIV_WITNESS: evalAccessFunction params  accessfn viv = ix)
-        (LASTWRITE: IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix)
+        (LASTWRITE: IsLastWrite params scop stmt (MAStore chunk accessfn ssv) chunk viv ix)
         (storeval: Value)
         (se: ScopEnvironment)
         (params: P.ParamsT)
         (EXECWRITEVAL: exec_scop_store_value params se viv ssv storeval),
         loadMemory chunk ix mem = Some storeval.
+    Proof.
+      intros.
+
+      assert (LASTWRITE_OCCURED: MAWriteb params (scopStmtDomain stmt) chunk ix
+                                 (MAStore chunk accessfn ssv) = true).
+      eauto with proofdb.
+
+      
     Admitted.
     
   End LASTWRITE.
