@@ -464,6 +464,9 @@ that the reads/writes are modeled *)
   (** **Add all theorems from the polyhedral theory  into hint database*)
   Hint Resolve P.invertEvalAffineFn_is_inverse: proofdb.
 
+  (** *Section about writes *)
+  Section WRITES.
+
     
     (** **Define what it means for a memory access to not write to memory *)
     Inductive MAStoreNoWrite:
@@ -587,11 +590,11 @@ that the reads/writes are modeled *)
       unfold scopStmtWriteb in *.
       simpl in *.
 
-      assert (POINT_NOT_IN_POLY_CASES: MAWriteb params domain chunk ix ma = false /\
+      assert (POINT_NOT_IN_POLY_CONJ: MAWriteb params domain chunk ix ma = false /\
                                        existsb (MAWriteb params domain chunk ix) mas = false).
       apply orb_false_elim; auto.
 
-      destruct POINT_NOT_IN_POLY_CASES as [P_NOT_IN_CUR_WRITE  P_NOT_IN_OTHER_WRITES].
+      destruct POINT_NOT_IN_POLY_CONJ as [P_NOT_IN_CUR_WRITE  P_NOT_IN_OTHER_WRITES].
 
       assert (MEMSTMT_EQ_INITMEM:
                 loadMemory chunk ix memstmt = loadMemory chunk ix initmem); auto.
@@ -601,6 +604,43 @@ that the reads/writes are modeled *)
 
       congruence.
     Qed.
+
+    Hint Resolve point_not_in_scop_stmt_implies_value_unchanged: proofdb.
+
+    Lemma point_not_in_write_polyhedra_for_scop_at_point_implies_value_unchanged:
+      forall (scop: Scop)
+        (initmem finalmem: Memory)
+        (params: P.ParamsT)
+        (se: ScopEnvironment)
+        (viv: viv)
+        (EXECSCOPATPOINT: exec_scop_at_point params se viv initmem scop finalmem)
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (POINT_NOT_IN_POLY: scopWriteb params chunk ix scop = false),
+        loadMemory chunk ix finalmem = loadMemory chunk ix initmem.
+    Proof.
+      intros.
+      induction EXECSCOPATPOINT; auto.
+      unfold scopWriteb in *; simpl in *.
+      
+      assert (POINT_NOT_IN_POLY_CONJ: scopStmtWriteb params chunk  ix stmt  = false /\
+                                       existsb (scopStmtWriteb params chunk ix) stmts = false).
+      apply orb_false_elim; auto.
+
+      
+      destruct POINT_NOT_IN_POLY_CONJ as [P_NOT_IN_CUR_STMT  P_NOT_IN_OTHER_STMTS].
+
+      assert (MEMSTMT_EQ_INITMEM:
+                loadMemory chunk ix mem2 = loadMemory chunk ix mem1); auto.
+      assert (MEMSTMT_EQ_MEMNEW:
+                loadMemory chunk ix mem1 = loadMemory chunk ix initmem).
+      eauto with proofdb.
+      congruence.
+    Qed.
+         
+    Hint Resolve point_not_in_write_polyhedra_for_scop_at_point_implies_value_unchanged: proofdb.
+
+      
 
     
 
@@ -616,15 +656,15 @@ that the reads/writes are modeled *)
     Proof.
       intros until params. intro.
       induction EXECSCOP ;  auto.
-
       intros.
 
       assert (MEM1_EQ_MEM: loadMemory chunk ix mem1 = loadMemory chunk ix initmem). auto.
-      
-      admit.
-    Admitted.
 
+      assert (MEM2_EQ_MEM1: loadMemory chunk ix mem2 = loadMemory chunk ix mem1).
+      eauto with proofdb.
 
+      congruence.
+    Qed.
 
     
     Hint Resolve point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
@@ -660,7 +700,8 @@ that the reads/writes are modeled *)
 
     (** **If we have a last write, then the value in memory is the value written by the last write *)
     Lemma LastWriteImposesMemoryValue:
-      forall (scop: Scop)
+      forall (params: P.ParamsT)
+        (scop: Scop)
         (stmt: ScopStmt)
         (mem: Memory)
         (chunk: ChunkNum)
@@ -668,7 +709,7 @@ that the reads/writes are modeled *)
         (accessfn: AccessFunction)
         (ssv: ScopStoreValue)
         (viv: viv)
-        (VIV_WITNESS: evalAccessFunction viv accessfn = ix)
+        (VIV_WITNESS: evalAccessFunction params  accessfn viv = ix)
         (LASTWRITE: IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix)
         (storeval: Value)
         (se: ScopEnvironment)
@@ -712,7 +753,7 @@ that the reads/writes are modeled *)
       exists stmt accessfn ssv viv,
         List.In stmt (scopStmts scop) /\
         List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt) /\
-        (evalAccessFunction viv accessfn = ix) /\
+        (evalAccessFunction params accessfn viv = ix) /\
         P.isPointInPoly viv (getScopDomain scop) = true /\
         IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix.
     Proof.
@@ -742,7 +783,8 @@ that the reads/writes are modeled *)
 
     (** **Last write in SCOP => last write in SCOP'*)
     Lemma transport_write_along_schedule:
-      forall (scop scop': Scop)
+      forall (params: P.ParamsT)
+        (scop scop': Scop)
         (stmt: ScopStmt)
         (schedule: Schedule)
         (VALIDSCHEDULE: validSchedule scop schedule scop')
@@ -753,7 +795,7 @@ that the reads/writes are modeled *)
         viv
         (STMT_IN_SCOP: List.In stmt (scopStmts scop))
         (STORE_IN_STMT: List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt))
-        (ACCESSFN: evalAccessFunction viv accessfn = ix)
+        (ACCESSFN: evalAccessFunction params accessfn viv = ix)
         (VIV_IN_SCOP: P.isPointInPoly viv (getScopDomain scop) = true)
         (LASTWRITE: IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix),
         IsLastWrite scop' (applyScheduleToScopStmt schedule stmt) (MAStore chunk accessfn ssv) chunk ix.
@@ -794,7 +836,7 @@ that the reads/writes are modeled *)
             exists stmt accessfn ssv viv,
               List.In stmt (scopStmts scop) /\
               List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt)  /\
-              (evalAccessFunction viv accessfn = ix) /\
+              (evalAccessFunction params accessfn viv = ix) /\
               P.isPointInPoly viv (getScopDomain scop) = true /\
               IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix).
         eauto with proofdb.
