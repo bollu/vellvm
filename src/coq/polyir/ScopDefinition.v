@@ -59,9 +59,9 @@ Module Type POLYHEDRAL_THEORY.
   (** Has some way to fill in the free variables *)
   Parameter evalPoint: ParamsT -> PointT -> option (list Z).
   (** Have some way to compose affine functions *)
-  Parameter composeAffineFunction: AffineFnT -> AffineFnT -> option AffineFnT.
+  Parameter composeAffineFunction: AffineFnT -> AffineFnT -> AffineFnT.
   (** Compute the inverse of an affine function *)
-  Parameter invertAffineFunction: AffineFnT -> option AffineFnT.
+  Parameter invertAffineFunction: AffineFnT -> AffineFnT.
   (** Have some way to check if two points are related *)
   Parameter arePointsRelated: PointT -> PointT -> AffineRelT -> bool.
   (** Check if a point is within a polyhedra *)
@@ -266,22 +266,19 @@ that the reads/writes are modeled *)
 
   Definition applyScheduleToScopStmt
              (schedule: P.AffineFnT)
-             (ss: ScopStmt): option ScopStmt :=
-    option_map (fun newschedule => {|
-                    scopStmtDomain:= scopStmtDomain ss;
-                    scopStmtSchedule := newschedule;
-                    scopStmtMemAccesses := scopStmtMemAccesses ss
-                  |}) (P.composeAffineFunction (scopStmtSchedule ss) schedule).
+             (ss: ScopStmt):  ScopStmt :=
+    {|
+      scopStmtDomain := scopStmtDomain ss;
+      scopStmtSchedule := P.composeAffineFunction (scopStmtSchedule ss) schedule;
+      scopStmtMemAccesses := scopStmtMemAccesses ss
+    |}.
 
   Definition applyScheduleToScop
              (schedule: P.AffineFnT)
-             (scop: Scop): option Scop :=
-    option_map (fun newScopStmts => {|
-                    scopStmts :=  newScopStmts;
-                  |})
-               (option_traverse
-                  (List.map (applyScheduleToScopStmt schedule)
-                            (scopStmts scop))).
+             (scop: Scop): Scop :=
+               {|
+                 scopStmts := List.map (applyScheduleToScopStmt schedule) (scopStmts scop);
+               |}.
 
   (** *Section that define the semantics of scop evaluation *)
   Section EVALUATION.
@@ -488,7 +485,7 @@ that the reads/writes are modeled *)
 
     Record validSchedule (scop: Scop) (schedule: Schedule) (scop': Scop) : Prop :=
       mkValidSchedule {
-          NEWSCOP_IS_SCHEDULED_OLDSCOP: (Some scop' = applyScheduleToScop schedule scop);
+          NEWSCOP_IS_SCHEDULED_OLDSCOP: (scop' = applyScheduleToScop schedule scop);
           RESPECTSRAW: scheduleRespectsRAW schedule scop;
           RESPECTSWAW: scheduleRespectsWAW schedule scop;
         }.
@@ -536,11 +533,12 @@ that the reads/writes are modeled *)
         (ix: list Z)
         (POINT_IN_POLY: P.isPointInPoly (writeToPoint chunk ix)
                                         (writePolyhedra scop) = true),
-      exists accessfn ssv viv,
-        List.In (MAStore chunk accessfn ssv) (getScopMemoryAccessses scop)  /\
+      exists stmt accessfn ssv viv,
+        List.In stmt (scopStmts scop) /\
+        List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt) /\
         (evalAccessFunction viv accessfn = ix) /\
         P.isPointInPoly viv (getScopDomain scop) = true /\
-        IsLastWrite scop (MAStore chunk accessfn ssv).
+        IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix.
     Proof.
     Admitted.
       
@@ -572,8 +570,10 @@ that the reads/writes are modeled *)
     (** **Last write in SCOP => last write in SCOP'*)
     Lemma transport_write_along_schedule:
       forall (scop scop': Scop)
+        (stmt stmt': ScopStmt)
         (schedule: Schedule)
         (VALIDSCHEDULE: validSchedule scop schedule scop')
+        (STMT': stmt' = applyScheduleToScopStmt schedule stmt)
         (chunk: ChunkNum)
         (ix: list Z)
         (INWRITEPOLY: P.isPointInPoly
@@ -585,8 +585,8 @@ that the reads/writes are modeled *)
         (STORE_IN_SCOP: List.In (MAStore chunk accessfn ssv) (getScopMemoryAccessses scop))
         (ACCESSFN: evalAccessFunction viv accessfn = ix)
         (VIV_IN_SCOP: P.isPointInPoly viv (getScopDomain scop) = true)
-        (LASTWRITE: IsLastWrite scop (MAStore chunk accessfn ssv)),
-        IsLastWrite scop' (MAStore chunk accessfn ssv).
+        (LASTWRITE: IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix),
+        IsLastWrite scop' stmt' (MAStore chunk accessfn ssv) chunk ix.
     Proof.
     Admitted.
         
@@ -618,11 +618,12 @@ that the reads/writes are modeled *)
         rename POINTINPOLY_CASES into POINT_IN_POLY.
 
         assert (WRITEINPOLY: 
-            exists accessfn ssv viv,
-              List.In (MAStore chunk accessfn ssv) (getScopMemoryAccessses scop)  /\
+            exists stmt accessfn ssv viv,
+              List.In stmt (scopStmts scop) /\
+              List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt)  /\
               (evalAccessFunction viv accessfn = ix) /\
               P.isPointInPoly viv (getScopDomain scop) = true /\
-              IsLastWrite scop (MAStore chunk accessfn ssv)); auto with proofdb.
+              IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix); eauto with proofdb.
         
 
         destruct WRITEINPOLY as
