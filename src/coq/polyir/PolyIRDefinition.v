@@ -98,6 +98,14 @@ Inductive PolyStmt :=
 
 (** Memory chunk: allows multidimensional reads and writes **)
 Definition ChunkNum := Z.
+
+Lemma chunk_num_eq_dec: forall (c1 c2: ChunkNum), {c1 = c2} + {c1 <> c2}.
+Proof.
+  intros.
+  apply Z.eq_dec.
+Qed.
+Hint Resolve chunk_num_eq_dec.
+
 Record MemoryChunk :=
   mkMemoryChunk {
       memoryChunkDim: nat;
@@ -148,12 +156,59 @@ Definition storeMemory (chunknum: Z)
 
 
 
-
-
 Definition loadMemory (chunknum: Z)
            (chunkix: list Z)
            (mem: Memory) : option Value :=
   (mem ## chunknum) >>= (fun chk => loadMemoryChunk chunkix chk).
+
+
+(** **Reading from a different chunk allows to read the old value *)
+Definition memory_chunk_gso: forall (needle_chunk: Z)
+                               (needle_ix: list Z)
+                               (haystack_chunk: Z)
+                               (haystack_ix: list Z)
+                               (val: Value)
+                               (NOALIAS: needle_chunk <> haystack_chunk)
+                               (mem: Memory),
+    loadMemory needle_chunk needle_ix
+               (storeMemory haystack_chunk haystack_ix val mem) = 
+    loadMemory needle_chunk needle_ix mem.
+Proof.
+Admitted.
+
+Hint Resolve memory_chunk_gso.
+(** **Reading from a different index at the same chunk allows to read the old value *)
+Definition memory_ix_gso: forall (needle_chunk: Z)
+                            (needle_ix: list Z)
+                            (haystack_ix: list Z)
+                            (val: Value)
+                            (NOALIAS: needle_ix <> haystack_ix)
+                            (mem: Memory),
+    loadMemory needle_chunk needle_ix
+               (storeMemory needle_chunk haystack_ix val mem) =
+    loadMemory needle_chunk needle_ix mem.
+Proof.
+  intros.
+  unfold loadMemory.
+  unfold storeMemory.
+Admitted.
+Hint Resolve memory_ix_gso.
+
+
+Hint Resolve memory_chunk_gso.
+
+(** **Reading from a the same index and chunk as the store allows to read the stored value *)
+Definition memory_ix_gss: forall (needle_chunk: Z)
+                            (needle_ix: list Z)
+                            (val: Value)
+                            (mem: Memory),
+    loadMemory needle_chunk needle_ix
+               (storeMemory needle_chunk needle_ix val mem) = Some val.
+Proof.
+  intros.
+Admitted.
+Hint Resolve memory_ix_gss.
+
 
 
 Definition liftoption3 {a b c d: Type} (f: a -> b -> c -> d)

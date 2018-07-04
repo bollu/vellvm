@@ -47,6 +47,14 @@ Fixpoint option_traverse_fold_left {ACCUM A: Type}
   | a::l' => (f accum a) >>= (fun accum2 => option_traverse_fold_left accum2 f l')
   end.
 
+(** ***Consider making IX a type *)
+Lemma ix_eq_decidable: forall (ix1 ix2: list Z),
+    {ix1 = ix2} + {ix1 <> ix2}.
+Proof.
+  decide equality; auto.
+Qed.
+Hint Resolve ix_eq_decidable.
+
 Module Type POLYHEDRAL_THEORY.
   Parameter PointT: Type.
   Parameter PolyT: Type.
@@ -314,7 +322,7 @@ that the reads/writes are modeled *)
   .
 
   
-    Inductive exec_memory_accesss:  P.ParamsT -> ScopEnvironment -> viv -> Memory -> MemoryAccess -> Memory -> Prop :=
+    Inductive exec_memory_access:  P.ParamsT -> ScopEnvironment -> viv -> Memory -> MemoryAccess -> Memory -> Prop :=
     | exec_store:
         forall (params: P.ParamsT)
           (se: ScopEnvironment)
@@ -328,7 +336,7 @@ that the reads/writes are modeled *)
           (storeval: Value)
           (SSV: exec_scop_store_value params se viv ssv storeval)
           (chunk: ChunkNum),
-          exec_memory_accesss params se viv
+          exec_memory_access params se viv
                               initmem
                               (MAStore chunk accessfn ssv)
                               (storeMemory chunk accessix storeval initmem).
@@ -358,7 +366,7 @@ that the reads/writes are modeled *)
           (initmem: Memory)
           (MEMSTMT: exec_scop_stmt params se viv initmem (mkScopStmt domain schedule mas) memstmt)
           (memnew: Memory)
-          (MEMNEW_FROM_MEMSTMT: exec_memory_accesss params se viv initmem ma memnew),
+          (MEMNEW_FROM_MEMSTMT: exec_memory_access params se viv initmem ma memnew),
           exec_scop_stmt params se viv initmem (mkScopStmt domain schedule (cons ma mas)) memnew
     | exec_stmt_cons_inactive:
         forall (params: P.ParamsT)
@@ -389,9 +397,9 @@ that the reads/writes are modeled *)
           (scop: Scop)
           (stmt: ScopStmt)
           (stmts: list ScopStmt)
-          (mem1 mem2: Memory),
-          exec_scop_stmt params se viv initmem stmt mem1 ->
-          exec_scop_at_point  params se viv mem1 (mkScop stmts) mem2 ->
+          (mem1 mem2: Memory)
+          (EXECSTMT: exec_scop_stmt params se viv initmem stmt mem1)
+          (EXECNEXT: exec_scop_at_point  params se viv mem1 (mkScop stmts) mem2),
           exec_scop_at_point params se viv initmem (mkScop (cons stmt stmts)) mem2.
     
 
@@ -421,9 +429,9 @@ that the reads/writes are modeled *)
           (params: P.ParamsT)
           (se: ScopEnvironment)
           (vivbegin vivcur vivnext: viv)
-          (NEXT: Some vivnext = P.getLexNextPoint params (getScopDomain scop)vivcur),
-          exec_scop_from_lexmin params se vivbegin initmem scop mem1  vivcur ->
-          exec_scop_at_point params se vivcur mem1 scop mem2 ->
+          (NEXT: Some vivnext = P.getLexNextPoint params (getScopDomain scop)vivcur)
+          (EXEC_SCOP_TILL: exec_scop_from_lexmin params se vivbegin initmem scop mem1  vivcur)
+          (EXEC_SCOP_AT_POINT: exec_scop_at_point params se vivcur mem1 scop mem2),
           exec_scop_from_lexmin params se vivbegin initmem scop mem2 vivnext.
 
     Definition initScopEnvironment : ScopEnvironment. Admitted.
@@ -445,40 +453,6 @@ that the reads/writes are modeled *)
 
   
 
-
-    (** *Reason about writes by a scop *)
-    Section WRITES.
-
-    (** Throughout this section, I define
-     "needle*"
-     as a name for
-     "something we are looking for" after the idiom
-     "looking for a needle in a haystack" **)
-    
-    (** **Define what it means for a memory access to write to memory *)
-    Inductive MAStoreWrite:
-      P.ParamsT
-      -> Domain
-      -> MemoryAccess
-      -> ChunkNum
-      -> list Z
-      -> Prop :=
-    | mkMAStoreWrite: forall
-        (params: P.ParamsT)
-        (domain: Domain)
-        (accessfn: AccessFunction)
-        (needlechunk: ChunkNum)
-        (ssv: ScopStoreValue)
-        (viv: P.PointT)
-        (needleix: list Z)
-        (VIV_IN_DOMAIN: P.isPointInPoly viv domain = true)
-        (VIV_AT_ACCESSFN: evalAccessFunction viv accessfn = needleix),
-        MAStoreWrite
-          params
-          domain
-          (MAStore needlechunk accessfn ssv)
-          needlechunk
-          needleix.
 
     
     (** **Define what it means for a memory access to not write to memory *)
@@ -507,7 +481,7 @@ that the reads/writes are modeled *)
           needleix.
 
     (** **Computationl version *)
-    Definition MAStoreWriteb
+    Definition MAWriteb
                (params: P.ParamsT)
                (domain: Domain)
                (needlechunk: ChunkNum)
@@ -526,12 +500,12 @@ that the reads/writes are modeled *)
     (** TODO: SSReflect MAStoreWrite, MAStoreNoWrite, and Mhere **)
 
     (** Extension of MemoryAccessWritesmemoryatix to statements *)
-    Definition ScopStmtWriteb
+    Definition scopStmtWriteb
                (params: P.ParamsT)
                (needlechunk: ChunkNum)
                (needleix: list Z)
                (stmt: ScopStmt) : bool :=
-      existsb (MAStoreWriteb
+      existsb (MAWriteb
                  params
                  (scopStmtDomain stmt)
                  needlechunk needleix)
@@ -545,7 +519,49 @@ that the reads/writes are modeled *)
                (needlechunk: ChunkNum)
                (needleix: list Z)
                (scop: Scop): bool :=
-      existsb (ScopStmtWriteb params needlechunk needleix) (scopStmts scop).
+      existsb (scopStmtWriteb params needlechunk needleix) (scopStmts scop).
+
+    
+    Lemma point_not_in_memacc_implies_value_unchanged:
+      forall (memacc: MemoryAccess)
+        (domain: Domain)
+        (initmem finalmem: Memory)
+        (params: P.ParamsT)
+        (se: ScopEnvironment)
+        (viv: viv)
+        (EXECMA: exec_memory_access params se viv initmem memacc finalmem)
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (POINT_NOT_IN_POLY: MAWriteb params domain chunk ix memacc = false),
+        loadMemory chunk ix finalmem = loadMemory chunk ix initmem.
+    Proof.
+      intros.
+      induction EXECMA.
+      - (* Execute store *)
+        assert (CHUNK_CASES: {chunk = chunk0} + {chunk <> chunk0}). auto.
+
+        
+        assert (NOALIAS: accessix <> ix).
+        (* Use SSR to transfer POINT_NOT_IN_POLY into Prop. learning SSR now *)
+        admit.
+        destruct CHUNK_CASES; auto; subst; auto.
+    Qed.
+
+
+    Lemma point_not_in_scop_stmt_implies_value_unchanged:
+      forall (scop: Scop)
+        (stmt: ScopStmt)
+        (initmem finalmem: Memory)
+        (params: P.ParamsT)
+        (se: ScopEnvironment)
+        (viv: viv)
+        (EXECSCOP: exec_scop_stmt params se viv initmem stmt finalmem)
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (POINT_NOT_IN_POLY: scopStmtWriteb params chunk ix stmt = false),
+        loadMemory chunk ix finalmem = loadMemory chunk ix initmem.
+    Proof.
+    Admitted.
 
     
 
@@ -559,7 +575,18 @@ that the reads/writes are modeled *)
         (POINT_NOT_IN_POLY: scopWriteb params chunk ix scop = false),
         loadMemory chunk ix finalmem = loadMemory chunk ix initmem.
     Proof.
+      intros until params. intro.
+      induction EXECSCOP ;  auto.
+
+      intros.
+
+      assert (MEM1_EQ_MEM: loadMemory chunk ix mem1 = loadMemory chunk ix initmem). auto.
+      
+      admit.
     Admitted.
+
+
+
     
     Hint Resolve point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
     Hint Rewrite point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
