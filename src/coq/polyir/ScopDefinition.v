@@ -537,18 +537,6 @@ that the reads/writes are modeled *)
                  needlechunk needleix)
               (scopStmtMemAccesses stmt).
 
-    
-    Definition ScopStmtNoWriteb
-               (params: P.ParamsT)
-               (needlechunk: ChunkNum)
-               (needleix: list Z)
-               (stmt: ScopStmt) : bool :=
-      negb (forallb (MAStoreWriteb
-                 params
-                 (scopStmtDomain stmt)
-                 needlechunk needleix)
-              (scopStmtMemAccesses stmt)).
-
 
       
     (** Extension of MAWrites to scops *)
@@ -560,15 +548,7 @@ that the reads/writes are modeled *)
       existsb (ScopStmtWriteb params needlechunk needleix) (scopStmts scop).
 
     
-    Definition scopNoWriteb
-               (params: P.ParamsT)
-               (needlechunk: ChunkNum)
-               (needleix: list Z)
-               (scop: Scop): bool :=
-      negb (forallb (ScopStmtWriteb params needlechunk needleix) (scopStmts scop)).
 
-    (** If a point has not been written to, then the value
-        remains unchanged *)
     Lemma point_not_in_write_polyhedra_implies_value_unchanged:
       forall (scop: Scop)
         (initmem finalmem: Memory)
@@ -576,11 +556,16 @@ that the reads/writes are modeled *)
         (EXECSCOP: exec_scop params initmem scop finalmem)
         (chunk: ChunkNum)
         (ix: list Z)
-        (POINT_NOT_IN_POLY: P.isPointInPoly (writeToPoint chunk ix)
-                                            (scopWriteTimepoints scop) = false),
+        (POINT_NOT_IN_POLY: scopWriteb params chunk ix scop = false),
         loadMemory chunk ix finalmem = loadMemory chunk ix initmem.
     Proof.
     Admitted.
+    
+    Hint Resolve point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
+    Hint Rewrite point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
+
+
+    
     End WRITES.
 
   (** *Section to reason about last writes *)
@@ -648,19 +633,16 @@ that the reads/writes are modeled *)
         loadMemory chunk ix mem1 = loadMemory chunk ix mem2.
 
 
-    Hint Resolve point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
-    Hint Rewrite point_not_in_write_polyhedra_implies_value_unchanged: proofdb.
-
 
 
     (** Given a point in a write polyhedra, show that there must exist
     a corresponding write in the scop *)
     Lemma point_in_write_polyhedra_implies_last_write_exists:
-      forall (scop: Scop)
+      forall (params: P.ParamsT)
+        (scop: Scop)
         (chunk: ChunkNum)
         (ix: list Z)
-        (POINT_IN_POLY: P.isPointInPoly (writeToPoint chunk ix)
-                                        (scopWriteTimepoints scop) = true),
+        (POINT_IN_POLY: scopWriteb params chunk ix scop = true),
       exists stmt accessfn ssv viv,
         List.In stmt (scopStmts scop) /\
         List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt) /\
@@ -678,17 +660,14 @@ that the reads/writes are modeled *)
     (** a valid schedule preserves inclusion and exclusion into the write
     polyhedra **)
     Lemma valid_schedule_preserves_write_polyhedra_non_containment:
-      forall (scop scop': Scop)
+      forall (params: P.ParamsT)
+        (scop scop': Scop)
         (schedule: Schedule)
         (VALIDSCHEDULE: validSchedule scop schedule scop')
         (chunk: ChunkNum)
         (ix: list Z)
-        (NOTINPOLY: P.isPointInPoly
-          (writeToPoint chunk ix)
-          (scopWriteTimepoints scop) = false),
-        P.isPointInPoly
-          (writeToPoint chunk ix)
-          (scopWriteTimepoints scop') = false.
+        (NOTINPOLY: scopWriteb params chunk ix scop = false),
+        scopWriteb params chunk ix scop' = false.
     Proof.
     Admitted.
 
@@ -703,9 +682,6 @@ that the reads/writes are modeled *)
         (VALIDSCHEDULE: validSchedule scop schedule scop')
         (chunk: ChunkNum)
         (ix: list Z)
-        (INWRITEPOLY: P.isPointInPoly
-          (writeToPoint chunk ix)
-          (scopWriteTimepoints scop) = true)
         accessfn
         ssv
         viv
@@ -741,16 +717,10 @@ that the reads/writes are modeled *)
         (EXECSCOP': exec_scop params initmem scop' finalmem'),
         MemExtesionallyEqual finalmem finalmem'.
     Proof.
-      intros.
       unfold MemExtesionallyEqual.
-
       intros.
 
-      
-        eauto with proofdb.
-
-      destruct (P.isPointInPoly (writeToPoint chunk ix) (scopWriteTimepoints scop))
-             eqn: POINTINPOLY_CASES.
+      destruct (scopWriteb  params chunk ix scop) eqn: POINTINPOLY_CASES.
       - (* write in poly *)
         rename POINTINPOLY_CASES into POINT_IN_POLY.
 
@@ -803,15 +773,15 @@ that the reads/writes are modeled *)
         
         
       - rename POINTINPOLY_CASES into POINT_NOT_IN_POLY.
-        assert (POINT_NOT_IN_POLY': P.isPointInPoly (writeToPoint chunk ix)
-                                              (scopWriteTimepoints scop') = false);
-          eauto with proofdb.
+        assert (POINT_NOT_IN_POLY': scopWriteb params chunk ix scop' = false).
+        eauto with proofdb.
+
         (* Write not in poly *)
-        assert (LOAD_FINALMEM: loadMemory chunk ix finalmem  = loadMemory chunk ix initmem);
-          eauto with proofdb.
+        assert (LOAD_FINALMEM: loadMemory chunk ix finalmem  = loadMemory chunk ix initmem).
+        eapply point_not_in_write_polyhedra_implies_value_unchanged; eauto.
         
-        assert (LOAD_FINALMEM': loadMemory chunk ix finalmem'  = loadMemory chunk ix initmem);
-          eauto with proofdb.
+        assert (LOAD_FINALMEM': loadMemory chunk ix finalmem'  = loadMemory chunk ix initmem).
+        eapply point_not_in_write_polyhedra_implies_value_unchanged; eauto.
 
         congruence.
 
@@ -823,5 +793,4 @@ that the reads/writes are modeled *)
         exact initScopEnvironment.
     Qed.
   End PROOF.
-
 End SCOP.
