@@ -71,14 +71,19 @@ Module Type POLYHEDRAL_THEORY.
   
   Parameter composeAffineFunction: AffineFnT -> AffineFnT -> AffineFnT.
 
-  (** Compute the inverse of an affine function *)
-  Parameter invertAffineFunction: AffineFnT -> AffineFnT.
-
   (** Find the inverse of a concrete evaluation of an affine function **)
   Parameter invertEvalAffineFn: ParamsT -> AffineFnT -> list Z -> PointT.
+
+  (** Evaluate an affine function *)
+  Parameter evalAffineFn: ParamsT -> AffineFnT -> PointT -> list Z.
+
+  Axiom invertEvalAffineFn_is_inverse:
+    forall (params: ParamsT)
+      (pt: PointT)
+      (fn: AffineFnT),
+      invertEvalAffineFn params fn (evalAffineFn params fn pt) = pt.
   
   (** Have some way to check if two points are related *)
-  
   Parameter arePointsRelated: PointT -> PointT -> AffineRelT -> bool.
   (** Check if a point is within a polyhedra *)
   Parameter isPointInPoly: PointT -> PolyT -> bool.
@@ -212,8 +217,13 @@ that the reads/writes are modeled *)
 
 
 
-  Definition evalAccessFunction (viv : P.PointT)
-             (accessfn: P.AffineFnT): (list Z) :=  [].
+  Definition evalAccessFunction
+             (params: P.ParamsT)
+             (accessfn: P.AffineFnT)
+             (viv : P.PointT) : (list Z) :=
+    P.evalAffineFn params  accessfn viv.
+  Hint Unfold evalAccessFunction.
+  Hint Transparent  evalAccessFunction.
     
 
   Definition getMemAccessLoadRelation (ma: MemoryAccess) : P.AffineRelT :=
@@ -331,7 +341,7 @@ that the reads/writes are modeled *)
           (initmem: Memory)
           (accessfn: AccessFunction)
           (accessix: list Value)
-          (ACCESSIX: evalAccessFunction viv accessfn = accessix)
+          (ACCESSIX: evalAccessFunction params accessfn viv = accessix)
           (ssv: ScopStoreValue)
           (storeval: Value)
           (SSV: exec_scop_store_value params se viv ssv storeval)
@@ -451,8 +461,8 @@ that the reads/writes are modeled *)
   (** **Hint database of proof *)
   Create HintDb proofdb.
 
-  
-
+  (** **Add all theorems from the polyhedral theory  into hint database*)
+  Hint Resolve P.invertEvalAffineFn_is_inverse: proofdb.
 
     
     (** **Define what it means for a memory access to not write to memory *)
@@ -472,7 +482,7 @@ that the reads/writes are modeled *)
         (viv: P.PointT)
         (needleix: list Z)
         (VIV_IN_DOMAIN: P.isPointInPoly viv domain = false)
-        (VIV_AT_ACCESSFN: evalAccessFunction viv accessfn = needleix),
+        (VIV_AT_ACCESSFN: evalAccessFunction params accessfn viv = needleix),
         MAStoreNoWrite
           params
           domain
@@ -480,7 +490,7 @@ that the reads/writes are modeled *)
           needlechunk
           needleix.
 
-    (** **Computationl version *)
+    (** **Computational version of the write*)
     Definition MAWriteb
                (params: P.ParamsT)
                (domain: Domain)
@@ -495,11 +505,9 @@ that the reads/writes are modeled *)
       | _ => false
       end.
 
-    
-    
-    (** TODO: SSReflect MAStoreWrite, MAStoreNoWrite, and Mhere **)
+    (** **TODO: SSReflect MAStoreWrite, MAStoreNoWrite, and Mhere **)
 
-    (** Extension of MemoryAccessWritesmemoryatix to statements *)
+    (** **Extension of MemoryAccessWritesmemoryatix to statements *)
     Definition scopStmtWriteb
                (params: P.ParamsT)
                (needlechunk: ChunkNum)
@@ -522,6 +530,7 @@ that the reads/writes are modeled *)
       existsb (scopStmtWriteb params needlechunk needleix) (scopStmts scop).
 
     
+    (** **If the point of access is not written by the memory access, then the memory access does not change that location *)
     Lemma point_not_in_memacc_implies_value_unchanged:
       forall (memacc: MemoryAccess)
         (domain: Domain)
@@ -529,6 +538,7 @@ that the reads/writes are modeled *)
         (params: P.ParamsT)
         (se: ScopEnvironment)
         (viv: viv)
+        (PT_IN_DOMAIN: P.isPointInPoly viv domain = true)
         (EXECMA: exec_memory_access params se viv initmem memacc finalmem)
         (chunk: ChunkNum)
         (ix: list Z)
@@ -539,12 +549,20 @@ that the reads/writes are modeled *)
       induction EXECMA.
       - (* Execute store *)
         assert (CHUNK_CASES: {chunk = chunk0} + {chunk <> chunk0}). auto.
+        unfold MAWriteb in POINT_NOT_IN_POLY.
+        destruct CHUNK_CASES eqn:CASES ; auto; subst; auto.
 
-        
-        assert (NOALIAS: accessix <> ix).
-        (* Use SSR to transfer POINT_NOT_IN_POLY into Prop. learning SSR now *)
-        admit.
-        destruct CHUNK_CASES; auto; subst; auto.
+        (* TODO: figure out how to proof automae this *)
+        replace (chunk0 =? chunk0) with true in *; try (rewrite Z.eqb_refl; auto).
+
+        simpl in POINT_NOT_IN_POLY.
+
+        assert (IXCASES: {ix =  (evalAccessFunction params accessfn viv0)} + 
+                         {ix <>  (evalAccessFunction params accessfn viv0)}). auto.
+
+        destruct IXCASES; auto; subst.
+        replace (P.invertEvalAffineFn params accessfn (evalAccessFunction params accessfn viv0))
+          with viv0 in POINT_NOT_IN_POLY; auto with proofdb; try congruence.
     Qed.
 
 
