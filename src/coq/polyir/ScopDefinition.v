@@ -376,7 +376,7 @@ that the reads/writes are modeled *)
           (initmem: Memory)
           (MEMSTMT: exec_scop_stmt params se viv initmem (mkScopStmt domain schedule mas) memstmt)
           (memnew: Memory)
-          (MEMNEW_FROM_MEMSTMT: exec_memory_access params se viv initmem ma memnew),
+          (MEMNEW_FROM_MEMSTMT: exec_memory_access params se viv memstmt ma memnew),
           exec_scop_stmt params se viv initmem (mkScopStmt domain schedule (cons ma mas)) memnew
     | exec_stmt_cons_inactive:
         forall (params: P.ParamsT)
@@ -565,6 +565,8 @@ that the reads/writes are modeled *)
           with viv0 in POINT_NOT_IN_POLY; auto with proofdb; try congruence.
     Qed.
 
+    Hint Resolve point_not_in_memacc_implies_value_unchanged: proofdb.
+
 
     Lemma point_not_in_scop_stmt_implies_value_unchanged:
       forall (scop: Scop)
@@ -573,13 +575,32 @@ that the reads/writes are modeled *)
         (params: P.ParamsT)
         (se: ScopEnvironment)
         (viv: viv)
-        (EXECSCOP: exec_scop_stmt params se viv initmem stmt finalmem)
+        (EXECSTMT: exec_scop_stmt params se viv initmem stmt finalmem)
         (chunk: ChunkNum)
         (ix: list Z)
         (POINT_NOT_IN_POLY: scopStmtWriteb params chunk ix stmt = false),
         loadMemory chunk ix finalmem = loadMemory chunk ix initmem.
     Proof.
-    Admitted.
+      intros.
+      induction EXECSTMT; auto.
+
+      unfold scopStmtWriteb in *.
+      simpl in *.
+
+      assert (POINT_NOT_IN_POLY_CASES: MAWriteb params domain chunk ix ma = false /\
+                                       existsb (MAWriteb params domain chunk ix) mas = false).
+      apply orb_false_elim; auto.
+
+      destruct POINT_NOT_IN_POLY_CASES as [P_NOT_IN_CUR_WRITE  P_NOT_IN_OTHER_WRITES].
+
+      assert (MEMSTMT_EQ_INITMEM:
+                loadMemory chunk ix memstmt = loadMemory chunk ix initmem); auto.
+      assert (MEMSTMT_EQ_MEMNEW:
+                loadMemory chunk ix memnew = loadMemory chunk ix memstmt).
+      eauto with proofdb.
+
+      congruence.
+    Qed.
 
     
 
