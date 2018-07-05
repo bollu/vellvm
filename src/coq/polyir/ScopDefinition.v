@@ -140,6 +140,14 @@ Module Type POLYHEDRAL_THEORY.
       (p: PointT),
       isPolySubset small large = true ->
       isPolySubset (getLexLeqPoly params small p) (getLexLeqPoly params large p) = true.
+
+
+  Axiom getLexLeqPoly_contains_leq_point:
+    forall (params: ParamsT)
+      (poly: PolyT)
+      (p: PointT),
+      isPointInPoly p poly = true ->
+      isPointInPoly p (getLexLeqPoly params poly p) = true.
       
 
   (** Get the polyhedra of points which are lex > the given point *)
@@ -388,6 +396,8 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Hint Resolve P.unionPoly_associative: proofdb.
   Hint Resolve P.getLexLeqPoly_proper_wrt_subset: proofdb.
   Hint Resolve P.subset_of_union:proofdb.
+  Hint Resolve P.getLexLeqPoly_contains_leq_point.
+
 
   Hint Resolve Z.eqb_refl: proofdb.
 
@@ -642,7 +652,6 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           exec_scop_from_lexmin params se vivbegin initmem scop mem2 vivnext.
 
     Definition initScopEnvironment : ScopEnvironment := ZMap.init None.
-      init
     Definition exec_scop (params: P.ParamsT)
                (initmem: Memory)
                (scop: Scop)
@@ -1043,10 +1052,9 @@ Module SCOP(P: POLYHEDRAL_THEORY).
                       loadMemory lwchunk lwix memstmt).
       eapply LastWriteImposesMemoryValue_exec_mem_access with
           (domain := (P.getLexLeqPoly params domain viv0)); try eassumption.
-      admit.
-
+      eauto with proofdb.
       congruence.
-    Admitted.
+    Qed.
 
     
     Hint Resolve LastWriteImposesMemoryValue_exec_scop_stmt: proofdb.
