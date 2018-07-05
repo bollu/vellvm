@@ -94,6 +94,7 @@ Module Type POLYHEDRAL_THEORY.
   Parameter isPolySubset: PolyT -> PolyT -> bool.
 
 
+
   
   (** Returns whether one point is lex < than the other *)
   Parameter isLexLT: PointT -> PointT -> option (bool).
@@ -132,6 +133,15 @@ Module Type POLYHEDRAL_THEORY.
   (** Get the polyhedra of points which are lex <  the given point *)
   Parameter getLexLtPoly: ParamsT -> PolyT -> PointT -> PolyT.
 
+
+  Axiom getLexLeqPoly_proper_wrt_subset:
+    forall (params: ParamsT)
+      (small large: PolyT)
+      (p: PointT),
+      isPolySubset small large = true ->
+      isPolySubset (getLexLeqPoly params small p) (getLexLeqPoly params large p) = true.
+      
+
   (** Get the polyhedra of points which are lex > the given point *)
   Parameter getLexGtPoly: ParamsT -> PolyT -> PointT -> PolyT.
 
@@ -153,6 +163,11 @@ Module Type POLYHEDRAL_THEORY.
 
   (** Definition of union of polyhedra *)
   Parameter unionPoly:  PolyT -> PolyT ->  PolyT.
+
+  
+  (** A polyhedra is always a subset of the union *)
+  Axiom subset_of_union: forall (P Q: PolyT),
+      isPolySubset P (unionPoly P Q) = true.
 
   (** emptyPoly is the identity for union **)
   Axiom unionPoly_left_id_empty: forall (p: PolyT), unionPoly emptyPoly p = p.
@@ -367,6 +382,9 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Hint Resolve P.unionPoly_left_id_empty: proofdb.
   Hint Rewrite P.unionPoly_left_id_empty: proofdb.
   Hint Resolve P.unionPoly_commutative: proofdb.
+  Hint Resolve P.getLexLeqPoly_proper_wrt_subset: proofdb.
+  Hint Resolve P.subset_of_union:proofdb.
+
   Hint Resolve Z.eqb_refl: proofdb.
 
   (** *Section that define the semantics of scop evaluation *)
@@ -491,6 +509,12 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         (getScopDomain {| scopStmts := lss |}).
     Proof.
     Admitted.
+
+      Hint Extern 0 (getScopDomain {| scopStmts := ?S :: ?SS |}) =>
+      rewrite (getScopDomain_cons S SS): proofdb.
+
+    Hint Resolve getScopDomain_cons: proofdb.
+    Hint Rewrite getScopDomain_cons: proofdb.
     
     Inductive exec_scop_from_lexmin: P.ParamsT -> ScopEnvironment -> viv -> Memory -> Scop -> Memory -> viv -> Prop :=
     | exec_scop_begin:
@@ -952,18 +976,22 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       induction EXEC_SCOP_AT_POINT; auto.
 
       intros.
+      rewrite getScopDomain_cons in *.
 
       assert (SUBSET1:
                 
                 P.isPolySubset (P.getLexLeqPoly params (scopStmtDomain stmt) viv0)
-                               (P.getLexLeqPoly params (getScopDomain {| scopStmts := stmt :: stmts |}) viv0) = true).
-      admit.
+                               (P.getLexLeqPoly params (P.unionPoly (scopStmtDomain stmt) (getScopDomain {| scopStmts := stmts |})) viv0) = true).
+      auto with proofdb.
 
       
       assert (SUBSET2:
   P.isPolySubset (P.getLexLeqPoly params (getScopDomain {| scopStmts := stmts |}) viv0)
-    (P.getLexLeqPoly params (getScopDomain {| scopStmts := stmt :: stmts |}) viv0) = true).
-      admit.
+                 (P.getLexLeqPoly params (P.unionPoly (scopStmtDomain stmt) (getScopDomain {| scopStmts := stmts |})) viv0) = true).
+      simpl.
+      apply P.getLexLeqPoly_proper_wrt_subset.
+      rewrite P.unionPoly_commutative.
+      apply P.subset_of_union.
       
 
       assert (MEM2: loadMemory lwchunk lwix mem2 =
@@ -981,7 +1009,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       eapply LastWrite_domain_inclusive; try eassumption.
 
       congruence.
-    Admitted.
+    Qed.
 
 
       
