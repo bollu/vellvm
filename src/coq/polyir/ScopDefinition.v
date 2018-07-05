@@ -1163,7 +1163,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         (lwaccessfn: AccessFunction)
         (vivlw: viv)
         (* We must have executed the last write to make this statement *)
-        (VIVCUR_GT_VIVLW: P.isLexGT vivstart vivlw = Some true)
+        (VIVCUR_GT_VIVLW: P.isLexGT vivcur vivlw = Some true)
         (LASTWRITE: IsLastWrite params (P.getLexLeqPoly params (getScopDomain scop) vivcur) 
                                 (MAStore lwchunk lwaccessfn lwssv) lwchunk vivlw lwix)
         (storeval: Value)
@@ -1197,6 +1197,10 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         congruence.
       - (* Second part of proof. *)
         intros.
+
+        assert (MEM1: loadMemory lwchunk lwix mem1 = Some storeval).
+        eapply IHEXECSCOP; try eassumption.
+        
         congruence.
     Qed.
 
