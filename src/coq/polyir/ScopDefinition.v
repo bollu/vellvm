@@ -1282,7 +1282,6 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
       (** Show that on the part *till* the last write, the last write value
           is the value of the scop execution *)
-      (** Show that on appending )
 
     Qed.
         
@@ -1295,24 +1294,15 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Hint Resolve LastWriteImposesMemoryValue: proofdb.
   Hint Rewrite LastWriteImposesMemoryValue: proofdb.
 
-  (** *Section that formalises the proof *)
-  Section PROOF.
-
+  (** *Schedule properties and interactions with last writes *)
+  Section SCHEDULE.
     Record validSchedule (scop: Scop) (schedule: Schedule) (scop': Scop) : Prop :=
       mkValidSchedule {
           NEWSCOP_IS_SCHEDULED_OLDSCOP: (scop' = applyScheduleToScop schedule scop);
           RESPECTSRAW: scheduleRespectsRAW schedule scop;
           RESPECTSWAW: scheduleRespectsWAW schedule scop;
         }.
-
-
-    Definition MemExtesionallyEqual (mem1 mem2: Memory): Prop :=
-      forall (chunk: ChunkNum) (ix: list Z),
-        loadMemory chunk ix mem1 = loadMemory chunk ix mem2.
-
-
-
-
+    
     (** Given a point in a write polyhedra, show that there must exist
     a corresponding write in the scop *)
     Lemma point_in_write_polyhedra_implies_last_write_exists:
@@ -1374,6 +1364,19 @@ Module SCOP(P: POLYHEDRAL_THEORY).
                     (MAStore chunk accessfn ssv) chunk viv ix.
     Proof.
     Admitted.
+
+  End SCHEDULE.
+
+  (** *Section that formalises the proof *)
+  Section PROOF.
+
+
+    Definition MemExtesionallyEqual (mem1 mem2: Memory): Prop :=
+      forall (chunk: ChunkNum) (ix: list Z),
+        loadMemory chunk ix mem1 = loadMemory chunk ix mem2.
+
+
+
 
     (** **Stores of reads are disallowed currrently **)
     Axiom NoSSVLoadedVal: forall (stmt: ScopStmt) (scop: Scop)
