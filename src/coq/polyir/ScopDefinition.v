@@ -163,15 +163,20 @@ Module Type POLYHEDRAL_THEORY.
 
   (** Definition of union of polyhedra *)
   Parameter unionPoly:  PolyT -> PolyT ->  PolyT.
+  
+  (** unionPoly is commutative *)
+  Axiom unionPoly_commutative: forall (p q: PolyT), unionPoly p q = unionPoly q p.
+
+  
+  (** unionPoly is associative *)
+  Axiom unionPoly_associative:
+    forall (p q r: PolyT), unionPoly p (unionPoly q r) = unionPoly (unionPoly p q) r.
 
   
   (** A polyhedra is always a subset of the union *)
   Axiom subset_of_union: forall (P Q: PolyT),
       isPolySubset P (unionPoly P Q) = true.
 
-  (** emptyPoly is the identity for union **)
-  Axiom unionPoly_left_id_empty: forall (p: PolyT), unionPoly emptyPoly p = p.
-  Axiom unionPoly_commutative: forall (p q: PolyT), unionPoly p q = unionPoly q p.
 
   (** Defines what it means to be a dependence relation. This is the
         over-approximate definition. In particular, it does not ask for
@@ -379,9 +384,8 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Hint Resolve P.invertEvalAffineFn_is_inverse: proofdb.
   Hint Resolve P.isLexLT_GT: proofdb.
   Hint Rewrite P.isLexLT_GT: proofdb.
-  Hint Resolve P.unionPoly_left_id_empty: proofdb.
-  Hint Rewrite P.unionPoly_left_id_empty: proofdb.
   Hint Resolve P.unionPoly_commutative: proofdb.
+  Hint Resolve P.unionPoly_associative: proofdb.
   Hint Resolve P.getLexLeqPoly_proper_wrt_subset: proofdb.
   Hint Resolve P.subset_of_union:proofdb.
 
@@ -602,8 +606,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       clear lss.
       intros.
       erewrite fold_left_pull_out_app; eauto with proofdb.
-      
-    Admitted.
+    Qed.
 
       Hint Extern 0 (getScopDomain {| scopStmts := ?S :: ?SS |}) =>
       rewrite (getScopDomain_cons S SS): proofdb.
