@@ -641,7 +641,8 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (EXEC_SCOP_AT_POINT: exec_scop_at_point params se vivcur mem1 scop mem2),
           exec_scop_from_lexmin params se vivbegin initmem scop mem2 vivnext.
 
-    Definition initScopEnvironment : ScopEnvironment. Admitted.
+    Definition initScopEnvironment : ScopEnvironment := ZMap.init None.
+      init
     Definition exec_scop (params: P.ParamsT)
                (initmem: Memory)
                (scop: Scop)
