@@ -150,6 +150,10 @@ Module Type POLYHEDRAL_THEORY.
   (** Definition of union of polyhedra *)
   Parameter unionPoly:  PolyT -> PolyT ->  PolyT.
 
+  (** emptyPoly is the identity for union **)
+  Axiom unionPoly_left_id_empty: forall (p: PolyT), unionPoly emptyPoly p = p.
+  Axiom unionPoly_commutative: forall (p q: PolyT), unionPoly p q = unionPoly q p.
+
   (** Defines what it means to be a dependence relation. This is the
         over-approximate definition. In particular, it does not ask for
         exact dependence relations .
@@ -348,6 +352,19 @@ Module SCOP(P: POLYHEDRAL_THEORY).
                  scopStmts := List.map (applyScheduleToScopStmt schedule) (scopStmts scop);
                |}.
 
+  
+  (** *Hint database of proof *)
+  Create HintDb proofdb.
+
+  (** **Add all theorems from the polyhedral theory  into hint database*)
+  Hint Resolve P.invertEvalAffineFn_is_inverse: proofdb.
+  Hint Resolve P.isLexLT_GT: proofdb.
+  Hint Rewrite P.isLexLT_GT: proofdb.
+  Hint Resolve P.unionPoly_left_id_empty: proofdb.
+  Hint Rewrite P.unionPoly_left_id_empty: proofdb.
+  Hint Resolve P.unionPoly_commutative: proofdb.
+  Hint Resolve Z.eqb_refl: proofdb.
+
   (** *Section that define the semantics of scop evaluation *)
   Section EVALUATION.
 
@@ -457,6 +474,19 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
     Definition getScopDomain (scop: Scop): P.PolyT :=
       List.fold_left P.unionPoly (map scopStmtDomain (scopStmts scop)) P.emptyPoly.
+
+    Check (fold_left).
+
+      
+
+    (** getScopDomain commutes with unionPoly in a cons **)
+    Lemma getScopDomain_cons: forall (ss: ScopStmt) (lss: list ScopStmt),
+      getScopDomain ({| scopStmts := ss :: lss |}) =
+      P.unionPoly 
+        (scopStmtDomain ss)
+        (getScopDomain {| scopStmts := lss |}).
+    Proof.
+    Admitted.
     
     Inductive exec_scop_from_lexmin: P.ParamsT -> ScopEnvironment -> viv -> Memory -> Scop -> Memory -> viv -> Prop :=
     | exec_scop_begin:
@@ -499,14 +529,6 @@ Module SCOP(P: POLYHEDRAL_THEORY).
                             (P.getLexmaxPoint params (getScopDomain scop)).
   End EVALUATION.
 
-  (** **Hint database of proof *)
-  Create HintDb proofdb.
-
-  (** **Add all theorems from the polyhedral theory  into hint database*)
-  Hint Resolve P.invertEvalAffineFn_is_inverse: proofdb.
-  Hint Resolve P.isLexLT_GT: proofdb.
-  Hint Rewrite P.isLexLT_GT: proofdb.
-  Hint Resolve Z.eqb_refl: proofdb.
 
   (** *Section about writes *)
   Section WRITES.
@@ -782,6 +804,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Hint Rewrite IsLastWriteDecidable: proofdb.
 
     
+    (** **Any write that runs after the last write (LEXCUR_GT_VIVLW) cannot modify the state of memory at the last write *)
     Lemma LastWriteImposesMemoryValue_exec_mem_access:
       forall (params: P.ParamsT)
         (se: ScopEnvironment)
@@ -836,9 +859,97 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
       inversion CONTRA.
     Qed.
+
+    Hint Resolve LastWriteImposesMemoryValue_exec_mem_access: proofdb.
+
+    
+    (** **Any stmt that runs after the last write cannot edit the last write value of memory **)
+    Lemma LastWriteImposesMemoryValue_exec_scop_stmt:
+      forall (params: P.ParamsT)
+        (se: ScopEnvironment)
+        (vivcur: viv)
+        (initmem finalmem: Memory)
+        (stmt: ScopStmt)
+        (EXEC_SCOP_STMT: exec_scop_stmt params se vivcur initmem stmt finalmem)
+        (scop: Scop)
+        (VIVCUR_IN_DOMAIN: P.isPointInPoly vivcur (getScopDomain scop) = true)
+        (vivlw: viv)
+        (LEXCUR_GT_VIVLW: P.isLexGT vivcur vivlw = Some true)
+        (lwaccessfn: AccessFunction)
+        (lwchunk: ChunkNum)
+        (lwix: list Z)
+        (lwssv: ScopStoreValue)
+        (lwstmt: ScopStmt)
+        (LASTWRITE: IsLastWrite params scop lwstmt
+                                (MAStore lwchunk lwaccessfn lwssv) lwchunk vivlw lwix),
+        loadMemory lwchunk lwix finalmem = loadMemory lwchunk lwix initmem.
+    Proof.
+      intros until 1.
+      induction EXEC_SCOP_STMT; auto.
+
+      intros.
+
+      assert (MEMSTMT: loadMemory lwchunk lwix memstmt =
+                       loadMemory lwchunk lwix initmem).
+      eapply IHEXEC_SCOP_STMT; eauto.
+
+
+      assert (MEMNEW: loadMemory lwchunk lwix memnew =
+                      loadMemory lwchunk lwix memstmt). eauto with proofdb.
+      congruence.
+    Qed.
+
+    
+    Hint Resolve LastWriteImposesMemoryValue_exec_scop_stmt: proofdb.
+
+    
+    (** **Executing the scop at any point after the last write cannot edit the last write value of memory **)
+    (** TODO: we should be able to convert this repetition into some kind of "scheme" that lets us generalize results about memory accesses into those of scopStmt and ScopAtPoint. Think about this **)
+    Lemma LastWriteImposesMemoryValue_exec_scop_at_point:
+      forall (params: P.ParamsT)
+        (se: ScopEnvironment)
+        (vivcur: viv)
+        (initmem finalmem: Memory)
+        (scop: Scop)
+        (EXEC_SCOP_AT_POINT: exec_scop_at_point params se vivcur initmem scop finalmem)
+        (VIVCUR_IN_DOMAIN: P.isPointInPoly vivcur (getScopDomain scop) = true)
+        (vivlw: viv)
+        (LEXCUR_GT_VIVLW: P.isLexGT vivcur vivlw = Some true)
+        (lwaccessfn: AccessFunction)
+        (lwchunk: ChunkNum)
+        (lwix: list Z)
+        (lwssv: ScopStoreValue)
+        (lwstmt: ScopStmt)
+        (LASTWRITE: IsLastWrite params scop lwstmt
+                                (MAStore lwchunk lwaccessfn lwssv) lwchunk vivlw lwix),
+        loadMemory lwchunk lwix finalmem = loadMemory lwchunk lwix initmem.
+    Proof.
+      intros until 1.
+      induction EXEC_SCOP_AT_POINT; auto.
+
+      intros.
       
+
+      assert (MEM2: loadMemory lwchunk lwix mem2 =
+                       loadMemory lwchunk lwix mem1).
+      eapply IHEXEC_SCOP_AT_POINT; eauto with proofdb.
+
+
+
+
+      assert (MEM1: loadMemory lwchunk lwix mem1 =
+                    loadMemory lwchunk lwix initmem).
+      eapply LastWriteImposesMemoryValue_exec_scop_stmt.
+      exact EXECSTMT.
+      exact VIVCUR_IN_DOMAIN.
+      exact LEXCUR_GT_VIVLW.
+      exact LASTWRITE.
       
-    Inductive exec_memory_access:  P.ParamsT -> ScopEnvironment -> viv -> Memory -> MemoryAccess -> Memory -> Prop :=
+      eapply 
+      congruence.
+    Qed.
+
+
       
 
     Lemma LastWriteImposesMemoryValue_exec_scop_from_lexmin:
