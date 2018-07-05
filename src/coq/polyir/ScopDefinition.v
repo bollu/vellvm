@@ -68,6 +68,9 @@ Module Type POLYHEDRAL_THEORY.
   (** Has some way to fill in the free variables *)
   Parameter evalPoint: ParamsT -> PointT -> (list Z).
 
+  (** Convert a point x0 to a polyhedra {x | x = x0 } *)
+  Parameter pointToPoly: PointT -> PolyT.
+
   
   Parameter composeAffineFunction: AffineFnT -> AffineFnT -> AffineFnT.
 
@@ -87,7 +90,11 @@ Module Type POLYHEDRAL_THEORY.
   Parameter arePointsRelated: PointT -> PointT -> AffineRelT -> bool.
   (** Check if a point is within a polyhedra *)
   Parameter isPointInPoly: PointT -> PolyT -> bool.
-  Parameter isPointInPolyProp: PointT -> PolyT -> Prop.
+
+  (** x \in { x0 } -> x = x0 *)
+  Axiom pointInSingletonPoly: forall (p: PointT) (singleton: PointT),
+      isPointInPoly p (pointToPoly singleton) = true ->
+      p = singleton.
 
 
   (** isPolySubset P Q = is P a subset of Q *)
@@ -104,6 +111,8 @@ Module Type POLYHEDRAL_THEORY.
   Parameter isLexGT: PointT -> PointT -> option (bool).
 
   Axiom isLexLT_GT: forall (a b :PointT), isLexLT a b = Some true <-> isLexGT b a = Some true.
+
+  Axiom isLexGT_not_refl: forall (p: PointT), isLexGT p p = Some false.
 
 
   (** Returns whether one point is lex smaller than the other *)
@@ -148,6 +157,13 @@ Module Type POLYHEDRAL_THEORY.
       (p: PointT),
       isPointInPoly p poly = true ->
       isPointInPoly p (getLexLeqPoly params poly p) = true.
+
+  (** {x | x <= lexmin(P), x \in P} = { lexmin(P)} *)
+  Axiom getLexLeqPoly_from_lexmin_is_point:
+    forall (params: ParamsT)
+      (poly: PolyT),
+    (getLexLeqPoly params poly (getLexminPoint params poly)) =
+      pointToPoly (getLexminPoint params poly).
       
 
   (** Get the polyhedra of points which are lex > the given point *)
@@ -396,7 +412,10 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Hint Resolve P.unionPoly_associative: proofdb.
   Hint Resolve P.getLexLeqPoly_proper_wrt_subset: proofdb.
   Hint Resolve P.subset_of_union:proofdb.
-  Hint Resolve P.getLexLeqPoly_contains_leq_point.
+  Hint Resolve P.getLexLeqPoly_from_lexmin_is_point:proofdb.
+  Hint Resolve P.getLexLeqPoly_contains_leq_point:proofdb.
+  Hint Resolve P.pointInSingletonPoly:proofdb.
+  Hint Resolve P.isLexGT_not_refl.
 
 
   Hint Resolve Z.eqb_refl: proofdb.
@@ -1088,13 +1107,23 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       assert (SUBSET1:
                 
                 P.isPolySubset (P.getLexLeqPoly params (scopStmtDomain stmt) viv0)
-                               (P.getLexLeqPoly params (P.unionPoly (scopStmtDomain stmt) (getScopDomain {| scopStmts := stmts |})) viv0) = true).
+                               (P.getLexLeqPoly
+                                  params
+                                  (P.unionPoly
+                                     (scopStmtDomain stmt)
+                                     (getScopDomain {| scopStmts := stmts |})) viv0)
+                = true).
       auto with proofdb.
 
       
       assert (SUBSET2:
-  P.isPolySubset (P.getLexLeqPoly params (getScopDomain {| scopStmts := stmts |}) viv0)
-                 (P.getLexLeqPoly params (P.unionPoly (scopStmtDomain stmt) (getScopDomain {| scopStmts := stmts |})) viv0) = true).
+                P.isPolySubset (P.getLexLeqPoly
+                                  params (getScopDomain {| scopStmts := stmts |}) viv0)
+                 (P.getLexLeqPoly params
+                                  (P.unionPoly (scopStmtDomain stmt)
+                                               (getScopDomain
+                                                  {| scopStmts := stmts |})) viv0)
+                = true).
       simpl.
       apply P.getLexLeqPoly_proper_wrt_subset.
       rewrite P.unionPoly_commutative.
@@ -1116,6 +1145,59 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       eapply LastWrite_domain_inclusive; try eassumption.
 
       congruence.
+    Qed.
+
+    
+    Lemma LastWriteImposesMemoryValue_exec_scop:
+      forall (params: P.ParamsT)
+        (scop: Scop)
+        (initmem finalmem: Memory)
+        (se: ScopEnvironment)
+        (vivstart vivcur: viv)
+        (EXECSCOP: exec_scop_from_lexmin params se vivstart initmem scop finalmem vivcur)
+        (stmt: ScopStmt)
+        (lwchunk: ChunkNum)
+        (lwix: list Z)
+        (lwaccessfn: AccessFunction)
+        (lwssv: ScopStoreValue)
+        (lwaccessfn: AccessFunction)
+        (vivlw: viv)
+        (* We must have executed the last write to make this statement *)
+        (VIVCUR_GT_VIVLW: P.isLexGT vivstart vivlw = Some true)
+        (LASTWRITE: IsLastWrite params (P.getLexLeqPoly params (getScopDomain scop) vivcur) 
+                                (MAStore lwchunk lwaccessfn lwssv) lwchunk vivlw lwix)
+        (storeval: Value)
+        (se: ScopEnvironment)
+        (EXECWRITEVAL: exec_scop_store_value params se vivlw lwssv storeval),
+        loadMemory lwchunk lwix finalmem = Some storeval.
+    Proof.
+      intros until 1.
+      induction EXECSCOP.
+      intros.
+      - (* In the beginning, we would not have executed the last write, so this is absurd *)
+        assert (VIVLW_IN_DOMAIN: 
+                  P.isPointInPoly vivlw
+                                  (P.getLexLeqPoly params (getScopDomain scop) vivmin) = true).
+        eauto with proofdb.
+        rewrite VIVMIN in VIVLW_IN_DOMAIN.
+
+        assert (VIVLW_IN_VIVMIN_POLYHEDRA: 
+                  P.isPointInPoly vivlw (P.pointToPoly vivmin) = true).
+        rewrite VIVMIN.
+        rewrite <- VIVLW_IN_DOMAIN.
+        eauto with proofdb.
+
+        assert (VIVLW_EQ_VIVMIN: vivlw = vivmin).
+        eauto with proofdb.
+
+        assert (CONTRA: P.isLexGT vivmin vivlw = Some false).
+        rewrite VIVLW_EQ_VIVMIN.
+        eauto with proofdb.
+
+        congruence.
+      - (* Second part of proof. *)
+        intros.
+        congruence.
     Qed.
 
 
