@@ -114,6 +114,13 @@ Module Type POLYHEDRAL_THEORY.
                                    PointT ->
                                    option (PointT).
 
+
+  (** Get the polyhedra of points which are lex <=  the given point *)
+  Parameter getLexLeqPoly: ParamsT -> PolyT -> PointT -> PolyT.
+
+  (** Get the polyhedra of points which are lex =  the given point *)
+  Parameter getLexLtPoly: ParamsT -> PolyT -> PointT -> PolyT.
+
   Parameter getOverapproximationNumPointsInPoly: ParamsT ->
                                                  PolyT ->
                                                  option (nat).
@@ -154,6 +161,16 @@ Module Type POLYHEDRAL_THEORY.
 
   (** A function to compute the dependence polyhedra of two relations *)
   Parameter getDependenceRelation: AffineRelT -> AffineRelT -> option AffineRelT.
+
+
+  (** An induction principle on all points that are lex smaller tha a
+  given point in the polyhedra *)
+  Axiom polyhedra_ind_lex_smaller_points: forall
+      (params: ParamsT) (P: PointT -> Prop) (Q: PolyT -> Prop) (fullpoly: PolyT),
+      (Q emptyPoly) -> (forall (curpoint: PointT),
+                          Q (getLexLtPoly params fullpoly curpoint) -> P curpoint ->
+                          Q (getLexLeqPoly params fullpoly curpoint)) ->
+      Q fullpoly.
   
   
 End POLYHEDRAL_THEORY.
@@ -765,6 +782,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       assert (LASTWRITE_OCCURED: MAWriteb params (scopStmtDomain stmt) chunk ix
                                  (MAStore chunk accessfn ssv) = true).
       eauto with proofdb.
+      
 
       
     Admitted.
@@ -806,7 +824,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt) /\
         (evalAccessFunction params accessfn viv = ix) /\
         P.isPointInPoly viv (getScopDomain scop) = true /\
-        IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix.
+        IsLastWrite params scop stmt (MAStore chunk accessfn ssv) chunk viv ix.
     Proof.
     Admitted.
       
@@ -848,8 +866,10 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         (STORE_IN_STMT: List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt))
         (ACCESSFN: evalAccessFunction params accessfn viv = ix)
         (VIV_IN_SCOP: P.isPointInPoly viv (getScopDomain scop) = true)
-        (LASTWRITE: IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix),
-        IsLastWrite scop' (applyScheduleToScopStmt schedule stmt) (MAStore chunk accessfn ssv) chunk ix.
+        (LASTWRITE: IsLastWrite params scop stmt (MAStore chunk accessfn ssv) chunk viv ix),
+        IsLastWrite params scop'
+                    (applyScheduleToScopStmt schedule stmt)
+                    (MAStore chunk accessfn ssv) chunk viv ix.
     Proof.
     Admitted.
 
@@ -889,7 +909,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
               List.In (MAStore chunk accessfn ssv) (scopStmtMemAccesses stmt)  /\
               (evalAccessFunction params accessfn viv = ix) /\
               P.isPointInPoly viv (getScopDomain scop) = true /\
-              IsLastWrite scop stmt (MAStore chunk accessfn ssv) chunk ix).
+              IsLastWrite params scop stmt (MAStore chunk accessfn ssv) chunk viv ix).
         eauto with proofdb.
         
 
@@ -898,10 +918,12 @@ Module SCOP(P: POLYHEDRAL_THEORY).
                                  VIV_IN_DOMAIN & LASTWRITE).
 
         assert (LASTWRITE_SCOP': 
-                  IsLastWrite scop'
+                  IsLastWrite params
+                              scop'
                               (applyScheduleToScopStmt schedule stmt)
                               (MAStore chunk accessfn ssv)
                               chunk
+                              viv
                               ix).
         eapply transport_write_along_schedule; try eassumption.
 
