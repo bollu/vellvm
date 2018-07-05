@@ -497,7 +497,91 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Definition getScopDomain (scop: Scop): P.PolyT :=
       List.fold_left P.unionPoly (map scopStmtDomain (scopStmts scop)) P.emptyPoly.
 
-    Check (fold_left).
+    Lemma fold_left_reverse_input:
+      forall {T: Type}
+        (op: T -> T -> T)
+        (ts1 ts2: list T)
+        (t0: T)
+        (OP_COMMUT: forall t1 t2, op t1 t2 = op t2 t1)
+        (OP_ASSOC: forall t1 t2 t3, op (op t1 t2) t3 = op t1 (op t2 t3)),
+        fold_left op (ts1 ++ ts2) t0 = fold_left op (ts2 ++ ts1) t0.
+    Proof.
+      intros until ts1.
+      induction ts1.
+      - intros.
+        simpl.
+        rewrite List.app_nil_r.
+        auto.
+
+      - intros ts2.
+        induction ts2.
+        + intros. simpl. rewrite List.app_nil_r.
+          reflexivity.
+        + intros.
+          simpl.
+          rewrite IHts1; auto.
+          rewrite <- IHts2; auto.
+          simpl.
+          rewrite IHts1; auto.
+          replace (op (op t0 a ) a0) with (op (op t0 a0) a).
+          reflexivity.
+
+          rewrite OP_ASSOC.
+          replace (op a0 a) with (op a a0); auto.
+    Qed.
+
+
+    Check fold_left.
+    Lemma fold_left_nest_app:
+      forall {T: Type}
+        (op: T -> T -> T)
+        (ts1 ts2: list T)
+        (t0: T)
+        (OP_COMMUT: forall t1 t2, op t1 t2 = op t2 t1)
+        (OP_ASSOC: forall t1 t2 t3, op (op t1 t2) t3 = op t1 (op t2 t3)),
+        fold_left op (ts1 ++ ts2) t0 = fold_left op ts1 (fold_left op ts2 t0).
+    Proof.
+      intros until ts2.
+      generalize ts1.
+      induction ts2; auto.
+      - intros.
+        rewrite List.app_nil_r; auto.
+      - intros.
+        replace (ts0 ++ a :: ts2) with ((ts0 ++ [a]) ++ ts2); auto.
+        replace (a :: ts2) with ([a] ++ ts2); auto.
+        repeat (rewrite IHts2; auto).
+        simpl.
+        erewrite fold_left_reverse_input; eauto.
+
+        induction ts0; auto.
+        simpl.
+        rewrite IHts0; auto.
+    Qed.
+
+    Lemma fold_left_pull_out_app:
+      forall {T: Type}
+        (op: T -> T -> T)
+        (ts: list T)
+        (OP_COMMUT: forall t1 t2, op t1 t2 = op t2 t1)
+        (OP_ASSOC: forall t1 t2 t3, op (op t1 t2) t3 = op t1 (op t2 t3))
+        (t t0: T),
+        fold_left op (t :: ts) t0 = op t (fold_left op ts t0).
+    Proof.
+      intros until ts.
+      induction ts.
+      - simpl; auto.
+      - intros.
+        replace (t0 :: a :: ts) with ([t0;a] ++ ts); auto.
+        erewrite fold_left_reverse_input; eauto.
+        replace (ts ++ [t0; a]) with ((ts++ [t0]) ++ [a]); eauto.
+        erewrite fold_left_nest_app; eauto.
+        erewrite fold_left_reverse_input; eauto.
+
+        assert (forall (ls: list T) (l0 l1: T), (ls ++ [l0]) ++ [l1] = ls ++ [l0;l1]).
+        intros until ls; induction ls; simpl; auto.
+        rewrite H; auto.
+    Qed.
+
 
       
 
@@ -508,6 +592,17 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         (scopStmtDomain ss)
         (getScopDomain {| scopStmts := lss |}).
     Proof.
+      intros.
+      unfold getScopDomain.
+      Opaque fold_left.
+      simpl.
+      generalize (map scopStmtDomain lss) as ds.
+      generalize (scopStmtDomain ss) as d.
+      clear ss.
+      clear lss.
+      intros.
+      erewrite fold_left_pull_out_app; eauto with proofdb.
+      
     Admitted.
 
       Hint Extern 0 (getScopDomain {| scopStmts := ?S :: ?SS |}) =>
