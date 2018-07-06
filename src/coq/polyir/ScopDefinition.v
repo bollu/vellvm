@@ -106,9 +106,14 @@ Module Type POLYHEDRAL_THEORY.
   (** Returns whether one point is lex < than the other *)
   Parameter isLexLT: PointT -> PointT -> option (bool).
 
+  Notation "p <l q" := (isLexLT p q) (at level 50).
+
   
   (** Returns whether one point is lex > than the other *)
   Parameter isLexGT: PointT -> PointT -> option (bool).
+
+  Notation "p >l q" := (isLexGT p q) (at level 50).
+
 
   Axiom isLexLT_GT: forall (a b :PointT), isLexLT a b = Some true <-> isLexGT b a = Some true.
 
@@ -127,6 +132,7 @@ Module Type POLYHEDRAL_THEORY.
                                    PolyT ->
                                    PointT ->
                                    option (PointT).
+
 
   (** Find the next point that is within the polyhedra which is
     one larger in terms of lex order. return Nothing if not possible *)
@@ -241,6 +247,15 @@ Module Type POLYHEDRAL_THEORY.
     isPointInPoly pt poly = true ->
     isLexGT (getLexminPoint params poly) pt = Some b ->
     b = false.
+
+  Axiom isLexLT_next_implies_isLexLEQ_current:
+    forall (params: ParamsT)
+      (dom: PolyT)
+      (next cur p: PointT)
+      (NEXT: getLexNextPoint params dom cur = Some next)
+      (LT: p <l next = Some true),
+      p <l cur = Some true \/ p = cur.
+    
   
   
 End POLYHEDRAL_THEORY.
@@ -415,9 +430,8 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Hint Resolve P.getLexLeqPoly_from_lexmin_is_point:proofdb.
   Hint Resolve P.getLexLeqPoly_contains_leq_point:proofdb.
   Hint Resolve P.pointInSingletonPoly:proofdb.
-  Hint Resolve P.isLexGT_not_refl.
-
-
+  Hint Resolve P.isLexGT_not_refl:proofdb.
+  Hint Resolve P.isLexLT_next_implies_isLexLEQ_current:proofdb.
   Hint Resolve Z.eqb_refl: proofdb.
 
   (** *Section that define the semantics of scop evaluation *)
@@ -643,7 +657,16 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Hint Resolve getScopDomain_cons: proofdb.
     Hint Rewrite getScopDomain_cons: proofdb.
     
-    Inductive exec_scop_from_lexmin: P.ParamsT -> ScopEnvironment -> viv -> Memory -> Scop -> Memory -> viv -> Prop :=
+    (* Execute from the begining viv to the end viv INCLUSIVE!! *)
+    Inductive exec_scop_from_lexmin:
+      P.ParamsT
+      -> ScopEnvironment
+      -> viv (**r begin VIV, inclusive *)
+      -> Memory
+      -> Scop
+      -> Memory
+      -> viv (**r end VIV, inclusive *)
+      -> Prop :=
     | exec_scop_begin:
         forall 
           (se: ScopEnvironment)
@@ -651,7 +674,8 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (scop: Scop)
           (params: P.ParamsT)
           (vivmin: viv)
-          (VIVMIN: vivmin = (P.getLexminPoint params (getScopDomain scop))),
+          (VIVMIN: vivmin = (P.getLexminPoint params (getScopDomain scop)))
+          (EXEC_SCOP_AT_POINT: exec_scop_at_point params se vivmin initmem scop mem),
           exec_scop_from_lexmin params
                                 se
                                 vivmin
@@ -667,7 +691,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (vivbegin vivcur vivnext: viv)
           (NEXT: Some vivnext = P.getLexNextPoint params (getScopDomain scop)vivcur)
           (EXEC_SCOP_TILL: exec_scop_from_lexmin params se vivbegin initmem scop mem1  vivcur)
-          (EXEC_SCOP_AT_POINT: exec_scop_at_point params se vivcur mem1 scop mem2),
+          (EXEC_SCOP_AT_POINT: exec_scop_at_point params se vivnext mem1 scop mem2),
           exec_scop_from_lexmin params se vivbegin initmem scop mem2 vivnext.
 
     Definition initScopEnvironment : ScopEnvironment := ZMap.init None.
@@ -900,33 +924,28 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Section LASTWRITE.
 
     (** **The definition of a last write in a scop *)
-    (* Inductive IsLastWrite: Params -> Scop -> ScopStmt -> MemoryAccess -> ChunkNum -> list Z -> Prop :=
-    | mkLastWrite: forall (scop: Scop)
-                     (stmt: Stmt)
-                     (accessfn: AccessFunction)
-                     (ssv: ScopStoreValue)
-                     (chunk: ChunkNum)
-                     (ix: list Z),
-        MAWriteb params (scopStmtDomain stmt) chunk ix  (MAstore chunk )
-               (params: P.ParamsT)
-               (domain: Domain)
-               (needlechunk: ChunkNum)
-               (needleix: list Z)
-               (memacc: MemoryAccess)
-               *)
         
     (* Is the last write in a scop for this domain *)
     Record IsLastWrite
            (params: P.ParamsT)
            (domain: Domain)
-           (ma: MemoryAccess)
+           (lwma: MemoryAccess)
            (lwchunk: ChunkNum)
            (lwviv: P.PointT)
            (lwix: list Z) : Prop :=
       mkLastWrite {
           lastWriteVivInDomain: P.isPointInPoly lwviv domain = true;
-          lastWriteVivIx: lwix = evalAccessFunction params (getMAAccessFunction ma) lwviv;
-          lastWriteWrite: MAWriteb params domain lwchunk lwix ma = true;
+          lastWriteVivIx: lwix = evalAccessFunction params (getMAAccessFunction lwma) lwviv;
+          lastWriteWrite: MAWriteb params domain lwchunk lwix lwma = true;
+          lastWriteUniqueWrite:
+            forall (macur: MemoryAccess)
+              (vivcur: P.PointT)
+              (VIVCUR_IX: lwix =
+                          evalAccessFunction
+                            params
+                            (getMAAccessFunction macur)
+                            vivcur),
+              macur = lwma;
           lastWriteLast:
             forall (macur: MemoryAccess)
               (vivcur: P.PointT)
@@ -940,6 +959,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Hint Resolve lastWriteVivIx: proofdb.
     Hint Resolve lastWriteWrite: proofdb.
     Hint Resolve lastWriteLast: proofdb.
+    Hint Resolve lastWriteUniqueWrite: proofdb.
 
       
 
@@ -1004,38 +1024,36 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       intros until 1.
       induction EXEC_MEM_ACCESS; auto.
       intros.
-      assert (CHUNK_CASES: {lwchunk = chunk} + {lwchunk <> chunk}); auto.
-      destruct CHUNK_CASES as [EQ | NEQ]; eauto with proofdb.
-      rewrite EQ in *. 
+       (* cur > lw *)
+        assert (CHUNK_CASES: {lwchunk = chunk} + {lwchunk <> chunk}); auto.
+        destruct CHUNK_CASES as [EQ | NEQ]; eauto with proofdb.
+        rewrite EQ in *. 
 
-      assert (IX_CASES: {lwix = accessix} + {lwix <> accessix}); auto.
-      destruct IX_CASES as [IXEQ | IXNEQ]; eauto with proofdb.
+        assert (IX_CASES: {lwix = accessix} + {lwix <> accessix}); auto.
+        destruct IX_CASES as [IXEQ | IXNEQ]; eauto with proofdb.
 
-      (** From the fact that the write perfectly aliases, we can conclucde
+        (** From the fact that the write perfectly aliases, we can conclucde
       that this write does write into the last write ix *)
-      assert (WRITE_IN_LW: MAWriteb params domain lwchunk lwix
-                       (MAStore lwchunk accessfn ssv)= true).
-      subst.
-      simpl.
-      rewrite andb_true_intro; auto.
-      split; eauto with proofdb.
+        assert (WRITE_IN_LW: MAWriteb params domain lwchunk lwix
+                                      (MAStore lwchunk accessfn ssv)= true).
+        subst.
+        simpl.
+        rewrite andb_true_intro; auto.
+        split; eauto with proofdb.
 
-      (* However, from the fact that we have a _last write_, and that vivcur > vivlw,
+        (* However, from the fact that we have a _last write_, and that vivcur > vivlw,
          this cannot happen! *)
-      assert (WRITE_NOT_IN_LW: MAWriteb params domain lwchunk lwix
-                                        (MAStore lwchunk accessfn ssv) = false).
-      subst.
-      eapply lastWriteLast; eauto with proofdb.
-      (** TODO: this should automatically work, figure out why it is not *)
-      eapply P.isLexLT_GT; auto.
+        assert (WRITE_NOT_IN_LW: MAWriteb params domain lwchunk lwix
+                                          (MAStore lwchunk accessfn ssv) = false).
+        subst.
+        eapply lastWriteLast; eauto with proofdb.
+        (** TODO: this should automatically work, figure out why it is not *)
+        eapply P.isLexLT_GT; auto.
 
-      (* Boom *)
-      assert (CONTRA: true = false).
-      congruence.
-
-      inversion CONTRA.
+        (* Boom *)
+        assert (CONTRA: true = false); congruence.
     Qed.
-
+                  
     Hint Resolve LastWriteImposesMemoryValue_exec_mem_access: proofdb.
 
     
@@ -1153,18 +1171,17 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         (scop: Scop)
         (initmem finalmem: Memory)
         (se: ScopEnvironment)
-        (vivstart vivcur: viv)
-        (EXECSCOP: exec_scop_from_lexmin params se vivstart initmem scop finalmem vivcur)
-        (stmt: ScopStmt)
+        (vivstart vivnext: viv)
+        (EXECSCOP: exec_scop_from_lexmin params se vivstart initmem scop finalmem vivnext)
         (lwchunk: ChunkNum)
         (lwix: list Z)
-        (lwaccessfn: AccessFunction)
         (lwssv: ScopStoreValue)
         (lwaccessfn: AccessFunction)
         (vivlw: viv)
         (* We must have executed the last write to make this statement *)
-        (VIVCUR_GT_VIVLW: P.isLexGT vivcur vivlw = Some true)
-        (LASTWRITE: IsLastWrite params (P.getLexLeqPoly params (getScopDomain scop) vivcur) 
+        (VIVNEXT_GE_VIVLW: P.isLexGT vivnext vivlw = Some true \/
+                           vivlw = vivnext)
+        (LASTWRITE: IsLastWrite params (P.getLexLeqPoly params (getScopDomain scop) vivnext) 
                                 (MAStore lwchunk lwaccessfn lwssv) lwchunk vivlw lwix)
         (storeval: Value)
         (se: ScopEnvironment)
@@ -1175,28 +1192,47 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       induction EXECSCOP.
       intros.
       - (* In the beginning, we would not have executed the last write, so this is absurd *)
-        assert (VIVLW_IN_DOMAIN: 
-                  P.isPointInPoly vivlw
-                                  (P.getLexLeqPoly params (getScopDomain scop) vivmin) = true).
-        eauto with proofdb.
-        rewrite VIVMIN in VIVLW_IN_DOMAIN.
+         (* the min point is greater than the last write,
+        this is nonsense, so contradiction *)
+          assert (VIVLW_IN_DOMAIN: 
+                    P.isPointInPoly vivlw
+                                    (P.getLexLeqPoly params (getScopDomain scop) vivmin) = true).
+          eauto with proofdb.
+          rewrite VIVMIN in VIVLW_IN_DOMAIN.
 
-        assert (VIVLW_IN_VIVMIN_POLYHEDRA: 
-                  P.isPointInPoly vivlw (P.pointToPoly vivmin) = true).
-        rewrite VIVMIN.
-        rewrite <- VIVLW_IN_DOMAIN.
-        eauto with proofdb.
+          assert (VIVLW_IN_VIVMIN_POLYHEDRA: 
+                    P.isPointInPoly vivlw (P.pointToPoly vivmin) = true).
+          rewrite VIVMIN.
+          rewrite <- VIVLW_IN_DOMAIN.
+          eauto with proofdb.
 
-        assert (VIVLW_EQ_VIVMIN: vivlw = vivmin).
-        eauto with proofdb.
+          assert (VIVLW_EQ_VIVMIN: vivlw = vivmin).
+          eauto with proofdb.
 
-        assert (CONTRA: P.isLexGT vivmin vivlw = Some false).
-        rewrite VIVLW_EQ_VIVMIN.
-        eauto with proofdb.
+          assert (CONTRA: P.isLexGT vivmin vivlw = Some false).
+          rewrite VIVLW_EQ_VIVMIN.
+          eauto with proofdb.
+          congruence.
 
-        congruence.
       - (* Second part of proof. *)
         intros.
+
+        (* vivcur --(+1)--> vivnext *)
+        (* vivlw ---(<)--> vivnext *)
+        (* vivlw ---(<=)--> vivcur *)
+        assert (VIVLW_VIVCUR_CASES: P.isLexLT vivlw vivcur = Some true \/ vivlw = vivcur).
+        eapply P.isLexLT_next_implies_isLexLEQ_current; eauto.
+        eapply P.isLexLT_GT.
+        auto.
+
+
+        destruct VIVLW_VIVCUR_CASES as [VIVLW_EQ_VIVCUR |
+                                        VIVLW_LT_VIVCUR].
+
+        + (* Current loop iteration _is_ the last write iteration *)
+
+        eauto with proofdb.
+        
 
         assert (MEM1: loadMemory lwchunk lwix mem1 = Some storeval).
         eapply IHEXECSCOP; try eassumption.
