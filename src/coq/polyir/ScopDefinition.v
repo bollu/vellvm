@@ -1043,13 +1043,18 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       intros.
       eapply NOWRITESALIAS; eauto; repeat (apply List.in_cons; auto).
     Qed.
-      
 
+    Hint Resolve noWritesAlias_cons_destruct: proofdb.
+
+
+    
 
     (** A ScopStmt is valid if none of the writes *in* a scop stmt can alias *)
     Definition ScopStmt_noWritesAlias (stmt: ScopStmt) : Prop :=
       noWritesAliasInDomain (scopStmtDomain stmt)
                             (scopStmtMemAccesses stmt).
+
+    Hint Unfold ScopStmt_noWritesAlias: proofdb.
 
         
 
@@ -1086,17 +1091,67 @@ last write must write the value the last write wrote *)
             [MA_IS_LASTWRITE | MA_IN_STMT_WRITES].
 
         + (* MA is lastwrite *)
-          admit.
+          destruct ma; inversion MA_IS_LASTWRITE.
+          subst.
+          inversion MEMNEW_FROM_MEMSTMT. subst.
+
+          assert (STOREVAL_IS_LWSSVVAL: storeval = lwssvval).
+          eapply exec_scop_store_value_deterministic; eauto.
+
+          rewrite STOREVAL_IS_LWSSVVAL.
+
+          destruct LASTWRITE.
+          subst.
+          eauto with proofdb.
 
         + (* MA is in the list of stmt writes *)
         assert (LOADSTMT:
                   loadMemory lwchunk lwix memstmt = Some lwssvval).
         eapply IHEXEC_SCOP_STMT; eauto.
+        (* We can show this from NOWRITESALIAS *)
+        eauto with proofdb.
+
+
+
 
         (* Consieder cases of MA, either it wrote to the last write, or it didn't.
          If it did write to the last write, then it must _be_ the last write, thanks
          to NOWRITEALIAS *)
+        destruct MEMNEW_FROM_MEMSTMT.
 
+        * assert (CHUNK_CASES: {chunk = lwchunk} + {chunk <> lwchunk}). auto.
+          destruct CHUNK_CASES as [CHUNK_EQ | CHUNK_NEQ];
+            try (rewrite <- LOADSTMT; eauto with proofdb; fail).
+
+          rewrite CHUNK_EQ in *.
+
+          assert (IX_CASES: {accessix = lwix} +
+                            {accessix <> lwix}). auto.
+          destruct IX_CASES as [IX_EQ | IX_NEQ];
+            try (rewrite <- LOADSTMT; eauto with proofdb; fail).
+          rewrite IX_EQ in *.
+
+          assert (CUR_WRITE_IS_LAST_WRITE:
+                    (MAStore chunk accessfn ssv = MAStore lwchunk lwaccessfn lwssv)).
+          destruct LASTWRITE.
+          rewrite CHUNK_EQ.
+          unfold ScopStmt_noWritesAlias in NOWRITEALIAS.
+          unfold noWritesAliasInDomain in NOWRITEALIAS.
+          simpl in NOWRITEALIAS.
+          eapply NOWRITEALIAS; simpl; eauto.
+          erewrite ACCESSIX.
+          auto.
+
+          inversion CUR_WRITE_IS_LAST_WRITE. subst.
+
+          assert (STOREVAL_IS_LWSSVVAL: storeval = lwssvval).
+          eapply exec_scop_store_value_deterministic; eauto.
+
+          (* Establish that we write the last write value *)
+          (* Tada, we're done! we've shown that the value we wanted was the last write
+          value *)
+          rewrite STOREVAL_IS_LWSSVVAL.
+          eauto with proofdb.
         
 
 
@@ -1109,10 +1164,7 @@ last write must write the value the last write wrote *)
 
         assert (CONTRA: true = false). congruence.
         inversion CONTRA.
-    Admitted.
-
-             
-           
+    Qed.
       
 
     
