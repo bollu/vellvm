@@ -96,6 +96,11 @@ Module Type POLYHEDRAL_THEORY.
       isPointInPoly p (pointToPoly singleton) = true ->
       p = singleton.
 
+  (* x \in Smaller, Smaller \subset Larger -> x \in Larger *)
+  Axiom pointInSubsetPoly: forall (p: PointT) (smaller larger: PolyT),
+      isPointInPoly p smaller = true ->
+      isPointInPoly p larger = true.
+
 
   (** isPolySubset P Q = is P a subset of Q *)
   Parameter isPolySubset: PolyT -> PolyT -> bool.
@@ -309,6 +314,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     mkScopStmt {
         scopStmtDomain: Domain; (**r The domain of the scop statement. That is, interpreted as
           0 <= <indvars[i]> <= <domain[i]> *)
+        
         scopStmtSchedule : P.AffineFnT; (**r Function from the canonical induction variables to the schedule
          timepoint.  *)
         scopStmtMemAccesses: list MemoryAccess (**r List of memory accesses *)
@@ -962,15 +968,6 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           lastWriteVivInDomain: P.isPointInPoly lwviv domain = true;
           lastWriteVivIx: lwix = evalAccessFunction params (getMAAccessFunction lwma) lwviv;
           lastWriteWrite: MAWriteb params domain lwchunk lwix lwma = true;
-          lastWriteUniqueWrite:
-            forall (macur: MemoryAccess)
-              (vivcur: P.PointT)
-              (VIVCUR_IX: lwix =
-                          evalAccessFunction
-                            params
-                            (getMAAccessFunction macur)
-                            vivcur),
-              macur = lwma;
           lastWriteLast:
             forall (macur: MemoryAccess)
               (vivcur: P.PointT)
@@ -984,7 +981,6 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Hint Resolve lastWriteVivIx: proofdb.
     Hint Resolve lastWriteWrite: proofdb.
     Hint Resolve lastWriteLast: proofdb.
-    Hint Resolve lastWriteUniqueWrite: proofdb.
 
       
 
@@ -1021,45 +1017,100 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Hint Resolve LastWrite_domain_inclusive: proofdb.
     Hint Rewrite IsLastWriteDecidable: proofdb.
 
+    (** Defines a list of memory accesses that do not alias in a domain *)
+    (** NOTE THAT THIS DEFINITION IGNORES READ / WRITE DISTINCTIONS! This needs
+    to be patched up in fugure *)
+    Definition noWritesAliasInDomain (domain: Domain) (mas: list MemoryAccess) : Prop :=
+      forall ma1 ma2 viv params
+        (VIV_IN_DOMAIN: P.isPointInPoly viv domain = true)
+        (MA1_IN_STMT: List.In ma1 mas)
+        (MA2_IN_STMT: List.In ma2 mas)
+        (MA1_MA2_ALIAS:
+           evalAccessFunction params (getMAAccessFunction ma1) viv =
+           evalAccessFunction params (getMAAccessFunction ma2) viv),
+        ma1 = ma2.
+
+    (** NoWritesAlias on a larger list continues to hold on a sublist *)
+    Lemma noWritesAlias_cons_destruct:
+      forall (domain: Domain)
+        (mas: list MemoryAccess)
+        (ma: MemoryAccess)
+        (NOWRITESALIAS: noWritesAliasInDomain domain (ma::mas)),
+        noWritesAliasInDomain domain mas.
+    Proof.
+      intros.
+      unfold noWritesAliasInDomain in *.
+      intros.
+      eapply NOWRITESALIAS; eauto; repeat (apply List.in_cons; auto).
+    Qed.
+      
+
+
+    (** A ScopStmt is valid if none of the writes *in* a scop stmt can alias *)
+    Definition ScopStmt_noWritesAlias (stmt: ScopStmt) : Prop :=
+      noWritesAliasInDomain (scopStmtDomain stmt)
+                            (scopStmtMemAccesses stmt).
+
+        
+
     (** **Any write that runs after AT last write (LEXCUR_EQ_VIVLW) which aliases with the
 last write must write the value the last write wrote *)
-    Lemma lastWriteUniqueWrite_mem_access:
-          forall (params: P.ParamsT)
+    Lemma LastWriteImposesMemoryValueAtLastWriteIx_scop_stmt:
+      forall (params: P.ParamsT)
         (se: ScopEnvironment)
         (initmem finalmem: Memory)
-        (macur: MemoryAccess)
-        (domain: Domain)
+        (stmt: ScopStmt)
         (vivlw: viv)
-        (EXEC_MEM_ACCESS: exec_memory_access params se vivlw initmem macur finalmem)
-        (VIVCUR_IN_DOMAIN: P.isPointInPoly vivlw domain = true)
+        (EXEC_SCOP_STMT: exec_scop_stmt params se  vivlw initmem stmt finalmem)
         (lwaccessfn: AccessFunction)
         (lwchunk: ChunkNum)
         (lwix: list Z)
         (lwssv: ScopStoreValue)
         (lwssvval: Value)
         (EVAL_LWSSV: exec_scop_store_value params se vivlw lwssv lwssvval)
-        (ACCESSFN_ALISES: evalAccessFunction params (getMAAccessFunction macur) vivlw = lwix)
         (LASTWRITE: IsLastWrite params
-                                domain
+                                (P.getLexLeqPoly params (scopStmtDomain stmt) vivlw)
                                 (MAStore lwchunk lwaccessfn lwssv)
-                                lwchunk vivlw lwix),
+                                lwchunk
+                                vivlw
+                                lwix)
+        (LASTWRITE_IN_STMT: List.In (MAStore lwchunk lwaccessfn lwssv)
+                                    (scopStmtMemAccesses stmt))
+      (NOWRITEALIAS: ScopStmt_noWritesAlias stmt),
         loadMemory lwchunk lwix finalmem = Some lwssvval.
     Proof.
-      intros.
-      induction EXEC_MEM_ACCESS.
-      destruct LASTWRITE.
-      simpl in *.
-      
-      assert (STORE_ALIASES: (MAStore chunk accessfn ssv) = MAStore lwchunk lwaccessfn lwssv).
-      eapply lastWriteUniqueWrite0 with (vivcur := viv0); try auto; assumption.
-      inversion STORE_ALIASES; subst; simpl.
+      intros until 1.
+      induction EXEC_SCOP_STMT; intros; simpl in *; try contradiction.
+      - (* stmt active *)
+        destruct LASTWRITE_IN_STMT as
+            [MA_IS_LASTWRITE | MA_IN_STMT_WRITES].
 
-      assert (COMPUTED_VAL_EQUAL: lwssvval = storeval).
-      eapply exec_scop_store_value_deterministic; eauto.
-      subst.
+        + (* MA is lastwrite *)
+          admit.
 
-      eauto with proofdb.
-    Qed.
+        + (* MA is in the list of stmt writes *)
+        assert (LOADSTMT:
+                  loadMemory lwchunk lwix memstmt = Some lwssvval).
+        eapply IHEXEC_SCOP_STMT; eauto.
+
+        (* Consieder cases of MA, either it wrote to the last write, or it didn't.
+         If it did write to the last write, then it must _be_ the last write, thanks
+         to NOWRITEALIAS *)
+
+        
+
+
+      - (* stmt inactive, contradiction since the last write actually happened *)
+        destruct LASTWRITE.
+
+        assert (PT_IN_DOMAIN': P.isPointInPoly viv0 domain = true).
+        eapply P.pointInSubsetPoly.
+        eapply lastWriteVivInDomain0.
+
+        assert (CONTRA: true = false). congruence.
+        inversion CONTRA.
+    Admitted.
+
              
            
       
