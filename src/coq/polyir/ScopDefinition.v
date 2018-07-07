@@ -441,7 +441,12 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Definition Schedule := P.AffineFnT.
 
     
-  Inductive exec_scop_store_value: P.ParamsT -> ScopEnvironment -> viv -> ScopStoreValue -> Value -> Prop :=
+    Inductive exec_scop_store_value:
+      P.ParamsT
+      -> ScopEnvironment
+      -> viv
+      -> ScopStoreValue
+      -> Value -> Prop :=
   | eval_ssv_indvar_fn: forall (viv: P.PointT)
                           (se: ScopEnvironment)
                           (params: P.ParamsT)
@@ -458,13 +463,33 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       exec_scop_store_value params se viv (SSVLoadedVal ident) identval
   .
 
+  Lemma exec_scop_store_value_deterministic:
+    forall (params: P.ParamsT)
+      (se: ScopEnvironment)
+      (viv: viv)
+      (ssv: ScopStoreValue)
+      (v1 v2: Value)
+      (EXEC1: exec_scop_store_value params se viv ssv v1)
+      (EXEC2: exec_scop_store_value params se viv ssv v2),
+      v1 = v2.
+  Proof.
+    intros.
+    induction EXEC1; subst; inversion EXEC2; subst; congruence.
+  Qed.
+
+  Hint Resolve exec_scop_store_value_deterministic: proofdb.
+
   
-    Inductive exec_memory_access:  P.ParamsT -> ScopEnvironment -> viv -> Memory -> MemoryAccess -> Memory -> Prop :=
+  Inductive exec_memory_access:  P.ParamsT
+                                 -> ScopEnvironment
+                                 -> viv
+                                 -> Memory
+                                 -> MemoryAccess
+                                 -> Memory -> Prop :=
     | exec_store:
         forall (params: P.ParamsT)
           (se: ScopEnvironment)
           (viv: P.PointT)
-          (memacc: MemoryAccess)
           (initmem: Memory)
           (accessfn: AccessFunction)
           (accessix: list Value)
@@ -688,11 +713,11 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (scop: Scop)
           (params: P.ParamsT)
           (se: ScopEnvironment)
-          (vivbegin vivcur vivnext: viv)
-          (NEXT: Some vivnext = P.getLexNextPoint params (getScopDomain scop)vivcur)
-          (EXEC_SCOP_TILL: exec_scop_from_lexmin params se vivbegin initmem scop mem1  vivcur)
-          (EXEC_SCOP_AT_POINT: exec_scop_at_point params se vivnext mem1 scop mem2),
-          exec_scop_from_lexmin params se vivbegin initmem scop mem2 vivnext.
+          (vivbegin vivprev vivcur: viv)
+          (CUR: Some vivcur = P.getLexNextPoint params (getScopDomain scop) vivprev)
+          (EXEC_SCOP_TILL: exec_scop_from_lexmin params se vivbegin initmem scop mem1  vivprev)
+          (EXEC_SCOP_AT_POINT: exec_scop_at_point params se vivcur mem1 scop mem2),
+          exec_scop_from_lexmin params se vivbegin initmem scop mem2 vivcur.
 
     Definition initScopEnvironment : ScopEnvironment := ZMap.init None.
     Definition exec_scop (params: P.ParamsT)
@@ -995,6 +1020,47 @@ Module SCOP(P: POLYHEDRAL_THEORY).
      
     Hint Resolve LastWrite_domain_inclusive: proofdb.
     Hint Rewrite IsLastWriteDecidable: proofdb.
+
+    (** **Any write that runs after AT last write (LEXCUR_EQ_VIVLW) which aliases with the
+last write must write the value the last write wrote *)
+    Lemma lastWriteUniqueWrite_mem_access:
+          forall (params: P.ParamsT)
+        (se: ScopEnvironment)
+        (initmem finalmem: Memory)
+        (macur: MemoryAccess)
+        (domain: Domain)
+        (vivlw: viv)
+        (EXEC_MEM_ACCESS: exec_memory_access params se vivlw initmem macur finalmem)
+        (VIVCUR_IN_DOMAIN: P.isPointInPoly vivlw domain = true)
+        (lwaccessfn: AccessFunction)
+        (lwchunk: ChunkNum)
+        (lwix: list Z)
+        (lwssv: ScopStoreValue)
+        (lwssvval: Value)
+        (EVAL_LWSSV: exec_scop_store_value params se vivlw lwssv lwssvval)
+        (ACCESSFN_ALISES: evalAccessFunction params (getMAAccessFunction macur) vivlw = lwix)
+        (LASTWRITE: IsLastWrite params
+                                domain
+                                (MAStore lwchunk lwaccessfn lwssv)
+                                lwchunk vivlw lwix),
+        loadMemory lwchunk lwix finalmem = Some lwssvval.
+    Proof.
+      intros.
+      induction EXEC_MEM_ACCESS.
+      destruct LASTWRITE.
+      simpl in *.
+      
+      assert (STORE_ALIASES: (MAStore chunk accessfn ssv) = MAStore lwchunk lwaccessfn lwssv).
+      eapply lastWriteUniqueWrite0 with (vivcur := viv0); try auto; assumption.
+      inversion STORE_ALIASES; subst; simpl.
+
+      assert (COMPUTED_VAL_EQUAL: lwssvval = storeval).
+      eapply exec_scop_store_value_deterministic; eauto.
+      subst.
+
+      eauto with proofdb.
+    Qed.
+             
            
       
 
@@ -1054,6 +1120,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         assert (CONTRA: true = false); congruence.
     Qed.
                   
+
     Hint Resolve LastWriteImposesMemoryValue_exec_mem_access: proofdb.
 
     
@@ -1171,17 +1238,16 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         (scop: Scop)
         (initmem finalmem: Memory)
         (se: ScopEnvironment)
-        (vivstart vivnext: viv)
-        (EXECSCOP: exec_scop_from_lexmin params se vivstart initmem scop finalmem vivnext)
+        (vivstart vivend: viv)
+        (EXECSCOP: exec_scop_from_lexmin params se vivstart initmem scop finalmem vivend)
         (lwchunk: ChunkNum)
         (lwix: list Z)
         (lwssv: ScopStoreValue)
         (lwaccessfn: AccessFunction)
         (vivlw: viv)
         (* We must have executed the last write to make this statement *)
-        (VIVNEXT_GE_VIVLW: P.isLexGT vivnext vivlw = Some true \/
-                           vivlw = vivnext)
-        (LASTWRITE: IsLastWrite params (P.getLexLeqPoly params (getScopDomain scop) vivnext) 
+        (VIVEND_GE_VIVLW: P.isLexGT vivend vivlw = Some true \/ vivend = vivlw)
+        (LASTWRITE: IsLastWrite params (P.getLexLeqPoly params (getScopDomain scop) vivend) 
                                 (MAStore lwchunk lwaccessfn lwssv) lwchunk vivlw lwix)
         (storeval: Value)
         (se: ScopEnvironment)
@@ -1190,9 +1256,9 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Proof.
       intros until 1.
       induction EXECSCOP.
-      intros.
-      - (* In the beginning, we would not have executed the last write, so this is absurd *)
-         (* the min point is greater than the last write,
+        intros.
+
+        (* the min point is greater than the last write,
         this is nonsense, so contradiction *)
           assert (VIVLW_IN_DOMAIN: 
                     P.isPointInPoly vivlw
@@ -1217,25 +1283,23 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       - (* Second part of proof. *)
         intros.
 
-        (* vivcur --(+1)--> vivnext *)
-        (* vivlw ---(<)--> vivnext *)
-        (* vivlw ---(<=)--> vivcur *)
-        assert (VIVLW_VIVCUR_CASES: P.isLexLT vivlw vivcur = Some true \/ vivlw = vivcur).
+        (* vivprev --(+1)--> vivcur *)
+        (* vivlw ---(<)--> vivcur *)
+        (* vivlw ---(<=)--> vivprev *)
+        assert (VIVLW_VIVPREV_CASES: P.isLexLT vivlw vivprev = Some true \/ vivlw = vivprev).
         eapply P.isLexLT_next_implies_isLexLEQ_current; eauto.
         eapply P.isLexLT_GT.
         auto.
 
 
-        destruct VIVLW_VIVCUR_CASES as [VIVLW_EQ_VIVCUR |
-                                        VIVLW_LT_VIVCUR].
+        destruct VIVLW_VIVPREV_CASES as [VIVLW_LT_PREV |
+                                        VIVLW_EQ_PREV].
+        + assert (MEM1: loadMemory lwchunk lwix mem1 = Some storeval).
+          eapply IHEXECSCOP; try eassumption.
+          eapply P.isLexLT_GT; eauto.
+          admit.
 
-        + (* Current loop iteration _is_ the last write iteration *)
-
-        eauto with proofdb.
-        
-
-        assert (MEM1: loadMemory lwchunk lwix mem1 = Some storeval).
-        eapply IHEXECSCOP; try eassumption.
+          + 
         
         congruence.
     Qed.
