@@ -326,7 +326,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       }.
 
   (** Get the memory accesses in a scop *)
-  Definition getScopMemoryAccessses (scop: Scop): list MemoryAccess :=
+  Definition getScopMemoryAccesses (scop: Scop): list MemoryAccess :=
     concat (List.map (scopStmtMemAccesses) (scopStmts scop)).
 
 
@@ -1165,6 +1165,63 @@ last write must write the value the last write wrote *)
         assert (CONTRA: true = false). congruence.
         inversion CONTRA.
     Qed.
+
+
+    
+    Lemma LastWriteImposesMemoryValueAtLastWriteIx_exec_scop_at_point:
+      forall (params: P.ParamsT)
+        (se: ScopEnvironment)
+        (initmem finalmem: Memory)
+        (scop: Scop)
+        (vivlw: viv)
+        (EXEC_SCOP_AT_POINT: exec_scop_at_point params se vivlw initmem scop finalmem)
+        (lwaccessfn: AccessFunction)
+        (lwchunk: ChunkNum)
+        (lwix: list Z)
+        (lwssv: ScopStoreValue)
+        (lwssvval: Value)
+        (EVAL_LWSSV: exec_scop_store_value params se vivlw lwssv lwssvval)
+        (LASTWRITE: IsLastWrite params
+                                (P.getLexLeqPoly params (getScopDomain scop) vivlw)
+                                (MAStore lwchunk lwaccessfn lwssv)
+                                lwchunk
+                                vivlw
+                                lwix)
+        (LASTWRITE_IN_SCOP: List.In (MAStore lwchunk lwaccessfn lwssv)
+                                    (getScopMemoryAccesses scop))
+      (NOWRITEALIAS: True),
+        loadMemory lwchunk lwix finalmem = Some lwssvval.
+    Proof.
+      intros until 1.
+      induction EXEC_SCOP_AT_POINT.
+
+      - intros.
+        simpl in LASTWRITE_IN_SCOP.
+        contradiction.
+
+      - intros.
+        unfold getScopMemoryAccesses in LASTWRITE_IN_SCOP.
+        simpl in *.
+        rewrite List.in_app_iff in LASTWRITE_IN_SCOP.
+        destruct (LASTWRITE_IN_SCOP) as [LASTWRITE_IN_CUR_STMT |
+                                         LASTWRITE_IN_PREV_STMTS].
+        + (* We are executing the current stmt *)
+          admit.
+        + (* Lastwrite was in the other statements *)
+          eapply IHEXEC_SCOP_AT_POINT; eauto.
+          eapply LastWrite_domain_inclusive with
+              (largerdomain := P.getLexLeqPoly
+                                 params 
+                                 (getScopDomain {| scopStmts := stmt:: stmts |})
+                                 viv0); auto.
+          (** TODO: proof automation should have done this **)
+          rewrite getScopDomain_cons.
+          apply P.getLexLeqPoly_proper_wrt_subset.
+          rewrite P.unionPoly_commutative.
+          apply P.subset_of_union.
+    Qed.
+
+
       
 
     
@@ -1446,7 +1503,6 @@ last write must write the value the last write wrote *)
 
 
         assert (MEM2: loadMemory chunk ix mem2 = loadMemory chunk ix mem1).
-        admit.
 
         congruence.
     Qed.
