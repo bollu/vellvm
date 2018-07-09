@@ -309,14 +309,16 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     end.
 
 
-  Definition Domain := P.PolyT.
+  (** Space where the virtual induction variables live **)
+  Definition VIVSpace := P.PolyT.
+  (** Space where the multidimensional timepoints live *)
+  Definition ScatterSpace := P.PolyT.
+
+  
   Record ScopStmt :=
     mkScopStmt {
-        scopStmtDomain: Domain; (**r The domain of the scop statement. That is, interpreted as
-          0 <= <indvars[i]> <= <domain[i]> *)
-        
-        scopStmtSchedule : P.AffineFnT; (**r Function from the canonical induction variables to the schedule
-         timepoint.  *)
+        scopStmtDomain: VIVSpace; (**r Stmt is executed if viv \in scopStmtDomain *)
+        scopStmtSchedule : P.AffineFnT; (**r VIVSpace -> ScatterSpace *)
         scopStmtMemAccesses: list MemoryAccess (**r List of memory accesses *)
       }.
 
@@ -512,7 +514,12 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
     (** Execute a statement. Checks if the statement is active or inactive before
        execution *)
-    Inductive exec_scop_stmt: P.ParamsT -> ScopEnvironment -> viv -> Memory -> ScopStmt -> Memory -> Prop :=
+  Inductive exec_scop_stmt: P.ParamsT
+                            -> ScopEnvironment
+                            -> viv
+                            -> Memory
+                            -> ScopStmt
+                            -> Memory -> Prop :=
     | exec_stmt_nil:
         forall (params: P.ParamsT)
           (se: ScopEnvironment)
@@ -546,9 +553,14 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (mas: list MemoryAccess)
           (initmem: Memory),
           exec_scop_stmt params se viv initmem (mkScopStmt domain schedule mas) initmem
-    .
+  .
 
-    Inductive exec_scop_at_point: P.ParamsT -> ScopEnvironment -> viv -> Memory -> Scop -> Memory -> Prop :=
+    Inductive exec_scop_at_point: P.ParamsT
+                                  -> ScopEnvironment
+                                  -> viv
+                                  -> Memory
+                                  -> Scop
+                                  -> Memory -> Prop :=
     | exec_scop_at_point_nil:
         forall (params: P.ParamsT)
           (se: ScopEnvironment)
@@ -566,8 +578,8 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (stmt: ScopStmt)
           (stmts: list ScopStmt)
           (mem1 mem2: Memory)
-          (EXECSTMT: exec_scop_stmt params se viv initmem stmt mem1)
-          (EXECNEXT: exec_scop_at_point  params se viv mem1 (mkScop stmts) mem2),
+          (EXECPREV: exec_scop_at_point  params se viv initmem (mkScop stmts) mem1)
+          (EXECSTMT: exec_scop_stmt params se viv mem1 stmt mem2),
           exec_scop_at_point params se viv initmem (mkScop (cons stmt stmts)) mem2.
     
 
@@ -747,14 +759,14 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     (** **Define what it means for a memory access to not write to memory *)
     Inductive MAStoreNoWrite:
       P.ParamsT
-      -> Domain
+      -> VIVSpace
       -> MemoryAccess
       -> ChunkNum
       -> list Z
       -> Prop :=
     | mkMAStoreNoWrite: forall
         (params: P.ParamsT)
-        (domain: Domain)
+        (domain: VIVSpace)
         (accessfn: AccessFunction)
         (needlechunk: ChunkNum)
         (ssv: ScopStoreValue)
@@ -772,7 +784,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     (** **Computational version of the write*)
     Definition MAWriteb
                (params: P.ParamsT)
-               (domain: Domain)
+               (domain: VIVSpace)
                (needlechunk: ChunkNum)
                (needleix: list Z)
                (memacc: MemoryAccess)
@@ -812,7 +824,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     (** **If the point of access is not written by the memory access, then the memory access does not change that location *)
     Lemma point_not_in_memacc_implies_value_unchanged:
       forall (memacc: MemoryAccess)
-        (domain: Domain)
+        (domain: VIVSpace)
         (initmem finalmem: Memory)
         (params: P.ParamsT)
         (se: ScopEnvironment)
@@ -907,10 +919,12 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       destruct POINT_NOT_IN_POLY_CONJ as [P_NOT_IN_CUR_STMT  P_NOT_IN_OTHER_STMTS].
 
       assert (MEMSTMT_EQ_INITMEM:
-                loadMemory chunk ix mem2 = loadMemory chunk ix mem1); auto.
+                loadMemory chunk ix mem2 = loadMemory chunk ix mem1).
+      eapply point_not_in_scop_stmt_implies_value_unchanged; eauto.
+      
       assert (MEMSTMT_EQ_MEMNEW:
                 loadMemory chunk ix mem1 = loadMemory chunk ix initmem).
-      eauto with proofdb.
+      eapply IHEXECSCOPATPOINT. eauto with proofdb.
       congruence.
     Qed.
          
@@ -959,7 +973,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     (* Is the last write in a scop for this domain *)
     Record IsLastWrite
            (params: P.ParamsT)
-           (domain: Domain)
+           (domain: VIVSpace)
            (lwma: MemoryAccess)
            (lwchunk: ChunkNum)
            (lwviv: P.PointT)
@@ -986,7 +1000,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
     (** **Last write is decidable *)
     Lemma IsLastWriteDecidable: forall(params: P.ParamsT)
-                                 (domain: Domain)
+                                 (domain: VIVSpace)
         (ma: MemoryAccess)
         (chunk: ChunkNum)
         (ix: list Z)
@@ -1003,7 +1017,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     domain *)
     Lemma LastWrite_domain_inclusive: forall
            (params: P.ParamsT)
-           (largerdomain smallerdomain: Domain)
+           (largerdomain smallerdomain: VIVSpace)
            (ma: MemoryAccess)
            (lwchunk: ChunkNum)
            (lwviv: P.PointT)
@@ -1020,7 +1034,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     (** Defines a list of memory accesses that do not alias in a domain *)
     (** NOTE THAT THIS DEFINITION IGNORES READ / WRITE DISTINCTIONS! This needs
     to be patched up in fugure *)
-    Definition noWritesAliasInDomain (domain: Domain) (mas: list MemoryAccess) : Prop :=
+    Definition noWritesAliasInDomain (domain: VIVSpace) (mas: list MemoryAccess) : Prop :=
       forall ma1 ma2 viv params
         (VIV_IN_DOMAIN: P.isPointInPoly viv domain = true)
         (MA1_IN_STMT: List.In ma1 mas)
@@ -1032,7 +1046,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
     (** NoWritesAlias on a larger list continues to hold on a sublist *)
     Lemma noWritesAlias_cons_destruct:
-      forall (domain: Domain)
+      forall (domain: VIVSpace)
         (mas: list MemoryAccess)
         (ma: MemoryAccess)
         (NOWRITESALIAS: noWritesAliasInDomain domain (ma::mas)),
@@ -1205,8 +1219,24 @@ last write must write the value the last write wrote *)
         rewrite List.in_app_iff in LASTWRITE_IN_SCOP.
         destruct (LASTWRITE_IN_SCOP) as [LASTWRITE_IN_CUR_STMT |
                                          LASTWRITE_IN_PREV_STMTS].
+
         + (* We are executing the current stmt *)
+          eapply LastWriteImposesMemoryValueAtLastWriteIx_scop_stmt;
+            eauto.
+          eapply LastWrite_domain_inclusive with
+              (largerdomain := P.getLexLeqPoly
+                                 params 
+                                 (getScopDomain {| scopStmts := stmt:: stmts |})
+                                 viv0); auto.
+          (** TODO: proof automation should have done this **)
+          rewrite getScopDomain_cons.
+          apply P.getLexLeqPoly_proper_wrt_subset.
+          apply P.subset_of_union.
+
+          
           admit.
+
+          
         + (* Lastwrite was in the other statements *)
           eapply IHEXEC_SCOP_AT_POINT; eauto.
           eapply LastWrite_domain_inclusive with
@@ -1232,7 +1262,7 @@ last write must write the value the last write wrote *)
         (vivcur: viv)
         (initmem finalmem: Memory)
         (macur: MemoryAccess)
-        (domain: Domain)
+        (domain: VIVSpace)
         (EXEC_MEM_ACCESS: exec_memory_access params se vivcur initmem macur finalmem)
         (VIVCUR_IN_DOMAIN: P.isPointInPoly vivcur domain = true)
         (vivlw: viv)
