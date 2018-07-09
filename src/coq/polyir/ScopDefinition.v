@@ -445,6 +445,22 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Hint Resolve P.isLexLT_next_implies_isLexLEQ_current:proofdb.
   Hint Resolve Z.eqb_refl: proofdb.
 
+  (** List rewrite rules **)
+  Lemma existsb_app_single: forall {A: Type} (l: list A) (a: A)
+    (pred: A -> bool),
+      existsb pred (l ++ [a]) = existsb pred l || pred a.
+  Proof.
+    intros.
+    rewrite existsb_app.
+    simpl.
+    rewrite orb_false_r.
+    auto.
+  Qed.
+  Hint Rewrite @existsb_app_single: list.
+  Hint Rewrite existsb_app: list.
+  Hint Resolve existsb_app: list.
+  Hint Resolve orb_false_elim: list.
+
   (** *Section that define the semantics of scop evaluation *)
   Section EVALUATION.
 
@@ -564,7 +580,13 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           exec_scop_stmt params se viv initmem (mkScopStmt domain schedule mas) initmem
   .
 
+  Definition isLexGt (l1: list Z) (l2: list Z): bool := false.
 
+  Definition stmtIsScheduledAfter (params: P.ParamsT) (vivcur: viv)
+             (safter: ScopStmt) (sbefore: ScopStmt):=
+    isLexGt (evalScopStmtSchedule params vivcur sbefore)
+            (evalScopStmtSchedule params vivcur safter).
+    
   (** Execute a scop at a point given that the statements are sorted
       in ASCENDING order: That is, the first element of the list is the lex smallest *)
     Inductive exec_scop_at_point_sorted_stmts: P.ParamsT
@@ -587,12 +609,14 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (viv: P.PointT)
           (initmem: Memory)
           (scop: Scop)
-          (stmt: ScopStmt)
-          (stmts: list ScopStmt)
+          (curstmt: ScopStmt)
+          (prevstmts: list ScopStmt)
           (mem1 mem2: Memory)
-          (EXECPREV: exec_scop_at_point_sorted_stmts  params se viv initmem (mkScop stmts) mem1)
-          (EXECSTMT: exec_scop_stmt params se viv mem1 stmt mem2),
-          exec_scop_at_point_sorted_stmts params se viv initmem (mkScop (cons stmt stmts)) mem2.
+          (SORTED: forall (s: ScopStmt) (S_IN_PREV: List.In s prevstmts),
+              stmtIsScheduledAfter params viv curstmt s = true)
+          (EXECPREV: exec_scop_at_point_sorted_stmts  params se viv initmem (mkScop prevstmts) mem1)
+          (EXECCUR: exec_scop_stmt params se viv mem1 curstmt mem2),
+          exec_scop_at_point_sorted_stmts params se viv initmem (mkScop (prevstmts ++ [curstmt])) mem2.
 
 
   Definition sortStmts (params: P.ParamsT) (viv: viv) (l: list ScopStmt): list ScopStmt.
@@ -927,6 +951,44 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Qed.
 
     Hint Resolve point_not_in_scop_stmt_implies_value_unchanged: proofdb.
+
+    
+    Lemma point_not_in_write_polyhedra_for_scop_at_point_sorted_stmts_implies_value_unchanged:
+      forall (scop: Scop)
+        (initmem finalmem: Memory)
+        (params: P.ParamsT)
+        (se: ScopEnvironment)
+        (viv: viv)
+        (EXECSCOPATPOINT: exec_scop_at_point_sorted_stmts params se viv initmem scop finalmem)
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (POINT_NOT_IN_POLY: scopWriteb params chunk ix scop = false),
+        loadMemory chunk ix finalmem = loadMemory chunk ix initmem.
+    Proof.
+      intros.
+      induction EXECSCOPATPOINT; auto.
+      unfold scopWriteb in *; simpl in *.
+      
+      assert (POINT_NOT_IN_POLY_CONJ:
+                existsb (scopStmtWriteb params chunk ix) prevstmts = false  /\
+                scopStmtWriteb params chunk  ix curstmt = false).
+      (** TODO: proof automation should have worked *)
+      rewrite existsb_app_single in POINT_NOT_IN_POLY.
+      apply orb_false_elim.
+      auto.
+
+      
+      destruct POINT_NOT_IN_POLY_CONJ as [P_NOT_IN_CUR_STMT  P_NOT_IN_OTHER_STMTS].
+
+      assert (MEMSTMT_EQ_INITMEM:
+                loadMemory chunk ix mem2 = loadMemory chunk ix mem1).
+      eapply point_not_in_scop_stmt_implies_value_unchanged; eauto.
+      
+      assert (MEMSTMT_EQ_MEMNEW:
+                loadMemory chunk ix mem1 = loadMemory chunk ix initmem).
+      eapply IHEXECSCOPATPOINT. eauto with proofdb.
+      congruence.
+    Qed.
 
     Lemma point_not_in_write_polyhedra_for_scop_at_point_implies_value_unchanged:
       forall (scop: Scop)
