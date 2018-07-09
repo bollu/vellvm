@@ -878,6 +878,22 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       existsb (scopStmtWriteb params needlechunk needleix) (scopStmts scop).
 
     
+    Lemma scopWriteb_unchanged_on_sorting:
+      forall (params: P.ParamsT)
+        (chunk: ChunkNum)
+        (ix: list Z)
+        (scop: Scop)
+        (b: bool)
+        (viv: viv)
+        (scopWriteB: scopWriteb params chunk ix scop = b),
+        scopWriteb params chunk ix
+                   {| scopStmts := sortStmts params viv (scopStmts scop) |} = b.
+    Proof.
+    Admitted.
+
+    
+
+    
     (** **If the point of access is not written by the memory access, then the memory access does not change that location *)
     Lemma point_not_in_memacc_implies_value_unchanged:
       forall (memacc: MemoryAccess)
@@ -917,8 +933,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
 
     Lemma point_not_in_scop_stmt_implies_value_unchanged:
-      forall (scop: Scop)
-        (stmt: ScopStmt)
+      forall (stmt: ScopStmt)
         (initmem finalmem: Memory)
         (params: P.ParamsT)
         (se: ScopEnvironment)
@@ -990,6 +1005,9 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       congruence.
     Qed.
 
+    
+    Hint Resolve point_not_in_write_polyhedra_for_scop_at_point_sorted_stmts_implies_value_unchanged: proofdb.
+
     Lemma point_not_in_write_polyhedra_for_scop_at_point_implies_value_unchanged:
       forall (scop: Scop)
         (initmem finalmem: Memory)
@@ -1003,24 +1021,10 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         loadMemory chunk ix finalmem = loadMemory chunk ix initmem.
     Proof.
       intros.
-      induction EXECSCOPATPOINT; auto.
-      unfold scopWriteb in *; simpl in *.
-      
-      assert (POINT_NOT_IN_POLY_CONJ: scopStmtWriteb params chunk  ix stmt  = false /\
-                                       existsb (scopStmtWriteb params chunk ix) stmts = false).
-      apply orb_false_elim; auto.
-
-      
-      destruct POINT_NOT_IN_POLY_CONJ as [P_NOT_IN_CUR_STMT  P_NOT_IN_OTHER_STMTS].
-
-      assert (MEMSTMT_EQ_INITMEM:
-                loadMemory chunk ix mem2 = loadMemory chunk ix mem1).
-      eapply point_not_in_scop_stmt_implies_value_unchanged; eauto.
-      
-      assert (MEMSTMT_EQ_MEMNEW:
-                loadMemory chunk ix mem1 = loadMemory chunk ix initmem).
-      eapply IHEXECSCOPATPOINT. eauto with proofdb.
-      congruence.
+      unfold exec_scop_at_point in *.
+      eapply point_not_in_write_polyhedra_for_scop_at_point_sorted_stmts_implies_value_unchanged.
+      exact EXECSCOPATPOINT.
+      apply scopWriteb_unchanged_on_sorting; auto.
     Qed.
          
     Hint Resolve point_not_in_write_polyhedra_for_scop_at_point_implies_value_unchanged: proofdb.
