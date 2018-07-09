@@ -32,23 +32,23 @@
 &nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">eq_trans</span> := @<span class="id">eq_trans</span> <span class="id">t</span>.<br/>
 &nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">lt</span> (<span class="id">a</span> <span class="id">b</span>:<span class="id">ascii</span>) := <span class="id">N.lt</span> (<span class="id">N_of_ascii</span> <span class="id">a</span>) (<span class="id">N_of_ascii</span> <span class="id">b</span>).<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_trans</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span>:<span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; <span class="id">lt</span> <span class="id">b</span> <span class="id">c</span> -&gt; <span class="id">lt</span> <span class="id">a</span> <span class="id">c</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof125')">Proof.</div>
-<div class="proofscript" id="proof125">
+<div class="toggleproof" onclick="toggleDisplay('proof159')">Proof.</div>
+<div class="proofscript" id="proof159">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">lt</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">N.lt_trans</span>.<br/>
 &nbsp;&nbsp;Qed.</div>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_not_eq</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span>:<span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; ~<span class="id">eq</span> <span class="id">a</span> <span class="id">b</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof126')">Proof.</div>
-<div class="proofscript" id="proof126">
+<div class="toggleproof" onclick="toggleDisplay('proof160')">Proof.</div>
+<div class="proofscript" id="proof160">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">a</span> <span class="id">b</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">unfold</span> <span class="id">not</span>. <span class="tactic">intros</span> <span class="id">He</span>. <span class="tactic">rewrite</span> <span class="id">He</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">eapply</span> <span class="id">N.lt_neq</span>. <span class="tactic">unfold</span> <span class="id">lt</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">apply</span> <span class="id">H</span>. <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;Qed.</div>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">N_of_ascii_inj</span> : <span class="kwd">forall</span> <span class="id">x</span> <span class="id">y</span>, <span class="id">N_of_ascii</span> <span class="id">x</span> = <span class="id">N_of_ascii</span> <span class="id">y</span> -&gt; <span class="id">x</span> = <span class="id">y</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof127')">Proof.</div>
-<div class="proofscript" id="proof127">
+<div class="toggleproof" onclick="toggleDisplay('proof161')">Proof.</div>
+<div class="proofscript" id="proof161">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x</span> <span class="id">y</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- <span class="id">ascii_N_embedding</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- (@<span class="id">ascii_N_embedding</span> <span class="id">x</span>).<br/>
@@ -61,16 +61,16 @@
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">EQ</span> <span class="id">p</span> =&gt; <span class="id">_</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">GT</span> <span class="id">p</span> =&gt; <span class="id">_</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof128')">Next Obligation.</div>
-<div class="proofscript" id="proof128">
+<div class="toggleproof" onclick="toggleDisplay('proof162')">Next Obligation.</div>
+<div class="proofscript" id="proof162">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">LT</span>. <span class="tactic">unfold</span> <span class="id">lt</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof129')">Next Obligation.</div>
-<div class="proofscript" id="proof129">
+<div class="toggleproof" onclick="toggleDisplay('proof163')">Next Obligation.</div>
+<div class="proofscript" id="proof163">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">EQ</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">apply</span> <span class="id">N_of_ascii_inj</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof130')">Next Obligation.</div>
-<div class="proofscript" id="proof130">
+<div class="toggleproof" onclick="toggleDisplay('proof164')">Next Obligation.</div>
+<div class="proofscript" id="proof164">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">GT</span>. <span class="tactic">unfold</span> <span class="id">lt</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
 <br/>
@@ -99,8 +99,8 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_trans</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span> : <span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; <span class="id">lt</span> <span class="id">b</span> <span class="id">c</span> -&gt; <span class="id">lt</span> <span class="id">a</span> <span class="id">c</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof131')">Proof.</div>
-<div class="proofscript" id="proof131">
+<div class="toggleproof" onclick="toggleDisplay('proof165')">Proof.</div>
+<div class="proofscript" id="proof165">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">a</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">b</span>; <span class="tactic">destruct</span> <span class="id">c</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">try</span> <span class="tactic">tauto</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">b</span>; <span class="tactic">destruct</span> <span class="id">c</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">try</span> <span class="tactic">tauto</span>.<br/>
@@ -115,8 +115,8 @@
 &nbsp;&nbsp;Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_not_eq</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span>:<span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; ~<span class="id">eq</span> <span class="id">a</span> <span class="id">b</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof132')">Proof.</div>
-<div class="proofscript" id="proof132">
+<div class="toggleproof" onclick="toggleDisplay('proof166')">Proof.</div>
+<div class="proofscript" id="proof166">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">a</span>; <span class="tactic">intros</span> <span class="id">b</span> <span class="id">H</span> <span class="id">He</span>; <span class="tactic">unfold</span> <span class="id">eq</span> <span class="kwd">in</span> <span class="id">He</span>; <span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">unfold</span> <span class="id">lt</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">destruct</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
@@ -141,37 +141,37 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">String</span> <span class="id">a</span> <span class="id">s1</span>', <span class="id">EmptyString</span> =&gt; <span class="id">_</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof133')">Next Obligation.</div>
-<div class="proofscript" id="proof133">
+<div class="toggleproof" onclick="toggleDisplay('proof167')">Next Obligation.</div>
+<div class="proofscript" id="proof167">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">EQ</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof134')">Next Obligation.</div>
-<div class="proofscript" id="proof134">
+<div class="toggleproof" onclick="toggleDisplay('proof168')">Next Obligation.</div>
+<div class="proofscript" id="proof168">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">LT</span>. <span class="tactic">simpl</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof135')">Next Obligation.</div>
-<div class="proofscript" id="proof135">
+<div class="toggleproof" onclick="toggleDisplay('proof169')">Next Obligation.</div>
+<div class="proofscript" id="proof169">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">LT</span>. <span class="tactic">simpl</span>. <span class="tactic">rewrite</span> &lt;- <span class="id">Heq_anonymous</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof136')">Next Obligation.</div>
-<div class="proofscript" id="proof136">
+<div class="toggleproof" onclick="toggleDisplay('proof170')">Next Obligation.</div>
+<div class="proofscript" id="proof170">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">LT</span>. <span class="tactic">simpl</span>. <span class="tactic">rewrite</span> &lt;- <span class="id">Heq_anonymous0</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof137')">Next Obligation.</div>
-<div class="proofscript" id="proof137">
+<div class="toggleproof" onclick="toggleDisplay('proof171')">Next Obligation.</div>
+<div class="proofscript" id="proof171">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">EQ</span>. <span class="tactic">simpl</span>. <span class="tactic">unfold</span> <span class="id">AsciiOrd.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'0. <span class="tactic">subst</span>. <span class="tactic">unfold</span> <span class="id">eq</span> <span class="kwd">in</span> <span class="id">e</span>. <span class="tactic">subst</span>. <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof138')">Next Obligation.</div>
-<div class="proofscript" id="proof138">
+<div class="toggleproof" onclick="toggleDisplay('proof172')">Next Obligation.</div>
+<div class="proofscript" id="proof172">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">GT</span>. <span class="tactic">simpl</span>. <span class="tactic">unfold</span> <span class="id">AsciiOrd.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'0. <span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- <span class="id">Heq_anonymous0</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof139')">Next Obligation.</div>
-<div class="proofscript" id="proof139">
+<div class="toggleproof" onclick="toggleDisplay('proof173')">Next Obligation.</div>
+<div class="proofscript" id="proof173">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">GT</span>. <span class="tactic">simpl</span>. <span class="id">AsciiOrdFacts.elim_comp_lt</span> <span class="id">b</span> <span class="id">a</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof140')">Next Obligation.</div>
-<div class="proofscript" id="proof140">
+<div class="toggleproof" onclick="toggleDisplay('proof174')">Next Obligation.</div>
+<div class="proofscript" id="proof174">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">GT</span>. <span class="tactic">simpl</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
@@ -198,15 +198,15 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_trans</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span> : <span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; <span class="id">lt</span> <span class="id">b</span> <span class="id">c</span> -&gt; <span class="id">lt</span> <span class="id">a</span> <span class="id">c</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof141')">Proof.</div>
-<div class="proofscript" id="proof141">
+<div class="toggleproof" onclick="toggleDisplay('proof175')">Proof.</div>
+<div class="proofscript" id="proof175">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>; <span class="tactic">destruct</span> <span class="id">b</span>; <span class="tactic">destruct</span> <span class="id">c</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span> <span class="id">H1</span> <span class="id">H2</span>; <span class="tactic">intuition</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">eapply</span> <span class="id">StringOrd.lt_trans</span>; <span class="tactic">eauto</span>.<br/>
 &nbsp;&nbsp;Qed.</div>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lt_not_eq</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span>:<span class="id">t</span>, <span class="id">lt</span> <span class="id">a</span> <span class="id">b</span> -&gt; ~<span class="id">eq</span> <span class="id">a</span> <span class="id">b</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof142')">Proof.</div>
-<div class="proofscript" id="proof142">
+<div class="toggleproof" onclick="toggleDisplay('proof176')">Proof.</div>
+<div class="proofscript" id="proof176">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>; <span class="tactic">destruct</span> <span class="id">b</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span> <span class="id">H</span> <span class="id">He</span>; <span class="tactic">inversion</span> <span class="id">He</span>; <span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">StringOrd.lt_not_eq</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">apply</span> <span class="id">H</span>. <span class="tactic">unfold</span> <span class="id">StringOrd.eq</span>. <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">Z_as_OT.lt_not_eq</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">tauto</span>.<br/>
@@ -240,16 +240,16 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">GT</span> <span class="id">_</span> =&gt; <span class="id">GT</span> <span class="id">_</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof143')">Next Obligation.</div>
-<div class="proofscript" id="proof143">
+<div class="toggleproof" onclick="toggleDisplay('proof177')">Next Obligation.</div>
+<div class="proofscript" id="proof177">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Z_as_OT.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'. <span class="tactic">subst</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof144')">Next Obligation.</div>
-<div class="proofscript" id="proof144">
+<div class="toggleproof" onclick="toggleDisplay('proof178')">Next Obligation.</div>
+<div class="proofscript" id="proof178">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">StringOrd.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'. <span class="tactic">subst</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof145')">Next Obligation.</div>
-<div class="proofscript" id="proof145">
+<div class="toggleproof" onclick="toggleDisplay('proof179')">Next Obligation.</div>
+<div class="proofscript" id="proof179">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Z_as_OT.eq</span> <span class="kwd">in</span> <span class="id">wildcard</span>'. <span class="tactic">subst</span>. <span class="tactic">unfold</span> <span class="id">eq</span>. <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;Defined.</div>
 <br/>
@@ -268,8 +268,8 @@
 &nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">t</span> := <span class="id">instr_id</span>.<br/>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">eq_dec</span> : <span class="kwd">forall</span> (<span class="id">x</span> <span class="id">y</span> : <span class="id">instr_id</span>), {<span class="id">x</span> = <span class="id">y</span>} + {<span class="id">x</span> &lt;&gt; <span class="id">y</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof146')">Proof.</div>
-<div class="proofscript" id="proof146">
+<div class="toggleproof" onclick="toggleDisplay('proof180')">Proof.</div>
+<div class="proofscript" id="proof180">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x</span> <span class="id">y</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">x</span> <span class="kwd">as</span> [<span class="id">xn</span> | <span class="id">xn</span>]; <span class="tactic">destruct</span> <span class="id">y</span> <span class="kwd">as</span> [<span class="id">yn</span> | <span class="id">yn</span>].<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> (<span class="id">xn</span> == <span class="id">yn</span>). <span class="tactic">subst</span>. <span class="id">left</span>. <span class="tactic">reflexivity</span>.<br/>
@@ -289,8 +289,8 @@
 &nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">t</span> := <span class="id">ident</span>.<br/>
 <br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">eq_dec</span> : <span class="kwd">forall</span> (<span class="id">x</span> <span class="id">y</span> : <span class="id">ident</span>), {<span class="id">x</span> = <span class="id">y</span>} + {<span class="id">x</span> &lt;&gt; <span class="id">y</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof147')">Proof.</div>
-<div class="proofscript" id="proof147">
+<div class="toggleproof" onclick="toggleDisplay('proof181')">Proof.</div>
+<div class="proofscript" id="proof181">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x</span> <span class="id">y</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">x</span> <span class="kwd">as</span> [<span class="id">xn</span> | <span class="id">xn</span>]; <span class="tactic">destruct</span> <span class="id">y</span> <span class="kwd">as</span> [<span class="id">yn</span> | <span class="id">yn</span>].<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">destruct</span> (<span class="id">xn</span> == <span class="id">yn</span>). <span class="tactic">subst</span>. <span class="id">left</span>. <span class="tactic">reflexivity</span>.<br/>

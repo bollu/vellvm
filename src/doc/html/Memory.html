@@ -24,12 +24,7 @@
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Setoid</span> <span class="id">Morphisms</span> <span class="id">Relations</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Trace</span>.<br/>
 <br/>
-<br/>
-<span class="id">From</span> <span class="id">mathcomp</span> <span class="kwd">Require</span> <span class="id">ssreflect</span> <span class="id">ssrbool</span> <span class="id">ssrfun</span> <span class="id">bigop</span>.<br/>
-<span class="kwd">Import</span> <span class="id">ssreflect.SsrSyntax</span>.<br/>
-<span class="kwd">Set</span> <span class="kwd">Implicit</span> <span class="id">Arguments</span>.<br/>
-<span class="kwd">Unset</span> <span class="kwd">Strict</span> <span class="kwd">Implicit</span>.<br/>
-<span class="kwd">Unset</span> <span class="id">Printing</span> <span class="kwd">Implicit</span> <span class="id">Defensive</span>.<br/>
+<span class="kwd">Import</span> <span class="id">Trace.MonadVerif</span>.<br/>
 <br/>
 <span class="kwd">Set</span> <span class="kwd">Implicit</span> <span class="id">Arguments</span>.<br/>
 <span class="kwd">Set</span> <span class="id">Contextual</span> <span class="kwd">Implicit</span>.<br/>
@@ -39,8 +34,8 @@
 &nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">null</span> := (0, 0).<br/>
 &nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">t</span> := <span class="id">addr</span>.<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">addr_dec</span> : <span class="kwd">forall</span> (<span class="id">a</span> <span class="id">b</span> : <span class="id">addr</span>), {<span class="id">a</span> = <span class="id">b</span>} + {<span class="id">a</span> &lt;&gt; <span class="id">b</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof233')">Proof.</div>
-<div class="proofscript" id="proof233">
+<div class="toggleproof" onclick="toggleDisplay('proof273')">Proof.</div>
+<div class="proofscript" id="proof273">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> [<span class="id">a1</span> <span class="id">a2</span>] [<span class="id">b1</span> <span class="id">b2</span>].<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">a1</span> == <span class="id">b1</span>); <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">a2</span> == <span class="id">b2</span>); <span class="tactic">subst</span>.<br/>
@@ -368,8 +363,8 @@
 <span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">list_scope</span>.<br/>
 <span class="kwd">Lemma</span> <span class="id">seq_inc_size</span>: <span class="kwd">forall</span> (<span class="id">begin</span> <span class="id">size</span>: <span class="id">nat</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">seq</span> <span class="id">begin</span> (<span class="id">S</span> <span class="id">size</span>)) = (<span class="id">seq</span> <span class="id">begin</span> <span class="id">size</span>) ++ [(<span class="id">begin</span>+<span class="id">size</span>)%<span class="id">nat</span>].<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof234')">Proof.</div>
-<div class="proofscript" id="proof234">
+<div class="toggleproof" onclick="toggleDisplay('proof274')">Proof.</div>
+<div class="proofscript" id="proof274">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">begin</span>.<br/>
@@ -383,8 +378,8 @@ Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">seq_inc_begin</span>: <span class="kwd">forall</span> (<span class="id">begin</span> <span class="id">size</span>: <span class="id">nat</span>) (<span class="id">SIZE_GT_0</span>: (<span class="id">size</span> &gt; 0)%<span class="id">nat</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">seq</span> <span class="id">begin</span> (<span class="id">size</span>)) = <span class="id">begin</span>::(<span class="id">seq</span> (<span class="id">S</span> <span class="id">begin</span>) (<span class="id">size</span> - 1)%<span class="id">nat</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof235')">Proof.</div>
-<div class="proofscript" id="proof235">
+<div class="toggleproof" onclick="toggleDisplay('proof275')">Proof.</div>
+<div class="proofscript" id="proof275">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">begin</span>.<br/>
@@ -398,8 +393,8 @@ Defined.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">lookup_add</span>: <span class="kwd">forall</span> {<span class="id">A</span>: <span class="kwd">Type</span>} (<span class="id">ix</span>: <span class="id">Z</span>) (<span class="id">v</span>: <span class="id">A</span>) (<span class="id">mem</span>: <span class="id">IntMap</span> <span class="id">A</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">lookup</span> <span class="id">ix</span> (<span class="id">add</span> <span class="id">ix</span> <span class="id">v</span> <span class="id">mem</span>) = <span class="id">Some</span> <span class="id">v</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof236')">Proof.</div>
-<div class="proofscript" id="proof236">
+<div class="toggleproof" onclick="toggleDisplay('proof276')">Proof.</div>
+<div class="proofscript" id="proof276">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">lookup</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">add</span>.<br/>
@@ -417,8 +412,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">LOOKUP_IN_RANGE</span>: <span class="id">lookupix</span> &gt;= <span class="id">beginix</span> /\ <span class="id">lookupix</span> &lt; <span class="id">beginix</span> + <span class="id">list_length_Z</span> <span class="id">writevs</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">lookup</span> <span class="id">lookupix</span> (<span class="id">add_all_index</span> <span class="id">writevs</span> <span class="id">beginix</span> <span class="id">mem</span>)) =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">List.nth_error</span> <span class="id">writevs</span> (<span class="id">Z.to_nat</span> (<span class="id">lookupix</span>  - <span class="id">beginix</span>)%<span class="id">Z</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof237')">Proof.</div>
-<div class="proofscript" id="proof237">
+<div class="toggleproof" onclick="toggleDisplay('proof277')">Proof.</div>
+<div class="proofscript" id="proof277">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">writevs</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">writevs</span> <span class="kwd">using</span> <span class="id">rev_ind</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span>.<br/>
@@ -457,8 +452,8 @@ Admitted.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">LENEQ</span>: <span class="id">Z.of_nat</span> (<span class="id">List.length</span> <span class="id">writevs</span>) = <span class="id">size</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(@<span class="id">lookup_all_index</span> <span class="id">A</span> <span class="id">beginix</span> <span class="id">size</span> (<span class="id">add_all_index</span> <span class="id">writevs</span> <span class="id">beginix</span> <span class="id">mem</span>) <span class="id">default</span>) =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">writevs</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof238')">Proof.</div>
-<div class="proofscript" id="proof238">
+<div class="toggleproof" onclick="toggleDisplay('proof278')">Proof.</div>
+<div class="proofscript" id="proof278">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">default</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">beginix</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">size0</span>.<br/>
@@ -493,8 +488,8 @@ Admitted.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">default</span>: <span class="id">A</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">NOALIAS</span>: <span class="id">beginrix</span> + <span class="id">rsize</span> &lt;= <span class="id">beginwix</span> \/ <span class="id">beginrix</span> &gt; <span class="id">beginwix</span> + <span class="id">list_length_Z</span> <span class="id">writevs</span>), <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(@<span class="id">lookup_all_index</span> <span class="id">A</span> <span class="id">beginrix</span> <span class="id">rsize</span> (<span class="id">add_all_index</span> <span class="id">writevs</span> <span class="id">beginwix</span> <span class="id">mem</span>) <span class="id">default</span>) = <span class="id">lookup_all_index</span> <span class="id">beginrix</span> <span class="id">rsize</span> <span class="id">mem</span> <span class="id">default</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof239')">Proof.</div>
-<div class="proofscript" id="proof239">
+<div class="toggleproof" onclick="toggleDisplay('proof279')">Proof.</div>
+<div class="proofscript" id="proof279">
 Admitted.</div>
 <br/>
 <span class="id">Close</span> <span class="kwd">Scope</span> <span class="id">list_scope</span>.<br/>
@@ -502,7 +497,23 @@ Admitted.</div>
 <span class="id">Opaque</span> <span class="id">add_all_index</span>.<br/>
 <br/>
 <br/>
-<div class="doc">Theorems about the interactions of memory with traces *</div>
+<span class="id">Create</span> <span class="id">HintDb</span> <span class="id">forcememb</span>.<br/>
+<h1>Theorems about the interactions of memory with traces* </h1>
+<span class="kwd">Lemma</span> <span class="id">force_memD_ret</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> { <span class="id">X</span>: <span class="kwd">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">x</span>:  <span class="id">Trace</span> <span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">mem</span>  (<span class="id">Trace.Ret</span> <span class="id">x</span>) ≡ <span class="id">Trace.Ret</span> <span class="id">x</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof280')">Proof.</div>
+<div class="proofscript" id="proof280">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">Trace.matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">memD</span> <span class="id">_</span> <span class="id">_</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Defined.</div>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">force_memD_ret</span> : <span class="id">forcememb</span>.<br/>
+<br/>
 <span class="kwd">Lemma</span> <span class="id">force_memD_vis</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> { <span class="id">X</span> <span class="id">Y</span>: <span class="kwd">Type</span>}<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">LLVMIO.IO</span> <span class="id">Y</span>)<br/>
@@ -513,8 +524,8 @@ Admitted.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">inl</span> <span class="id">_</span> =&gt; <span class="id">Trace.Err</span> "<span class="id">uninterpretiable</span> <span class="id">IO</span> <span class="id">call</span>"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">inr</span> (<span class="id">m</span>', <span class="id">v</span>) =&gt; <span class="id">Trace.Tau</span> (<span class="id">memD</span> <span class="id">m</span>' (<span class="id">k</span> <span class="id">v</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof240')">Proof.</div>
-<div class="proofscript" id="proof240">
+<div class="toggleproof" onclick="toggleDisplay('proof281')">Proof.</div>
+<div class="proofscript" id="proof281">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">Trace.matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">memD</span> <span class="id">_</span> <span class="id">_</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
@@ -524,18 +535,20 @@ Admitted.</div>
 Defined.</div>
 <br/>
 <br/>
-<span class="kwd">Lemma</span> <span class="id">force_memD_ret</span>:<br/>
-&nbsp;&nbsp;<span class="kwd">forall</span> { <span class="id">X</span>: <span class="kwd">Type</span>}<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">x</span>:  <span class="id">Trace</span> <span class="id">X</span>)<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">force_memD_vis</span> : <span class="id">forcememb</span>.<br/>
+<span class="kwd">Lemma</span> <span class="id">force_memD_tau</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> {<span class="id">X</span>: <span class="kwd">Type</span>} (<span class="id">x</span>: <span class="id">Trace</span> <span class="id">X</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">memory</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">mem</span>  (<span class="id">Trace.Ret</span> <span class="id">x</span>) ≡ <span class="id">Trace.Ret</span> <span class="id">x</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof241')">Proof.</div>
-<div class="proofscript" id="proof241">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> (<span class="id">X</span>:=<span class="id">X</span>) <span class="id">mem</span>  (<span class="id">Trace.Tau</span> <span class="id">x</span>) ≡ <span class="id">memD</span> <span class="id">mem</span> <span class="id">x</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof282')">Proof.</div>
+<div class="proofscript" id="proof282">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">Trace.matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">memD</span> <span class="id">_</span> <span class="id">_</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
-&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
 Defined.</div>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">force_memD_tau</span> : <span class="id">forcememb</span>.<br/>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">force_memD_err</span>:<br/>
@@ -543,18 +556,89 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">s</span>:<span class="id">String.string</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">memory</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> (<span class="id">X</span>:=<span class="id">X</span>) <span class="id">mem</span>  (<span class="id">Trace.Err</span> <span class="id">s</span>) ≡ <span class="id">Trace.Err</span> <span class="id">s</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof242')">Proof.</div>
-<div class="proofscript" id="proof242">
+<div class="toggleproof" onclick="toggleDisplay('proof283')">Proof.</div>
+<div class="proofscript" id="proof283">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">Trace.matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">memD</span> <span class="id">_</span> <span class="id">_</span>).<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
 Defined.</div>
 <br/>
-<span class="kwd">Ltac</span> <span class="id">forcememd</span> := <span class="tactic">do</span> [<span class="tactic">rewrite</span> <span class="id">force_memD_ret</span> | <span class="tactic">rewrite</span> <span class="id">force_memD_vis</span> |<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">force_memD_err</span>]; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
 <br/>
-<span class="kwd">Import</span> <span class="id">Trace.MonadVerif</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">force_memD_err</span> : <span class="id">forcememb</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">force_memEffect_ret</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> {<span class="id">X</span>: <span class="kwd">Type</span>} <span class="id">mem</span> <span class="id">x</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memEffect</span> (<span class="id">X</span>:=<span class="id">X</span>) <span class="id">mem</span> (<span class="id">Trace.Ret</span> <span class="id">x</span>) ≡ <span class="id">Trace.Ret</span> (<span class="id">mem</span>, <span class="id">x</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof284')">Proof.</div>
+<div class="proofscript" id="proof284">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">Trace.matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">memEffect</span> <span class="id">_</span> <span class="id">_</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Defined.</div>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">force_memEffect_ret</span> : <span class="id">forcememb</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">force_memEffect_vis</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> { <span class="id">X</span> <span class="id">Y</span>: <span class="kwd">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">LLVMIO.IO</span> <span class="id">Y</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">k</span>: <span class="id">Y</span> -&gt; <span class="id">Trace</span> <span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memEffect</span> <span class="id">mem</span>  (<span class="id">Trace.Vis</span> <span class="id">e</span> <span class="id">k</span>) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">mem_step</span> <span class="id">e</span> <span class="id">mem</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">inl</span> <span class="id">_</span> =&gt; <span class="id">Trace.Err</span> "<span class="id">uninterpretiable</span> <span class="id">IO</span> <span class="id">call</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">inr</span> (<span class="id">m</span>', <span class="id">v</span>) =&gt; <span class="id">Trace.Tau</span> (<span class="id">memEffect</span> <span class="id">m</span>' (<span class="id">k</span> <span class="id">v</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof285')">Proof.</div>
+<div class="proofscript" id="proof285">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">Trace.matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">memEffect</span> <span class="id">_</span> <span class="id">_</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">mem_step</span> <span class="id">e</span> <span class="id">mem</span>).<br/>
+&nbsp;&nbsp;- <span class="id">constructor</span>.<br/>
+&nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">p</span>. <span class="tactic">reflexivity</span>.<br/>
+Defined.</div>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">force_memEffect_vis</span> : <span class="id">forcememb</span>.<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">force_memEffect_tau</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> { <span class="id">X</span>: <span class="kwd">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">x</span>:  <span class="id">Trace</span> <span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">memory</span>),<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memEffect</span> <span class="id">mem</span>  (<span class="id">Trace.Tau</span> <span class="id">x</span>) ≡ <span class="id">memEffect</span> <span class="id">mem</span> <span class="id">x</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof286')">Proof.</div>
+<div class="proofscript" id="proof286">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">Trace.matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">memEffect</span> <span class="id">_</span> <span class="id">_</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Defined.</div>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">force_memEffect_tau</span> : <span class="id">forcememb</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">force_memEffect_err</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> {<span class="id">X</span>: <span class="kwd">Type</span>}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">s</span>:<span class="id">String.string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memEffect</span> (<span class="id">X</span>:=<span class="id">X</span>) <span class="id">mem</span>  (<span class="id">Trace.Err</span> <span class="id">s</span>) ≡ <span class="id">Trace.Err</span> <span class="id">s</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof287')">Proof.</div>
+<div class="proofscript" id="proof287">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> @<span class="id">Trace.matchM</span> <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">memEffect</span> <span class="id">_</span> <span class="id">_</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Defined.</div>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">force_memEffect_err</span> : <span class="id">forcememb</span>.<br/>
+<span class="kwd">Ltac</span> <span class="id">forcemem</span> := <span class="id">autorewrite</span> <span class="kwd">with</span> <span class="id">forcememb</span>.<br/>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">memD_commutes_tauN</span>: <span class="kwd">forall</span> (<span class="id">X</span>: <span class="kwd">Type</span>) <span class="id">n</span> (<span class="id">x</span>: <span class="id">Trace</span> <span class="id">X</span>) <span class="id">mem</span>,<br/>
@@ -573,8 +657,8 @@ Defined.</div>
 <span class="kwd">Lemma</span> <span class="id">memD_annhilates_tauN</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> {<span class="id">X</span>: <span class="kwd">Type</span>} (<span class="id">n</span>: <span class="id">nat</span>) (<span class="id">x</span>: <span class="id">Trace</span> <span class="id">X</span>) (<span class="id">mem</span>: <span class="id">memory</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">mem</span> (<span class="id">tauN</span> <span class="id">n</span> <span class="id">x</span>) ≡  (<span class="id">memD</span> <span class="id">mem</span> <span class="id">x</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof243')">Proof.</div>
-<div class="proofscript" id="proof243">
+<div class="toggleproof" onclick="toggleDisplay('proof288')">Proof.</div>
+<div class="proofscript" id="proof288">
 <br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">memD_commutes_tauN</span>.<br/>
@@ -589,8 +673,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">XEQ</span>: <span class="id">x</span> ≡ <span class="id">x</span>')<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">XRET</span>: <span class="id">exists</span> <span class="id">x0</span>, <span class="id">x</span> = <span class="id">Trace.Ret</span> <span class="id">x0</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">mem</span> <span class="id">x</span> ≡ <span class="id">memD</span> <span class="id">mem</span> <span class="id">x</span>'.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof244')">Proof.</div>
-<div class="proofscript" id="proof244">
+<div class="toggleproof" onclick="toggleDisplay('proof289')">Proof.</div>
+<div class="proofscript" id="proof289">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">X</span>.<br/>
 &nbsp;&nbsp;<span class="id">cofix</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
@@ -629,8 +713,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">x</span> <span class="id">x</span>': <span class="id">Trace</span> <span class="id">X</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span> :<span class="id">memory</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">x</span> ≡ <span class="id">x</span>' -&gt; <span class="id">memD</span> <span class="id">mem</span> <span class="id">x</span> ≡ <span class="id">memD</span> <span class="id">mem</span> <span class="id">x</span>'.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof245')">Proof.</div>
-<div class="proofscript" id="proof245">
+<div class="toggleproof" onclick="toggleDisplay('proof290')">Proof.</div>
+<div class="proofscript" id="proof290">
 Admitted.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">memEffect_proper_wrt_eutt</span>:<br/>
@@ -638,16 +722,16 @@ Admitted.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">x</span> <span class="id">x</span>': <span class="id">Trace</span> <span class="id">X</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span> :<span class="id">memory</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">x</span> ≡ <span class="id">x</span>' -&gt; <span class="id">memEffect</span> <span class="id">mem</span> <span class="id">x</span> ≡ <span class="id">memEffect</span> <span class="id">mem</span> <span class="id">x</span>'.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof246')">Proof.</div>
-<div class="proofscript" id="proof246">
+<div class="toggleproof" onclick="toggleDisplay('proof291')">Proof.</div>
+<div class="proofscript" id="proof291">
 Admitted.</div>
 <br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">register_memD_proper_eutt</span> {<span class="id">X</span>: <span class="kwd">Type</span>}:<br/>
 &nbsp;&nbsp;<span class="id">Proper</span> (<span class="id">eq</span> ==&gt; (@<span class="id">EquivUpToTau</span> <span class="id">IO</span> <span class="id">X</span>) ==&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(@<span class="id">EquivUpToTau</span> <span class="id">IO</span> <span class="id">X</span>)) <span class="id">memD</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof247')">Proof.</div>
-<div class="proofscript" id="proof247">
+<div class="toggleproof" onclick="toggleDisplay('proof292')">Proof.</div>
+<div class="proofscript" id="proof292">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">m1</span> <span class="id">m2</span> <span class="id">meq</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x1</span> <span class="id">x2</span> <span class="id">xeq</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
@@ -657,8 +741,8 @@ Defined.</div>
 <span class="kwd">Instance</span> <span class="id">register_memEffect_proper_eutt</span> {<span class="id">X</span>: <span class="kwd">Type</span>}:<br/>
 &nbsp;&nbsp;<span class="id">Proper</span> (<span class="id">eq</span> ==&gt; (@<span class="id">EquivUpToTau</span> <span class="id">IO</span> <span class="id">X</span>) ==&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(@<span class="id">EquivUpToTau</span> <span class="id">IO</span> (<span class="id">memory</span> *<span class="id">X</span>))) <span class="id">memEffect</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof248')">Proof.</div>
-<div class="proofscript" id="proof248">
+<div class="toggleproof" onclick="toggleDisplay('proof293')">Proof.</div>
+<div class="proofscript" id="proof293">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">m1</span> <span class="id">m2</span> <span class="id">meq</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x1</span> <span class="id">x2</span> <span class="id">xeq</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
@@ -677,8 +761,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> (<span class="id">m</span>', <span class="id">trx</span>') := <span class="id">mem_effect_fin</span> <span class="id">m</span> <span class="id">FINTRX</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">in</span> <span class="id">memD</span> <span class="id">m</span> (<span class="id">bindM</span> <span class="id">trx</span> <span class="id">f</span>) ≡<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">m</span>' (<span class="id">bindM</span> <span class="id">trx</span>' <span class="id">f</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof249')">Proof.</div>
-<div class="proofscript" id="proof249">
+<div class="toggleproof" onclick="toggleDisplay('proof294')">Proof.</div>
+<div class="proofscript" id="proof294">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">FINTRX</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">FINTRX</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="comment">(*&nbsp;Ret&nbsp;*)</span><br/>
@@ -702,10 +786,11 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">mem_step</span> <span class="id">e</span> <span class="id">m</span>) <span class="id">eqn</span>:<span class="id">MEMSTEP</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id">euttnorm</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">forcememd</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">forcemem</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">MEMSTEP</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">forcememd</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">forcemem</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;+ <span class="id">euttnorm</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p</span> <span class="id">eqn</span>:<span class="id">P</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
@@ -717,7 +802,7 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">mem_effect_fin</span> <span class="id">m0</span> (<span class="id">FINK</span> <span class="id">y</span>)) <span class="id">eqn</span>:<span class="id">EFF</span>'.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">EFF</span>; <span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">forcememd</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">forcemem</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">MEMSTEP</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
 Defined.</div>
@@ -730,8 +815,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">m</span>: <span class="id">memory</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">m</span> (<span class="id">bindM</span> <span class="id">trx</span> <span class="id">f</span>) ≡<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> (<span class="id">fst</span> (<span class="id">mem_effect_fin</span> <span class="id">m</span> <span class="id">FINTRX</span>)) (<span class="id">bindM</span> (<span class="id">snd</span> (<span class="id">mem_effect_fin</span> <span class="id">m</span> <span class="id">FINTRX</span>)) <span class="id">f</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof250')">Proof.</div>
-<div class="proofscript" id="proof250">
+<div class="toggleproof" onclick="toggleDisplay('proof295')">Proof.</div>
+<div class="proofscript" id="proof295">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">assert</span> (<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> (<span class="id">m</span>', <span class="id">trx</span>') := <span class="id">mem_effect_fin</span> <span class="id">m</span> <span class="id">FINTRX</span><br/>
@@ -754,8 +839,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">out</span> =&gt;  <span class="kwd">match</span> <span class="id">out</span> <span class="kwd">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">m</span>', <span class="id">x</span>) =&gt; <span class="id">memD</span> <span class="id">m</span>' (<span class="id">bindM</span> (<span class="id">Ret</span> <span class="id">x</span>) <span class="id">f</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof251')">Proof.</div>
-<div class="proofscript" id="proof251">
+<div class="toggleproof" onclick="toggleDisplay('proof296')">Proof.</div>
+<div class="proofscript" id="proof296">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">Y</span>.<br/>
 &nbsp;&nbsp;<span class="id">cofix</span> <span class="id">CIH</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
@@ -792,7 +877,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> (@<span class="id">Trace.matchM</span>) <span class="kwd">with</span> (<span class="id">i</span> := <span class="id">memEffect</span> <span class="id">_</span> <span class="id">_</span>); <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">forcememd</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">forcemem</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Guarded</span>.<br/>
 Defined.</div>
 <br/>
@@ -804,8 +890,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> (<span class="id">m</span>', <span class="id">trx</span>') := <span class="id">mem_effect_fin</span> <span class="id">m</span> <span class="id">FINTRX</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">in</span> <span class="id">memD</span> <span class="id">m</span> <span class="id">trx</span> ≡<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">m</span>' (<span class="id">bindM</span> <span class="id">trx</span>' (<span class="id">Ret</span> (<span class="id">Event</span>:=<span class="id">IO</span>) (<span class="id">X</span>:=<span class="id">X</span>))).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof252')">Proof.</div>
-<div class="proofscript" id="proof252">
+<div class="toggleproof" onclick="toggleDisplay('proof297')">Proof.</div>
+<div class="proofscript" id="proof297">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">BIND_RET</span>: <span class="id">memD</span> <span class="id">m</span> <span class="id">trx</span> ≡ <span class="id">memD</span> <span class="id">m</span> (<span class="id">bindM</span> <span class="id">trx</span> (<span class="id">Ret</span> (<span class="id">X</span>:=<span class="id">X</span>)))).<br/>
 &nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
@@ -829,8 +915,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">m</span>: <span class="id">memory</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">m</span> <span class="id">trx</span> ≡<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> (<span class="id">fst</span> (<span class="id">mem_effect_fin</span> <span class="id">m</span> <span class="id">FINTRX</span>)) (<span class="id">bindM</span> (<span class="id">snd</span> (<span class="id">mem_effect_fin</span> <span class="id">m</span> <span class="id">FINTRX</span>)) (<span class="id">Ret</span> (<span class="id">Event</span>:=<span class="id">IO</span>) (<span class="id">X</span>:=<span class="id">X</span>))).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof253')">Proof.</div>
-<div class="proofscript" id="proof253">
+<div class="toggleproof" onclick="toggleDisplay('proof298')">Proof.</div>
+<div class="proofscript" id="proof298">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">assert</span> (<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> (<span class="id">m</span>', <span class="id">trx</span>') := <span class="id">mem_effect_fin</span> <span class="id">m</span> <span class="id">FINTRX</span><br/>
@@ -847,8 +933,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">m</span>: <span class="id">memory</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">m</span> <span class="id">trx</span> ≡ <span class="id">bindM</span> (<span class="id">memEffect</span> <span class="id">m</span> <span class="id">trx</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">out</span> : <span class="id">memory</span> * <span class="id">X</span> =&gt; <span class="id">memD</span> (<span class="id">fst</span> <span class="id">out</span>) (<span class="id">Ret</span> (<span class="id">snd</span> <span class="id">out</span>))).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof254')">Proof.</div>
-<div class="proofscript" id="proof254">
+<div class="toggleproof" onclick="toggleDisplay('proof299')">Proof.</div>
+<div class="proofscript" id="proof299">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">TRX_AS_BIND</span>: <span class="id">memD</span> <span class="id">m</span> <span class="id">trx</span> ≡ <span class="id">memD</span> <span class="id">m</span> (<span class="id">bindM</span> <span class="id">trx</span> (<span class="id">Ret</span> (<span class="id">X</span>:=<span class="id">X</span>)))).<br/>
 &nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
@@ -874,8 +960,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memEffect</span> <span class="id">m</span> (<span class="id">bindM</span> <span class="id">trx</span> <span class="id">f</span>) ≡<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">bindM</span> (<span class="id">memEffect</span> <span class="id">m</span> <span class="id">trx</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">out</span>: <span class="id">memory</span> * <span class="id">X</span> =&gt; <span class="id">memEffect</span> (<span class="id">fst</span> <span class="id">out</span>) (<span class="id">f</span> (<span class="id">snd</span> <span class="id">out</span>))).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof255')">Proof.</div>
-<div class="proofscript" id="proof255">
+<div class="toggleproof" onclick="toggleDisplay('proof300')">Proof.</div>
+<div class="proofscript" id="proof300">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">f</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">trx</span>.<br/>
 &nbsp;&nbsp;<span class="id">cofix</span> <span class="id">CIH</span>.<br/>
@@ -920,8 +1006,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">FGEQUIV</span>: <span class="id">PointwiseMemEffectEUTT</span> <span class="id">f</span> <span class="id">g</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span> :<span class="id">memory</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memEffect</span> <span class="id">mem</span> (<span class="id">bindM</span> <span class="id">x</span> <span class="id">f</span>) ≡ <span class="id">memEffect</span> <span class="id">mem</span> (<span class="id">bindM</span> <span class="id">x</span> <span class="id">g</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof256')">Proof.</div>
-<div class="proofscript" id="proof256">
+<div class="toggleproof" onclick="toggleDisplay('proof301')">Proof.</div>
+<div class="proofscript" id="proof301">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">x</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">mem</span>.<br/>
@@ -986,8 +1072,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">FGEQUIV</span>: <span class="id">PointwiseMemEffectEUTT</span> <span class="id">f</span> <span class="id">g</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span> :<span class="id">memory</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">memD</span> <span class="id">mem</span> (<span class="id">Trace.bindM</span> <span class="id">x</span> <span class="id">f</span>) ≡ <span class="id">memD</span> <span class="id">mem</span> (<span class="id">Trace.bindM</span> <span class="id">x</span> <span class="id">g</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof257')">Proof.</div>
-<div class="proofscript" id="proof257">
+<div class="toggleproof" onclick="toggleDisplay('proof302')">Proof.</div>
+<div class="proofscript" id="proof302">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">rewrite</span> <span class="id">rewrite_memD_as_memEffect</span>.<br/>
@@ -1002,6 +1088,8 @@ Defined.</div>
 Defined.</div>
 <br/>
 <br/>
+<span class="id">Opaque</span> <span class="id">add_all_index</span>.<br/>
+<span class="id">Opaque</span> <span class="id">lookup_all_index</span>.<br/>
 <br/>
 <br/>
 <br/>

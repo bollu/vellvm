@@ -37,8 +37,8 @@
 &nbsp;&nbsp;<span class="kwd">Include</span> <span class="id">UsualIsEqOrig</span>.<br/>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">eq_dec</span> : <span class="kwd">forall</span> (<span class="id">x</span> <span class="id">y</span> : <span class="id">pc</span>), {<span class="id">x</span> = <span class="id">y</span>} + {<span class="id">x</span> &lt;&gt; <span class="id">y</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof165')">Proof.</div>
-<div class="proofscript" id="proof165">
+<div class="toggleproof" onclick="toggleDisplay('proof199')">Proof.</div>
+<div class="proofscript" id="proof199">
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x</span> <span class="id">y</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">x</span> <span class="kwd">as</span> [<span class="id">xf</span> <span class="id">xi</span> <span class="id">xp</span>]; <span class="tactic">destruct</span> <span class="id">y</span> <span class="kwd">as</span> [<span class="id">yf</span> <span class="id">yi</span> <span class="id">yp</span>].<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">xf</span> == <span class="id">yf</span>).<br/>

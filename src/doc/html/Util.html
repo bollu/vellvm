@@ -32,8 +32,8 @@
 <br/>
 <span class="kwd">Lemma</span> <span class="id">pred_minus_S</span> : <span class="kwd">forall</span> <span class="id">m</span> <span class="id">n</span>,<br/>
 &nbsp;&nbsp;<span class="id">pred</span> <span class="id">m</span> - <span class="id">n</span> = <span class="id">m</span> - <span class="id">S</span> <span class="id">n</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof45')">Proof.</div>
-<div class="proofscript" id="proof45">
+<div class="toggleproof" onclick="toggleDisplay('proof79')">Proof.</div>
+<div class="proofscript" id="proof79">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">m</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
@@ -43,8 +43,8 @@ Qed.</div>
 | <span class="id">rtc_step</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span> <span class="id">c</span>, <span class="id">R</span> <span class="id">a</span> <span class="id">b</span> -&gt; <span class="id">rtc</span> <span class="id">R</span> <span class="id">b</span> <span class="id">c</span> -&gt; <span class="id">rtc</span> <span class="id">R</span> <span class="id">a</span> <span class="id">c</span>.<br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">rtc_Transitive</span> {<span class="id">A</span>} {<span class="id">R</span>} : <span class="id">Transitive</span> (@<span class="id">rtc</span> <span class="id">A</span> <span class="id">R</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof46')">Proof.</div>
-<div class="proofscript" id="proof46">
+<div class="toggleproof" onclick="toggleDisplay('proof80')">Proof.</div>
+<div class="proofscript" id="proof80">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Transitive</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">H</span>. <span class="tactic">auto</span>. <span class="id">econstructor</span>; <span class="tactic">eauto</span>.<br/>
 Qed.</div>
@@ -58,8 +58,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">Forall_map_impl</span> {<span class="id">A</span> <span class="id">B</span>} : <span class="kwd">forall</span> (<span class="id">P</span>:<span class="id">A</span> -&gt; <span class="kwd">Prop</span>) (<span class="id">Q</span>:<span class="id">B</span> -&gt; <span class="kwd">Prop</span>) (<span class="id">f</span>:<span class="id">A</span> -&gt; <span class="id">B</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">forall</span> <span class="id">a</span>, <span class="id">P</span> <span class="id">a</span> -&gt; <span class="id">Q</span> (<span class="id">f</span> <span class="id">a</span>)) -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">l</span> : <span class="id">list</span> <span class="id">A</span>, <span class="id">Forall</span> <span class="id">P</span> <span class="id">l</span> -&gt; <span class="id">Forall</span> <span class="id">Q</span> (<span class="id">map</span> <span class="id">f</span> <span class="id">l</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof47')">Proof.</div>
-<div class="proofscript" id="proof47">
+<div class="toggleproof" onclick="toggleDisplay('proof81')">Proof.</div>
+<div class="proofscript" id="proof81">
 &nbsp;&nbsp;<span class="tactic">intros</span> ? ? ? <span class="id">Himpl</span> ? <span class="id">Hforall</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Forall_forall</span> <span class="kwd">in</span> *. <span class="tactic">intros</span> ? <span class="id">Hin</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">in_map_iff</span> <span class="kwd">in</span> <span class="id">Hin</span> <span class="kwd">as</span> [? [? ?]]; <span class="tactic">subst</span>.<br/>
@@ -74,15 +74,15 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">Forall2_impl</span> : <span class="kwd">forall</span> {<span class="id">A</span> <span class="id">B</span>} (<span class="id">P</span> <span class="id">Q</span> : <span class="id">A</span> -&gt; <span class="id">B</span> -&gt; <span class="kwd">Prop</span>) <span class="id">l1</span> <span class="id">l2</span><br/>
 &nbsp;&nbsp;(<span class="id">Himpl</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span>, <span class="id">P</span> <span class="id">a</span> <span class="id">b</span> -&gt; <span class="id">Q</span> <span class="id">a</span> <span class="id">b</span>), <span class="id">Forall2</span> <span class="id">P</span> <span class="id">l1</span> <span class="id">l2</span> -&gt; <span class="id">Forall2</span> <span class="id">Q</span> <span class="id">l1</span> <span class="id">l2</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof48')">Proof.</div>
-<div class="proofscript" id="proof48">
+<div class="toggleproof" onclick="toggleDisplay('proof82')">Proof.</div>
+<div class="proofscript" id="proof82">
  <span class="tactic">intros</span>; <span class="tactic">induction</span> <span class="id">H</span>; <span class="tactic">auto</span>. Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">Forall2_impl</span>' : <span class="kwd">forall</span> {<span class="id">A</span> <span class="id">B</span>} (<span class="id">P</span> <span class="id">Q</span> : <span class="id">A</span> -&gt; <span class="id">B</span> -&gt; <span class="kwd">Prop</span>) <span class="id">l1</span> <span class="id">l2</span><br/>
 &nbsp;&nbsp;(<span class="id">Himpl</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span>, <span class="id">In</span> <span class="id">a</span> <span class="id">l1</span> -&gt; <span class="id">P</span> <span class="id">a</span> <span class="id">b</span> -&gt; <span class="id">Q</span> <span class="id">a</span> <span class="id">b</span>), <br/>
 &nbsp;&nbsp;<span class="id">Forall2</span> <span class="id">P</span> <span class="id">l1</span> <span class="id">l2</span> -&gt; <span class="id">Forall2</span> <span class="id">Q</span> <span class="id">l1</span> <span class="id">l2</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof49')">Proof.</div>
-<div class="proofscript" id="proof49">
+<div class="toggleproof" onclick="toggleDisplay('proof83')">Proof.</div>
+<div class="proofscript" id="proof83">
 &nbsp;&nbsp;<span class="tactic">intros</span>; <span class="tactic">induction</span> <span class="id">H</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="id">constructor</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">Himpl</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
@@ -91,8 +91,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">Forall2_length</span> : <span class="kwd">forall</span> {<span class="id">A</span> <span class="id">B</span>} (<span class="id">P</span> : <span class="id">A</span> -&gt; <span class="id">B</span> -&gt; <span class="kwd">Prop</span>) <span class="id">l1</span> <span class="id">l2</span>,<br/>
 &nbsp;&nbsp;<span class="id">Forall2</span> <span class="id">P</span> <span class="id">l1</span> <span class="id">l2</span> -&gt; <span class="id">length</span> <span class="id">l1</span> = <span class="id">length</span> <span class="id">l2</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof50')">Proof.</div>
-<div class="proofscript" id="proof50">
+<div class="toggleproof" onclick="toggleDisplay('proof84')">Proof.</div>
+<div class="proofscript" id="proof84">
  <span class="tactic">intros</span>; <span class="tactic">induction</span> <span class="id">H</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>. Qed.</div>
 <br/>
 <br/>
@@ -116,8 +116,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">not_Nth_nil</span> : <span class="kwd">forall</span> <span class="id">X</span> <span class="id">n</span> (<span class="id">x</span>:<span class="id">X</span>),<br/>
 &nbsp;&nbsp;~ <span class="id">Nth</span> [] <span class="id">n</span> <span class="id">x</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof51')">Proof.</div>
-<div class="proofscript" id="proof51">
+<div class="toggleproof" onclick="toggleDisplay('proof85')">Proof.</div>
+<div class="proofscript" id="proof85">
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">discriminate</span>. <br/>
 Qed.</div>
 <br/>
@@ -126,8 +126,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">Nth_nth_default</span> : <span class="kwd">forall</span> <span class="id">X</span> <span class="id">l</span> <span class="id">n</span> (<span class="id">a</span>:<span class="id">X</span>) <span class="id">d</span>,<br/>
 &nbsp;&nbsp;<span class="id">Nth</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">nth_default</span> <span class="id">d</span> <span class="id">l</span> <span class="id">n</span> = <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof52')">Proof.</div>
-<div class="proofscript" id="proof52">
+<div class="toggleproof" onclick="toggleDisplay('proof86')">Proof.</div>
+<div class="proofscript" id="proof86">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">nth_default</span>. <span class="tactic">rewrite</span> <span class="id">H</span>; <span class="tactic">auto</span>.<br/>
@@ -137,8 +137,8 @@ Qed.</div>
 &nbsp;&nbsp;(<span class="id">Hnth</span> : <span class="id">Nth</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span>)<br/>
 &nbsp;&nbsp;(<span class="id">Heq</span> : <span class="id">b</span> = <span class="id">f</span> <span class="id">a</span>),<br/>
 &nbsp;&nbsp;<span class="id">Nth</span> (<span class="id">map</span> <span class="id">f</span> <span class="id">l</span>) <span class="id">n</span> <span class="id">b</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof53')">Proof.</div>
-<div class="proofscript" id="proof53">
+<div class="toggleproof" onclick="toggleDisplay('proof87')">Proof.</div>
+<div class="proofscript" id="proof87">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">inversion</span> <span class="id">Hnth</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">n</span>. <span class="tactic">inversion</span> <span class="id">Hnth</span>. <span class="tactic">simpl</span>; <span class="tactic">auto</span>. <br/>
@@ -163,8 +163,8 @@ Defined.</div>
 &nbsp;&nbsp;<span class="id">Forall</span> <span class="id">P</span> <span class="id">l</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">Nth</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">P</span> <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof54')">Proof.</div>
-<div class="proofscript" id="proof54">
+<div class="toggleproof" onclick="toggleDisplay('proof88')">Proof.</div>
+<div class="proofscript" id="proof88">
 &nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">l</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">n</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">inversion</span> <span class="id">H0</span>; <span class="tactic">subst</span>. <span class="tactic">discriminate</span>.<br/>
@@ -177,8 +177,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="id">Nth</span> <span class="id">l2</span> <span class="id">n</span> <span class="id">b</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">Forall2</span> <span class="id">P</span> <span class="id">l1</span> <span class="id">l2</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">exists</span> (<span class="id">a</span>:<span class="id">A</span>), (<span class="id">Nth</span> <span class="id">l1</span> <span class="id">n</span> <span class="id">a</span>) /\ <span class="id">P</span> <span class="id">a</span> <span class="id">b</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof55')">Proof.</div>
-<div class="proofscript" id="proof55">
+<div class="toggleproof" onclick="toggleDisplay('proof89')">Proof.</div>
+<div class="proofscript" id="proof89">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">n</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">l2</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">H0</span>; <span class="tactic">subst</span>.<br/>
@@ -192,8 +192,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">Forall_map_eq</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> (<span class="id">f</span> <span class="id">g</span> : <span class="id">A</span> -&gt; <span class="id">B</span>) <span class="id">l</span><br/>
 &nbsp;&nbsp;(<span class="id">Hall</span> : <span class="id">Forall</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">f</span> <span class="id">x</span> = <span class="id">g</span> <span class="id">x</span>) <span class="id">l</span>),<br/>
 &nbsp;&nbsp;<span class="id">map</span> <span class="id">f</span> <span class="id">l</span> = <span class="id">map</span> <span class="id">g</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof56')">Proof.</div>
-<div class="proofscript" id="proof56">
+<div class="toggleproof" onclick="toggleDisplay('proof90')">Proof.</div>
+<div class="proofscript" id="proof90">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">auto</span>; <span class="tactic">intro</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">Hall</span>; <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">H1</span>, <span class="id">IHl</span>; <span class="tactic">auto</span>.<br/>
@@ -208,8 +208,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">replace_length</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">l</span> <span class="id">n</span> (<span class="id">a</span> : <span class="id">A</span>),<br/>
 &nbsp;&nbsp;<span class="id">length</span> (<span class="tactic">replace</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span>) = <span class="id">length</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof57')">Proof.</div>
-<div class="proofscript" id="proof57">
+<div class="toggleproof" onclick="toggleDisplay('proof91')">Proof.</div>
+<div class="proofscript" id="proof91">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
@@ -217,8 +217,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">Nth_replace</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">l</span> <span class="id">n</span> (<span class="id">a</span> : <span class="id">A</span>), <span class="id">n</span> &lt; <span class="id">length</span> <span class="id">l</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">Nth</span> (<span class="tactic">replace</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span>) <span class="id">n</span> <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof58')">Proof.</div>
-<div class="proofscript" id="proof58">
+<div class="toggleproof" onclick="toggleDisplay('proof92')">Proof.</div>
+<div class="proofscript" id="proof92">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> <span class="id">constructor</span>.<br/>
@@ -228,8 +228,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">nth_error_replace</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">l</span> <span class="id">n</span> (<span class="id">a</span> : <span class="id">A</span>) <span class="id">n</span>' (<span class="id">Hn</span> : <span class="id">n</span> &lt; <span class="id">length</span> <span class="id">l</span>),<br/>
 &nbsp;&nbsp;<span class="id">nth_error</span> (<span class="tactic">replace</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span>) <span class="id">n</span>' = <span class="kwd">if</span> <span class="id">beq_nat</span> <span class="id">n</span> <span class="id">n</span>' <span class="kwd">then</span> <span class="id">Some</span> <span class="id">a</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span>'.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof59')">Proof.</div>
-<div class="proofscript" id="proof59">
+<div class="toggleproof" onclick="toggleDisplay('proof93')">Proof.</div>
+<div class="proofscript" id="proof93">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">try</span> (<span class="id">solve</span> [<span class="tactic">inversion</span> <span class="id">Hn</span>]); <span class="tactic">simpl</span> <span class="kwd">in</span> *.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">destruct</span> <span class="id">n</span>'; <span class="tactic">auto</span>; <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">IHl</span>; <span class="tactic">omega</span>.<br/>
@@ -237,8 +237,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">replace_over</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">l</span> <span class="id">n</span> (<span class="id">a</span> : <span class="id">A</span>) (<span class="id">Hnlt</span> : ~<span class="id">n</span> &lt; <span class="id">length</span> <span class="id">l</span>),<br/>
 &nbsp;&nbsp;<span class="tactic">replace</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span> = <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof60')">Proof.</div>
-<div class="proofscript" id="proof60">
+<div class="toggleproof" onclick="toggleDisplay('proof94')">Proof.</div>
+<div class="proofscript" id="proof94">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">auto</span>; <span class="tactic">try</span> <span class="tactic">omega</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">IHl</span>; <span class="tactic">auto</span>; <span class="tactic">omega</span>.<br/>
 Qed.</div>
@@ -252,14 +252,14 @@ Qed.</div>
 &nbsp;&nbsp;<span class="kwd">end</span>.<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">replicate_length</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">n</span> (<span class="id">a</span> : <span class="id">A</span>), <span class="id">length</span> (<span class="id">replicate</span> <span class="id">a</span> <span class="id">n</span>) = <span class="id">n</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof61')">Proof.</div>
-<div class="proofscript" id="proof61">
+<div class="toggleproof" onclick="toggleDisplay('proof95')">Proof.</div>
+<div class="proofscript" id="proof95">
  <span class="tactic">induction</span> <span class="id">n</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>. Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">replicate_Nth</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">n</span> (<span class="id">a</span> : <span class="id">A</span>) <span class="id">n</span>' (<span class="id">Hlt</span> : <span class="id">n</span>' &lt; <span class="id">n</span>),<br/>
 &nbsp;&nbsp;<span class="id">Nth</span> (<span class="id">replicate</span> <span class="id">a</span> <span class="id">n</span>) <span class="id">n</span>' <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof62')">Proof.</div>
-<div class="proofscript" id="proof62">
+<div class="toggleproof" onclick="toggleDisplay('proof96')">Proof.</div>
+<div class="proofscript" id="proof96">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">n</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; [<span class="tactic">inversion</span> <span class="id">Hlt</span>|].<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">n</span>'; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>; <span class="tactic">apply</span> <span class="id">IHn</span>; <span class="tactic">omega</span>.<br/>
@@ -275,8 +275,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">Forall_app</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">P</span> (<span class="id">l</span> <span class="id">l</span>': <span class="id">list</span> <span class="id">A</span>),<br/>
 &nbsp;&nbsp;<span class="id">Forall</span> <span class="id">P</span> (<span class="id">l</span> ++ <span class="id">l</span>') &lt;-&gt; <span class="id">Forall</span> <span class="id">P</span> <span class="id">l</span> /\ <span class="id">Forall</span> <span class="id">P</span> <span class="id">l</span>'.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof63')">Proof.</div>
-<div class="proofscript" id="proof63">
+<div class="toggleproof" onclick="toggleDisplay('proof97')">Proof.</div>
+<div class="proofscript" id="proof97">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">split</span>; <span class="tactic">auto</span>; <span class="tactic">intros</span> [? ?]; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">split</span>; [<span class="tactic">intro</span> <span class="id">H</span> | <span class="tactic">intros</span> [<span class="id">H</span> ?]]; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">subst</span>.<br/>
@@ -286,8 +286,8 @@ Qed.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">interval_lt</span> : <span class="kwd">forall</span> <span class="id">m</span> <span class="id">n</span>, <span class="id">Forall</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">x</span> &lt; <span class="id">m</span>) (<span class="id">interval</span> <span class="id">n</span> <span class="id">m</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof64')">Proof.</div>
-<div class="proofscript" id="proof64">
+<div class="toggleproof" onclick="toggleDisplay('proof98')">Proof.</div>
+<div class="proofscript" id="proof98">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">m</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">le_lt_dec</span> <span class="id">n</span> <span class="id">m</span>); <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Forall_app</span>; <span class="tactic">split</span>; <span class="tactic">auto</span>.<br/>
@@ -295,24 +295,24 @@ Qed.</div>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">interval_ge</span> : <span class="kwd">forall</span> <span class="id">m</span> <span class="id">n</span>, <span class="id">Forall</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">x</span> &gt;= <span class="id">n</span>) (<span class="id">interval</span> <span class="id">n</span> <span class="id">m</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof65')">Proof.</div>
-<div class="proofscript" id="proof65">
+<div class="toggleproof" onclick="toggleDisplay('proof99')">Proof.</div>
+<div class="proofscript" id="proof99">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">m</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">le_lt_dec</span> <span class="id">n</span> <span class="id">m</span>); <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Forall_app</span>; <span class="tactic">split</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">interval_nil</span> : <span class="kwd">forall</span> <span class="id">n</span>, <span class="id">interval</span> <span class="id">n</span> <span class="id">n</span> = [].<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof66')">Proof.</div>
-<div class="proofscript" id="proof66">
+<div class="toggleproof" onclick="toggleDisplay('proof100')">Proof.</div>
+<div class="proofscript" id="proof100">
 &nbsp;&nbsp;<span class="tactic">intro</span>; <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">auto</span>; <span class="tactic">unfold</span> <span class="id">interval</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">le_lt_dec</span> (<span class="id">S</span> <span class="id">n</span>) <span class="id">n</span>); <span class="tactic">auto</span>; <span class="tactic">omega</span>.<br/>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">interval_alt</span> : <span class="kwd">forall</span> <span class="id">m</span> <span class="id">n</span>, <span class="id">interval</span> <span class="id">n</span> <span class="id">m</span> = <br/>
 &nbsp;&nbsp;<span class="kwd">if</span> <span class="id">lt_dec</span> <span class="id">n</span> <span class="id">m</span> <span class="kwd">then</span> <span class="id">n</span> :: <span class="id">interval</span> (<span class="id">S</span> <span class="id">n</span>) <span class="id">m</span> <span class="kwd">else</span> [].<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof67')">Proof.</div>
-<div class="proofscript" id="proof67">
+<div class="toggleproof" onclick="toggleDisplay('proof101')">Proof.</div>
+<div class="proofscript" id="proof101">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">m</span>; <span class="tactic">auto</span>; <span class="tactic">intro</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">interval</span> <span class="tactic">at</span> 1; <span class="id">fold</span> <span class="id">interval</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">le_lt_dec</span> <span class="id">n</span> <span class="id">m</span>); <span class="tactic">destruct</span> (<span class="id">lt_dec</span> <span class="id">n</span> (<span class="id">S</span> <span class="id">m</span>)); <span class="tactic">auto</span>; <span class="tactic">try</span> <span class="tactic">omega</span>.<br/>
@@ -325,8 +325,8 @@ Qed.</div>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">interval_length</span> : <span class="kwd">forall</span> <span class="id">m</span> <span class="id">n</span>, <span class="id">length</span> (<span class="id">interval</span> <span class="id">n</span> <span class="id">m</span>) = <span class="id">m</span> - <span class="id">n</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof68')">Proof.</div>
-<div class="proofscript" id="proof68">
+<div class="toggleproof" onclick="toggleDisplay('proof102')">Proof.</div>
+<div class="proofscript" id="proof102">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">m</span>; <span class="tactic">auto</span>; <span class="tactic">intro</span>; <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">le_lt_dec</span> <span class="id">n</span> <span class="id">m</span>).<br/>
 &nbsp;&nbsp;- <span class="tactic">rewrite</span> <span class="id">app_length</span>, <span class="id">IHm</span>; <span class="tactic">simpl</span>.<br/>
@@ -335,21 +335,21 @@ Qed.</div>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">nth_error_nil</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">n</span>, <span class="id">nth_error</span> ([] : <span class="id">list</span> <span class="id">A</span>) <span class="id">n</span> = <span class="id">None</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof69')">Proof.</div>
-<div class="proofscript" id="proof69">
+<div class="toggleproof" onclick="toggleDisplay('proof103')">Proof.</div>
+<div class="proofscript" id="proof103">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">n</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">nth_error_In</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">l</span> <span class="id">n</span> (<span class="id">a</span> : <span class="id">A</span>), <span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span> = <span class="id">Some</span> <span class="id">a</span> -&gt; <span class="id">In</span> <span class="id">a</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof70')">Proof.</div>
-<div class="proofscript" id="proof70">
+<div class="toggleproof" onclick="toggleDisplay('proof104')">Proof.</div>
+<div class="proofscript" id="proof104">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">eauto</span>.      <br/>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">in_nth_error</span> : <span class="kwd">forall</span> <span class="id">A</span> (<span class="id">x</span> : <span class="id">A</span>) <span class="id">l</span>, <span class="id">In</span> <span class="id">x</span> <span class="id">l</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">exists</span> <span class="id">n</span>, <span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span> = <span class="id">Some</span> <span class="id">x</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof71')">Proof.</div>
-<div class="proofscript" id="proof71">
+<div class="toggleproof" onclick="toggleDisplay('proof105')">Proof.</div>
+<div class="proofscript" id="proof105">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">H</span>.<br/>
@@ -359,8 +359,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">nth_error_in</span> : <span class="kwd">forall</span> {<span class="id">A</span>} (<span class="id">l</span> : <span class="id">list</span> <span class="id">A</span>) <span class="id">n</span> <span class="id">a</span>,<br/>
 &nbsp;&nbsp;<span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span> = <span class="id">Some</span> <span class="id">a</span> -&gt; <span class="id">n</span> &lt; <span class="id">length</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof72')">Proof.</div>
-<div class="proofscript" id="proof72">
+<div class="toggleproof" onclick="toggleDisplay('proof106')">Proof.</div>
+<div class="proofscript" id="proof106">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">subst</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">omega</span>.<br/>
 &nbsp;&nbsp;- <span class="id">specialize</span> (<span class="id">IHl</span> <span class="id">_</span> <span class="id">_</span> <span class="id">H</span>); <span class="tactic">omega</span>.<br/>
@@ -368,8 +368,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">nth_error_succeeds</span> : <span class="kwd">forall</span> {<span class="id">A</span>} (<span class="id">l</span> : <span class="id">list</span> <span class="id">A</span>) <span class="id">n</span>, <span class="id">n</span> &lt; <span class="id">length</span> <span class="id">l</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">exists</span> <span class="id">a</span>, <span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span> = <span class="id">Some</span> <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof73')">Proof.</div>
-<div class="proofscript" id="proof73">
+<div class="toggleproof" onclick="toggleDisplay('proof107')">Proof.</div>
+<div class="proofscript" id="proof107">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">simpl</span>; <span class="tactic">eauto</span>.<br/>
@@ -386,8 +386,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">distinct_inj</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">l</span> <span class="id">i</span> <span class="id">j</span> (<span class="id">a</span> : <span class="id">A</span>) (<span class="id">Hdistinct</span> : <span class="id">distinct</span> <span class="id">l</span>)<br/>
 &nbsp;&nbsp;(<span class="id">Hi</span> : <span class="id">Nth</span> <span class="id">l</span> <span class="id">i</span> <span class="id">a</span>) (<span class="id">Hj</span> : <span class="id">Nth</span> <span class="id">l</span> <span class="id">j</span> <span class="id">a</span>), <span class="id">i</span> = <span class="id">j</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof74')">Proof.</div>
-<div class="proofscript" id="proof74">
+<div class="toggleproof" onclick="toggleDisplay('proof108')">Proof.</div>
+<div class="proofscript" id="proof108">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">unfold</span> <span class="id">Nth</span> <span class="kwd">in</span> *; <span class="tactic">destruct</span> <span class="id">i</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *;<br/>
 &nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">Hi</span>; <span class="tactic">subst</span>; <span class="tactic">destruct</span> <span class="id">j</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">inversion</span> <span class="id">Hj</span>; <span class="tactic">subst</span>;<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">Hdistinct</span> <span class="kwd">as</span> [<span class="id">Hin</span> ?]; <span class="tactic">eauto</span>.<br/>
@@ -397,8 +397,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">distinct_snoc</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">l</span> (<span class="id">a</span> : <span class="id">A</span>) (<span class="id">Hdistinct</span> : <span class="id">distinct</span> <span class="id">l</span>)<br/>
 &nbsp;&nbsp;(<span class="id">Hin</span> : ~<span class="id">In</span> <span class="id">a</span> <span class="id">l</span>), <span class="id">distinct</span> (<span class="id">l</span> ++ [<span class="id">a</span>]).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof75')">Proof.</div>
-<div class="proofscript" id="proof75">
+<div class="toggleproof" onclick="toggleDisplay('proof109')">Proof.</div>
+<div class="proofscript" id="proof109">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">Hdistinct</span>; <span class="tactic">split</span>; <span class="tactic">eauto</span>; <span class="tactic">intro</span> <span class="id">Hin</span>'.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">in_app_iff</span> <span class="kwd">in</span> *; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">destruct</span> <span class="id">Hin</span>' <span class="kwd">as</span> [? | [? | ?]];<br/>
@@ -406,8 +406,8 @@ Qed.</div>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">interval_distinct</span> : <span class="kwd">forall</span> <span class="id">m</span> <span class="id">n</span>, <span class="id">distinct</span> (<span class="id">interval</span> <span class="id">n</span> <span class="id">m</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof76')">Proof.</div>
-<div class="proofscript" id="proof76">
+<div class="toggleproof" onclick="toggleDisplay('proof110')">Proof.</div>
+<div class="proofscript" id="proof110">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">m</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">le_lt_dec</span> <span class="id">n</span> <span class="id">m</span>); <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">distinct_snoc</span>; <span class="tactic">auto</span>.<br/>
@@ -418,8 +418,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">Nth_app1</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">l</span> <span class="id">n</span> (<span class="id">a</span> : <span class="id">A</span>) (<span class="id">Hnth</span> : <span class="id">Nth</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span>) <span class="id">l</span>', <br/>
 &nbsp;&nbsp;<span class="id">Nth</span> (<span class="id">l</span> ++ <span class="id">l</span>') <span class="id">n</span> <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof77')">Proof.</div>
-<div class="proofscript" id="proof77">
+<div class="toggleproof" onclick="toggleDisplay('proof111')">Proof.</div>
+<div class="proofscript" id="proof111">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>; <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">unfold</span> <span class="id">Nth</span> <span class="kwd">in</span> *; <span class="tactic">simpl</span> <span class="kwd">in</span> *;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">Hnth</span>; <span class="tactic">subst</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="id">erewrite</span> <span class="id">IHl</span>; <span class="tactic">eauto</span>.<br/>
@@ -427,8 +427,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">Nth_app2</span> : <span class="kwd">forall</span> {<span class="id">A</span>} <span class="id">l</span> <span class="id">n</span> (<span class="id">a</span> : <span class="id">A</span>) (<span class="id">Hnth</span> : <span class="id">Nth</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span>) <span class="id">l</span>',<br/>
 &nbsp;&nbsp;<span class="id">Nth</span> (<span class="id">l</span>' ++ <span class="id">l</span>) (<span class="id">n</span> + <span class="id">length</span> <span class="id">l</span>') <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof78')">Proof.</div>
-<div class="proofscript" id="proof78">
+<div class="toggleproof" onclick="toggleDisplay('proof112')">Proof.</div>
+<div class="proofscript" id="proof112">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>'; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">rewrite</span> &lt;- <span class="id">plus_n_O</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">rewrite</span> &lt;- <span class="id">plus_n_Sm</span>; <span class="tactic">unfold</span> <span class="id">Nth</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
@@ -436,8 +436,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">Nth_app</span> : <span class="kwd">forall</span> {<span class="id">A</span>} (<span class="id">l</span> <span class="id">l</span>' : <span class="id">list</span> <span class="id">A</span>) <span class="id">n</span> <span class="id">a</span> (<span class="id">Hnth</span> : <span class="id">Nth</span> (<span class="id">l</span> ++ <span class="id">l</span>') <span class="id">n</span> <span class="id">a</span>),<br/>
 &nbsp;&nbsp;<span class="kwd">if</span> <span class="id">lt_dec</span> <span class="id">n</span> (<span class="id">length</span> <span class="id">l</span>) <span class="kwd">then</span> <span class="id">Nth</span> <span class="id">l</span> <span class="id">n</span> <span class="id">a</span> <span class="kwd">else</span> <span class="id">Nth</span> <span class="id">l</span>' (<span class="id">n</span> - <span class="id">length</span> <span class="id">l</span>) <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof79')">Proof.</div>
-<div class="proofscript" id="proof79">
+<div class="toggleproof" onclick="toggleDisplay('proof113')">Proof.</div>
+<div class="proofscript" id="proof113">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">rewrite</span> &lt;- <span class="id">minus_n_O</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">auto</span>.<br/>
@@ -447,8 +447,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">interval_Nth</span> : <span class="kwd">forall</span> <span class="id">m</span> <span class="id">n</span> <span class="id">i</span> (<span class="id">Hlt</span> : <span class="id">i</span> &lt; <span class="id">m</span> - <span class="id">n</span>),<br/>
 &nbsp;&nbsp;<span class="id">Nth</span> (<span class="id">interval</span> <span class="id">n</span> <span class="id">m</span>) <span class="id">i</span> (<span class="id">i</span> + <span class="id">n</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof80')">Proof.</div>
-<div class="proofscript" id="proof80">
+<div class="toggleproof" onclick="toggleDisplay('proof114')">Proof.</div>
+<div class="proofscript" id="proof114">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">m</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">Hlt</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> (<span class="id">lt_dec</span> <span class="id">i</span> (<span class="id">m</span> - <span class="id">n</span>)).<br/>
@@ -468,8 +468,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">Forall2_forall</span> : <span class="kwd">forall</span> {<span class="id">A</span> <span class="id">B</span>} (<span class="id">P</span> : <span class="id">A</span> -&gt; <span class="id">B</span> -&gt; <span class="kwd">Prop</span>) <span class="id">al</span> <span class="id">bl</span>,<br/>
 &nbsp;&nbsp;<span class="id">Forall2</span> <span class="id">P</span> <span class="id">al</span> <span class="id">bl</span> &lt;-&gt; (<span class="id">length</span> <span class="id">al</span> = <span class="id">length</span> <span class="id">bl</span> /\ <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">i</span> <span class="id">a</span> <span class="id">b</span>, <span class="id">Nth</span> <span class="id">al</span> <span class="id">i</span> <span class="id">a</span> -&gt; <span class="id">Nth</span> <span class="id">bl</span> <span class="id">i</span> <span class="id">b</span> -&gt; <span class="id">P</span> <span class="id">a</span> <span class="id">b</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof81')">Proof.</div>
-<div class="proofscript" id="proof81">
+<div class="toggleproof" onclick="toggleDisplay('proof115')">Proof.</div>
+<div class="proofscript" id="proof115">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">al</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">split</span>; [<span class="tactic">intro</span> <span class="id">H</span>; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">subst</span> | <span class="tactic">intros</span> [<span class="id">H</span> ?]].<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">split</span>; <span class="tactic">auto</span>; <span class="tactic">intros</span> ? ? ? <span class="id">Hnth</span> ?; <span class="tactic">destruct</span> <span class="id">i</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">Hnth</span>; <br/>
@@ -489,8 +489,8 @@ Qed.</div>
 <span class="id">Opaque</span> <span class="id">minus</span>.<br/>
 <span class="kwd">Lemma</span> <span class="id">interval_shift</span> : <span class="kwd">forall</span> <span class="id">j</span> <span class="id">i</span> <span class="id">k</span>, <span class="id">k</span> &lt;= <span class="id">i</span> -&gt; <span class="id">interval</span> <span class="id">i</span> <span class="id">j</span> =<br/>
 &nbsp;&nbsp;<span class="id">map</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">x</span> + <span class="id">k</span>) (<span class="id">interval</span> (<span class="id">i</span> - <span class="id">k</span>) (<span class="id">j</span> - <span class="id">k</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof82')">Proof.</div>
-<div class="proofscript" id="proof82">
+<div class="toggleproof" onclick="toggleDisplay('proof116')">Proof.</div>
+<div class="proofscript" id="proof116">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">j</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">Compare_dec.le_lt_dec</span> <span class="id">i</span> <span class="id">j</span>).<br/>
 &nbsp;&nbsp;- <span class="id">erewrite</span> <span class="id">IHj</span>; <span class="tactic">eauto</span>.<br/>
@@ -507,8 +507,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Corollary</span> <span class="id">interval_S</span> : <span class="kwd">forall</span> <span class="id">j</span> <span class="id">i</span>, <span class="id">interval</span> (<span class="id">S</span> <span class="id">i</span>) (<span class="id">S</span> <span class="id">j</span>) =<br/>
 &nbsp;&nbsp;<span class="id">map</span> <span class="id">S</span> (<span class="id">interval</span> <span class="id">i</span> <span class="id">j</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof83')">Proof.</div>
-<div class="proofscript" id="proof83">
+<div class="toggleproof" onclick="toggleDisplay('proof117')">Proof.</div>
+<div class="proofscript" id="proof117">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">interval_shift</span> <span class="kwd">with</span> (<span class="id">k</span> := 1); [<span class="tactic">simpl</span> | <span class="tactic">omega</span>].<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">rewrite</span> <span class="id">Nat.sub_0_r</span>.<br/>
@@ -519,23 +519,23 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">flat_map_map</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> <span class="id">C</span> (<span class="id">f</span> : <span class="id">B</span> -&gt; <span class="id">list</span> <span class="id">C</span>) (<span class="id">g</span> : <span class="id">A</span> -&gt; <span class="id">B</span>) <span class="id">l</span>,<br/>
 &nbsp;&nbsp;<span class="id">flat_map</span> <span class="id">f</span> (<span class="id">map</span> <span class="id">g</span> <span class="id">l</span>) = <span class="id">flat_map</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">f</span> (<span class="id">g</span> <span class="id">x</span>)) <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof84')">Proof.</div>
-<div class="proofscript" id="proof84">
+<div class="toggleproof" onclick="toggleDisplay('proof118')">Proof.</div>
+<div class="proofscript" id="proof118">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">auto</span>; <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">IHl</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">flat_map_ext</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> (<span class="id">f</span> <span class="id">g</span> : <span class="id">A</span> -&gt; <span class="id">list</span> <span class="id">B</span>),<br/>
 &nbsp;&nbsp;(<span class="kwd">forall</span> <span class="id">a</span>, <span class="id">f</span> <span class="id">a</span> = <span class="id">g</span> <span class="id">a</span>) -&gt; <span class="kwd">forall</span> <span class="id">l</span>, <span class="id">flat_map</span> <span class="id">f</span> <span class="id">l</span> = <span class="id">flat_map</span> <span class="id">g</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof85')">Proof.</div>
-<div class="proofscript" id="proof85">
+<div class="toggleproof" onclick="toggleDisplay('proof119')">Proof.</div>
+<div class="proofscript" id="proof119">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">auto</span>; <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">H</span>, <span class="id">IHl</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">interval_in_iff</span> : <span class="kwd">forall</span> <span class="id">i</span> <span class="id">j</span> <span class="id">k</span>, <span class="id">In</span> <span class="id">k</span> (<span class="id">interval</span> <span class="id">i</span> <span class="id">j</span>) &lt;-&gt; <span class="id">i</span> &lt;= <span class="id">k</span> &lt; <span class="id">j</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof86')">Proof.</div>
-<div class="proofscript" id="proof86">
+<div class="toggleproof" onclick="toggleDisplay('proof120')">Proof.</div>
+<div class="proofscript" id="proof120">
 &nbsp;&nbsp;<span class="tactic">intros</span>; <span class="tactic">induction</span> <span class="id">j</span>; <span class="tactic">simpl</span>; [<span class="tactic">omega</span>|].<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">Compare_dec.le_lt_dec</span> <span class="id">i</span> <span class="id">j</span>); <span class="tactic">simpl</span>; [|<span class="tactic">omega</span>].<br/>
 &nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">in_app_iff</span>, <span class="id">IHj</span>; <span class="tactic">simpl</span>; <span class="tactic">omega</span>.<br/>
@@ -544,8 +544,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">app_nth_error1</span>: <span class="kwd">forall</span> (<span class="id">A</span> : <span class="kwd">Type</span>) (<span class="id">l</span> <span class="id">l</span>' : <span class="id">list</span> <span class="id">A</span>) (<span class="id">n</span> : <span class="id">nat</span>),<br/>
 &nbsp;&nbsp;<span class="id">n</span> &lt; <span class="id">length</span> <span class="id">l</span> -&gt; <span class="id">nth_error</span> (<span class="id">l</span> ++ <span class="id">l</span>') <span class="id">n</span> = <span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof87')">Proof.</div>
-<div class="proofscript" id="proof87">
+<div class="toggleproof" onclick="toggleDisplay('proof121')">Proof.</div>
+<div class="proofscript" id="proof121">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">n</span> <span class="id">eqn</span>:<span class="id">Heqn</span>; <span class="tactic">auto</span>.<br/>
@@ -554,8 +554,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">app_nth_error2</span> : <span class="kwd">forall</span> (<span class="id">A</span> : <span class="kwd">Type</span>) (<span class="id">l</span> <span class="id">l</span>' : <span class="id">list</span> <span class="id">A</span>) (<span class="id">n</span> : <span class="id">nat</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">length</span> <span class="id">l</span> &lt;= <span class="id">n</span> -&gt; <span class="id">nth_error</span> (<span class="id">l</span> ++ <span class="id">l</span>') <span class="id">n</span> = <span class="id">nth_error</span> <span class="id">l</span>' (<span class="id">n</span> - <span class="id">length</span> <span class="id">l</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof88')">Proof.</div>
-<div class="proofscript" id="proof88">
+<div class="toggleproof" onclick="toggleDisplay('proof122')">Proof.</div>
+<div class="proofscript" id="proof122">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">auto</span> <span class="kwd">with</span> <span class="id">arith</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">n</span> <span class="id">eqn</span>:<span class="id">Heqn</span>.<br/>
@@ -567,8 +567,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">nth_error_nth</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">l</span> <span class="id">n</span> (<span class="id">d</span>:<span class="id">A</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">n</span> &lt; <span class="id">length</span> <span class="id">l</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span> = <span class="id">Some</span> (<span class="id">nth</span> <span class="id">n</span> <span class="id">l</span> <span class="id">d</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof89')">Proof.</div>
-<div class="proofscript" id="proof89">
+<div class="toggleproof" onclick="toggleDisplay('proof123')">Proof.</div>
+<div class="proofscript" id="proof123">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">inversion</span> 1. <span class="tactic">simpl</span>. <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">n</span> <span class="id">eqn</span>:<span class="id">Heqn</span>.<br/>
@@ -583,8 +583,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="id">In</span> <span class="id">x</span> <span class="id">l</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">x</span> &lt;&gt; <span class="id">y</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">In</span> <span class="id">x</span> (<span class="id">remove</span> <span class="id">dec</span> <span class="id">y</span> <span class="id">l</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof90')">Proof.</div>
-<div class="proofscript" id="proof90">
+<div class="toggleproof" onclick="toggleDisplay('proof124')">Proof.</div>
+<div class="proofscript" id="proof124">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">subst</span>.<br/>
@@ -595,8 +595,8 @@ Qed.</div>
 &nbsp;&nbsp;<br/>
 <span class="kwd">Lemma</span> <span class="id">remove_length_le</span> : <span class="kwd">forall</span> <span class="id">l</span> <span class="id">x</span>,<br/>
 &nbsp;&nbsp;<span class="id">length</span> (<span class="id">remove</span> <span class="id">dec</span> <span class="id">x</span> <span class="id">l</span>) &lt;= <span class="id">length</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof91')">Proof.</div>
-<div class="proofscript" id="proof91">
+<div class="toggleproof" onclick="toggleDisplay('proof125')">Proof.</div>
+<div class="proofscript" id="proof125">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>. <span class="tactic">destruct</span> (<span class="id">dec</span> <span class="id">x</span> <span class="id">a</span>); <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="id">specialize</span> (<span class="id">IHl</span> <span class="id">x</span>). <span class="tactic">omega</span>.<br/>
@@ -605,8 +605,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">remove_length</span> : <span class="kwd">forall</span> <span class="id">l</span> <span class="id">x</span>,<br/>
 &nbsp;&nbsp;<span class="id">In</span> <span class="id">x</span> <span class="id">l</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">length</span> (<span class="id">remove</span> <span class="id">dec</span> <span class="id">x</span> <span class="id">l</span>) &lt; <span class="id">length</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof92')">Proof.</div>
-<div class="proofscript" id="proof92">
+<div class="toggleproof" onclick="toggleDisplay('proof126')">Proof.</div>
+<div class="proofscript" id="proof126">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>. <br/>
@@ -624,8 +624,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">rev_nil_rev</span> : <span class="kwd">forall</span> <span class="id">A</span> (<span class="id">l</span>:<span class="id">list</span> <span class="id">A</span>),<br/>
 &nbsp;&nbsp;[] = <span class="id">rev</span> <span class="id">l</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">l</span> = [].<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof93')">Proof.</div>
-<div class="proofscript" id="proof93">
+<div class="toggleproof" onclick="toggleDisplay('proof127')">Proof.</div>
+<div class="proofscript" id="proof127">
 &nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">destruct</span> <span class="id">l</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">destruct</span> (<span class="id">rev</span> <span class="id">l</span>); <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>; <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 Qed.</div>
@@ -633,8 +633,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">nth_map_inv</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> (<span class="id">f</span>:<span class="id">A</span> -&gt; <span class="id">B</span>) <span class="id">l</span> <span class="id">b</span> <span class="id">n</span>,<br/>
 &nbsp;&nbsp;<span class="id">nth_error</span> (<span class="id">map</span> <span class="id">f</span> <span class="id">l</span>) <span class="id">n</span> = <span class="id">Some</span> <span class="id">b</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">exists</span> <span class="id">a</span>, <span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span> = <span class="id">Some</span> <span class="id">a</span> /\ <span class="id">f</span> <span class="id">a</span> = <span class="id">b</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof94')">Proof.</div>
-<div class="proofscript" id="proof94">
+<div class="toggleproof" onclick="toggleDisplay('proof128')">Proof.</div>
+<div class="proofscript" id="proof128">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">subst</span>.<br/>
@@ -663,8 +663,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">d</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">a</span> =&gt; <span class="id">f</span> <span class="id">a</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof95')">Proof.</div>
-<div class="proofscript" id="proof95">
+<div class="toggleproof" onclick="toggleDisplay('proof129')">Proof.</div>
+<div class="proofscript" id="proof129">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
@@ -691,8 +691,8 @@ Qed.</div>
 &nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">d</span><br/>
 &nbsp;&nbsp;| <span class="id">Some</span> <span class="id">b</span> =&gt; <span class="id">f</span> <span class="id">b</span><br/>
 &nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof96')">Proof.</div>
-<div class="proofscript" id="proof96">
+<div class="toggleproof" onclick="toggleDisplay('proof130')">Proof.</div>
+<div class="proofscript" id="proof130">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">simpl</span>. <span class="tactic">destruct</span> <span class="id">a</span>. <span class="tactic">destruct</span> (<span class="id">a_dec</span> <span class="id">a0</span> <span class="id">a</span>).<br/>
@@ -702,8 +702,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">assoc_hd</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> (<span class="id">a</span>:<span class="id">A</span>) (<span class="id">b</span>:<span class="id">B</span>) <span class="id">l</span> <span class="id">a_dec</span>,<br/>
 &nbsp;&nbsp;<span class="id">assoc</span> <span class="id">a_dec</span> <span class="id">a</span> ((<span class="id">a</span>,<span class="id">b</span>)::<span class="id">l</span>) = <span class="id">Some</span> <span class="id">b</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof97')">Proof.</div>
-<div class="proofscript" id="proof97">
+<div class="toggleproof" onclick="toggleDisplay('proof131')">Proof.</div>
+<div class="proofscript" id="proof131">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">A</span> <span class="id">B</span> <span class="id">a</span> <span class="id">b</span> <span class="id">l</span> <span class="id">a_dec</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>. <span class="tactic">destruct</span> (<span class="id">a_dec</span> <span class="id">a</span> <span class="id">a</span>); <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="id">contradiction</span> <span class="id">n</span>. <span class="tactic">reflexivity</span>.<br/>
@@ -714,8 +714,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hneq</span> : <span class="id">a</span> &lt;&gt; <span class="id">c</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">assoc</span> <span class="id">a_dec</span> <span class="id">a</span> ((<span class="id">c</span>,<span class="id">b</span>)::<span class="id">l</span>) =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">assoc</span> <span class="id">a_dec</span> <span class="id">a</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof98')">Proof.</div>
-<div class="proofscript" id="proof98">
+<div class="toggleproof" onclick="toggleDisplay('proof132')">Proof.</div>
+<div class="proofscript" id="proof132">
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> (<span class="id">a_dec</span> <span class="id">a</span> <span class="id">c</span>). <span class="id">contradiction</span> <span class="id">Hneq</span>. <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">p</span>.<br/>
@@ -727,8 +727,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> (<span class="id">a</span> <span class="id">c</span>:<span class="id">A</span>) (<span class="id">b</span> <span class="id">d</span>:<span class="id">B</span>) <span class="id">l</span> <span class="id">a_dec</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hl</span>: <span class="id">assoc</span> <span class="id">a_dec</span> <span class="id">a</span> ((<span class="id">c</span>,<span class="id">b</span>)::<span class="id">l</span>) = <span class="id">Some</span> <span class="id">d</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">a</span> = <span class="id">c</span> /\ <span class="id">b</span> = <span class="id">d</span>) \/ (<span class="id">a</span> &lt;&gt; <span class="id">c</span> /\ <span class="id">assoc</span> <span class="id">a_dec</span> <span class="id">a</span> <span class="id">l</span> = <span class="id">Some</span> <span class="id">d</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof99')">Proof.</div>
-<div class="proofscript" id="proof99">
+<div class="toggleproof" onclick="toggleDisplay('proof133')">Proof.</div>
+<div class="proofscript" id="proof133">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">A</span> <span class="id">B</span> <span class="id">a</span> <span class="id">c</span> <span class="id">b</span> <span class="id">d</span> <span class="id">l</span> <span class="id">a_dec</span> <span class="id">Hl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">Hl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">a_dec</span> <span class="id">a</span> <span class="id">c</span>).<br/>
@@ -740,8 +740,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">assoc_In_snd</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> (<span class="id">l</span>:<span class="id">list</span> (<span class="id">A</span> * <span class="id">B</span>)) <span class="id">eq_dec</span> <span class="id">a</span> <span class="id">b</span>,<br/>
 &nbsp;&nbsp;<span class="id">assoc</span> <span class="id">eq_dec</span> <span class="id">a</span> <span class="id">l</span> = <span class="id">Some</span> <span class="id">b</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">In</span> <span class="id">b</span> (<span class="id">map</span> (@<span class="id">snd</span> <span class="id">_</span> <span class="id">_</span>) <span class="id">l</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof100')">Proof.</div>
-<div class="proofscript" id="proof100">
+<div class="toggleproof" onclick="toggleDisplay('proof134')">Proof.</div>
+<div class="proofscript" id="proof134">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">a</span>. <span class="tactic">destruct</span> (<span class="id">eq_dec</span> <span class="id">_</span> <span class="id">_</span>).<br/>
@@ -752,8 +752,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">assoc_In</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> (<span class="id">l</span>:<span class="id">list</span> (<span class="id">A</span> * <span class="id">B</span>)) <span class="id">eq_dec</span> <span class="id">a</span> <span class="id">b</span>,<br/>
 &nbsp;&nbsp;<span class="id">assoc</span> <span class="id">eq_dec</span> <span class="id">a</span> <span class="id">l</span> = <span class="id">Some</span> <span class="id">b</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">In</span> (<span class="id">a</span>,<span class="id">b</span>) <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof101')">Proof.</div>
-<div class="proofscript" id="proof101">
+<div class="toggleproof" onclick="toggleDisplay('proof135')">Proof.</div>
+<div class="proofscript" id="proof135">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">a</span>. <span class="tactic">destruct</span> (<span class="id">eq_dec</span> <span class="id">_</span> <span class="id">_</span>).<br/>
@@ -763,8 +763,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">assoc_succeeds</span> : <span class="kwd">forall</span> {<span class="id">A</span> <span class="id">B</span>} (<span class="id">a_dec</span> : <span class="kwd">forall</span> <span class="id">a</span> <span class="id">b</span> : <span class="id">A</span>, {<span class="id">a</span> = <span class="id">b</span>} + {<span class="id">a</span> &lt;&gt; <span class="id">b</span>})<br/>
 &nbsp;&nbsp;<span class="id">a</span> <span class="id">l</span>, <span class="id">In</span> <span class="id">a</span> (<span class="id">map</span> (<span class="id">fst</span>(<span class="id">B</span> := <span class="id">B</span>)) <span class="id">l</span>) -&gt; <span class="id">exists</span> <span class="id">x</span>, <span class="id">assoc</span> <span class="id">a_dec</span> <span class="id">a</span> <span class="id">l</span> = <span class="id">Some</span> <span class="id">x</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof102')">Proof.</div>
-<div class="proofscript" id="proof102">
+<div class="toggleproof" onclick="toggleDisplay('proof136')">Proof.</div>
+<div class="proofscript" id="proof136">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="id">contradiction</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">a0</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *.<br/>
@@ -777,8 +777,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> <span class="id">C</span> <span class="id">eq_dec</span> (<span class="id">x</span> : <span class="id">A</span>) (<span class="id">f</span> : <span class="id">B</span> -&gt; <span class="id">C</span>) <span class="id">l</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">assoc</span> <span class="id">eq_dec</span> <span class="id">x</span> (<span class="id">map</span> (<span class="kwd">fun</span> <span class="id">p</span> =&gt; (<span class="id">fst</span> <span class="id">p</span>, <span class="id">f</span> (<span class="id">snd</span> <span class="id">p</span>))) <span class="id">l</span>) =<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">v</span> &lt;- <span class="id">assoc</span> <span class="id">eq_dec</span> <span class="id">x</span> <span class="id">l</span>; <span class="id">Some</span> (<span class="id">f</span> <span class="id">v</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof103')">Proof.</div>
-<div class="proofscript" id="proof103">
+<div class="toggleproof" onclick="toggleDisplay('proof137')">Proof.</div>
+<div class="proofscript" id="proof137">
 &nbsp;&nbsp;<span class="tactic">intros</span>; <span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">eauto</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>. <span class="tactic">destruct</span> <span class="id">a</span>; <span class="tactic">simpl</span>. <span class="tactic">rewrite</span> <span class="id">IHl</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">eq_dec</span> <span class="id">x</span> <span class="id">a</span>); <span class="tactic">simpl</span>; <span class="tactic">eauto</span>.<br/>
@@ -789,8 +789,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">map_nth_error_none</span> :<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span>  (<span class="id">l</span> : <span class="id">list</span> <span class="id">A</span>) (<span class="id">f</span> : <span class="id">A</span> -&gt; <span class="id">B</span>) (<span class="id">n</span> : <span class="id">nat</span>),<br/>
 &nbsp;&nbsp;<span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span> = <span class="id">None</span> -&gt; <span class="id">nth_error</span> (<span class="id">map</span> <span class="id">f</span> <span class="id">l</span>) <span class="id">n</span> = <span class="id">None</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof104')">Proof.</div>
-<div class="proofscript" id="proof104">
+<div class="toggleproof" onclick="toggleDisplay('proof138')">Proof.</div>
+<div class="proofscript" id="proof138">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>. <span class="tactic">inversion</span> <span class="id">H</span>.<br/>
@@ -800,8 +800,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">nth_error_out</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">A</span> (<span class="id">l</span> : <span class="id">list</span> <span class="id">A</span>) (<span class="id">n</span> : <span class="id">nat</span>),<br/>
 &nbsp;&nbsp;<span class="id">nth_error</span> <span class="id">l</span> <span class="id">n</span> = <span class="id">None</span> -&gt; <span class="id">length</span> <span class="id">l</span> &lt;= <span class="id">n</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof105')">Proof.</div>
-<div class="proofscript" id="proof105">
+<div class="toggleproof" onclick="toggleDisplay('proof139')">Proof.</div>
+<div class="proofscript" id="proof139">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">omega</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> <span class="id">n</span>. <span class="tactic">inversion</span> <span class="id">H</span>. <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">apply</span> <span class="id">IHl</span> <span class="kwd">in</span> <span class="id">H</span>. <span class="tactic">omega</span>.<br/>
@@ -810,8 +810,8 @@ Qed.</div>
 <span class="kwd">Lemma</span> <span class="id">map_ext_in</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> (<span class="id">f</span> <span class="id">g</span> : <span class="id">A</span> -&gt; <span class="id">B</span>) <span class="id">l</span>,<br/>
 &nbsp;&nbsp;(<span class="kwd">forall</span> <span class="id">a</span>, <span class="id">In</span> <span class="id">a</span> <span class="id">l</span> -&gt; <span class="id">f</span> <span class="id">a</span> = <span class="id">g</span> <span class="id">a</span>) -&gt; <br/>
 &nbsp;&nbsp;<span class="id">map</span> <span class="id">f</span> <span class="id">l</span> = <span class="id">map</span> <span class="id">g</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof106')">Proof.</div>
-<div class="proofscript" id="proof106">
+<div class="toggleproof" onclick="toggleDisplay('proof140')">Proof.</div>
+<div class="proofscript" id="proof140">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">auto</span>. <span class="tactic">intros</span> <span class="id">Heq</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">simpl</span>. <span class="tactic">f_equal</span>. <span class="tactic">apply</span> <span class="id">Heq</span>. <span class="tactic">simpl</span>; <span class="tactic">auto</span>. <br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">IHl</span>. <span class="tactic">intros</span> ? <span class="id">Hin</span>. <span class="tactic">apply</span> <span class="id">Heq</span>. <span class="tactic">simpl</span>; <span class="tactic">auto</span>.<br/>
@@ -828,8 +828,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="id">l</span> ++ [<span class="id">a</span>].<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">snoc_nonnil</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">l</span> (<span class="id">a</span> : <span class="id">A</span>), <span class="id">snoc</span> <span class="id">a</span> <span class="id">l</span> &lt;&gt; [].<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof107')">Proof.</div>
-<div class="proofscript" id="proof107">
+<div class="toggleproof" onclick="toggleDisplay('proof141')">Proof.</div>
+<div class="proofscript" id="proof141">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">snoc</span>; <span class="tactic">repeat</span> <span class="tactic">intro</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">generalize</span> (<span class="id">app_eq_nil</span> <span class="id">_</span> <span class="id">_</span> <span class="id">H</span>); <span class="tactic">intros</span> (? &amp; <span class="id">X</span>); <span class="tactic">inversion</span> <span class="id">X</span>.<br/>
 Qed.</div>
@@ -849,8 +849,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">map_option_map</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> <span class="id">C</span> (<span class="id">f</span>:<span class="id">A</span> -&gt; <span class="id">option</span> <span class="id">B</span>) (<span class="id">g</span>:<span class="id">C</span> -&gt; <span class="id">A</span>) (<span class="id">l</span>:<span class="id">list</span> <span class="id">C</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">map_option</span> <span class="id">f</span> (<span class="id">map</span> <span class="id">g</span> <span class="id">l</span>) = <span class="id">map_option</span> (<span class="kwd">fun</span> <span class="id">x</span> =&gt; <span class="id">f</span> (<span class="id">g</span> <span class="id">x</span>)) <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof108')">Proof.</div>
-<div class="proofscript" id="proof108">
+<div class="toggleproof" onclick="toggleDisplay('proof142')">Proof.</div>
+<div class="proofscript" id="proof142">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">A</span> <span class="id">B</span> <span class="id">C</span> <span class="id">f</span> <span class="id">g</span> <span class="id">l</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">reflexivity</span>.<br/>
@@ -863,8 +863,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="id">map_option</span> <span class="id">f</span> <span class="id">l</span> = <span class="id">Some</span> <span class="id">l</span>' -&gt;<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> <span class="id">i</span> <span class="id">x</span>', <span class="id">nth_error</span> <span class="id">l</span>' <span class="id">i</span> = <span class="id">Some</span> <span class="id">x</span>' &lt;-&gt; <span class="id">exists</span> <span class="id">x</span>, <span class="id">nth_error</span> <span class="id">l</span> <span class="id">i</span> = <span class="id">Some</span> <span class="id">x</span> /\<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">f</span> <span class="id">x</span> = <span class="id">Some</span> <span class="id">x</span>'.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof109')">Proof.</div>
-<div class="proofscript" id="proof109">
+<div class="toggleproof" onclick="toggleDisplay('proof143')">Proof.</div>
+<div class="proofscript" id="proof143">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;+ <span class="tactic">rewrite</span> <span class="id">nth_error_nil</span>; <span class="tactic">discriminate</span>.<br/>
@@ -882,8 +882,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">map_option_length</span> : <span class="kwd">forall</span> <span class="id">A</span> <span class="id">B</span> (<span class="id">f</span> : <span class="id">A</span> -&gt; <span class="id">option</span> <span class="id">B</span>) <span class="id">l</span> <span class="id">l</span>',<br/>
 &nbsp;&nbsp;<span class="id">map_option</span> <span class="id">f</span> <span class="id">l</span> = <span class="id">Some</span> <span class="id">l</span>' -&gt; <span class="id">length</span> <span class="id">l</span>' = <span class="id">length</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof110')">Proof.</div>
-<div class="proofscript" id="proof110">
+<div class="toggleproof" onclick="toggleDisplay('proof144')">Proof.</div>
+<div class="proofscript" id="proof144">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">simpl</span>; <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">destruct</span> (<span class="id">f</span> <span class="id">a</span>); [|<span class="tactic">discriminate</span>].<br/>
@@ -914,8 +914,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">a</span>: <span class="id">A</span>),<br/>
 &nbsp;&nbsp;<span class="id">f</span> <span class="id">a</span> = <span class="id">None</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">find_map</span> <span class="id">f</span> (<span class="id">a</span> :: <span class="id">l</span>) = <span class="id">find_map</span> <span class="id">f</span> <span class="id">l</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof111')">Proof.</div>
-<div class="proofscript" id="proof111">
+<div class="toggleproof" onclick="toggleDisplay('proof145')">Proof.</div>
+<div class="proofscript" id="proof145">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">l</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">find_map</span>.<br/>
@@ -934,8 +934,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">b</span>: <span class="id">B</span>),<br/>
 &nbsp;&nbsp;<span class="id">f</span> <span class="id">a</span> = <span class="id">Some</span> <span class="id">b</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">find_map</span> <span class="id">f</span> (<span class="id">a</span> :: <span class="id">l</span>) = <span class="id">f</span> <span class="id">a</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof112')">Proof.</div>
-<div class="proofscript" id="proof112">
+<div class="toggleproof" onclick="toggleDisplay('proof146')">Proof.</div>
+<div class="proofscript" id="proof146">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">l</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">find_map</span>.<br/>
@@ -953,8 +953,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="id">find_map</span> <span class="id">f</span> (<span class="id">a</span> :: <span class="id">l</span>) = <span class="id">Some</span> <span class="id">b</span> -&gt;<br/>
 &nbsp;&nbsp;<span class="id">f</span> <span class="id">a</span> = <span class="id">Some</span> <span class="id">b</span> \/<br/>
 &nbsp;&nbsp;(<span class="id">f</span> <span class="id">a</span> = <span class="id">None</span> /\ <span class="id">find_map</span> <span class="id">f</span> <span class="id">l</span> = <span class="id">Some</span> <span class="id">b</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof113')">Proof.</div>
-<div class="proofscript" id="proof113">
+<div class="toggleproof" onclick="toggleDisplay('proof147')">Proof.</div>
+<div class="proofscript" id="proof147">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 <br/>
 &nbsp;&nbsp;<span class="id">remember</span> (<span class="id">f</span> <span class="id">a</span>) <span class="kwd">as</span> <span class="id">discriminant</span>.<br/>
@@ -995,8 +995,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">agress_on_filter</span> <span class="id">f</span> <span class="id">g</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_map</span> <span class="id">f</span> <span class="id">l</span> = <span class="id">Some</span> <span class="id">b</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exists</span> (<span class="id">a</span>: <span class="id">A</span>), <span class="id">Some</span> <span class="id">b</span> = <span class="id">f</span> <span class="id">a</span> /\ <span class="id">find_map</span> <span class="id">f</span> (<span class="id">map</span> <span class="id">g</span> <span class="id">l</span>) = (<span class="id">f</span> (<span class="id">g</span> <span class="id">a</span>)).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof114')">Proof.</div>
-<div class="proofscript" id="proof114">
+<div class="toggleproof" onclick="toggleDisplay('proof148')">Proof.</div>
+<div class="proofscript" id="proof148">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">l</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span> <span class="id">b</span> <span class="id">G_AGRESS_ON_FILTER_F</span> <span class="id">FIND_IN_LIST</span>.<br/>
 &nbsp;&nbsp;- <br/>
@@ -1050,8 +1050,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">agress_on_filter</span> <span class="id">f</span> <span class="id">g</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_map</span> <span class="id">f</span> <span class="id">l</span> = <span class="id">None</span> -&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_map</span> <span class="id">f</span> (<span class="id">map</span> <span class="id">g</span> <span class="id">l</span>) = <span class="id">None</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof115')">Proof.</div>
-<div class="proofscript" id="proof115">
+<div class="toggleproof" onclick="toggleDisplay('proof149')">Proof.</div>
+<div class="proofscript" id="proof149">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">until</span> <span class="id">l</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l</span>; <span class="tactic">intros</span>  <span class="id">G_AGRESS_ON_FILTER_F</span> <span class="id">FIND_IN_LIST</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">unfold</span> <span class="id">find_map</span> <span class="kwd">in</span> <span class="id">FIND_IN_LIST</span>.<br/>

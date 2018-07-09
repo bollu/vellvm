@@ -22,8 +22,8 @@
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">incr_pc_in_block</span>: <span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">p1</span> <span class="id">p2</span>, <span class="id">incr_pc</span> <span class="id">CFG</span> <span class="id">p1</span> = <span class="id">Some</span> <span class="id">p2</span> -&gt; (<span class="id">fn</span> <span class="id">p1</span> = <span class="id">fn</span> <span class="id">p2</span>) /\ (<span class="id">bk</span> <span class="id">p1</span> = <span class="id">bk</span> <span class="id">p2</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof166')">Proof.</div>
-<div class="proofscript" id="proof166">
+<div class="toggleproof" onclick="toggleDisplay('proof200')">Proof.</div>
+<div class="proofscript" id="proof200">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">p1</span> <span class="id">p2</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">incr_pc</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">p1</span>.<br/>
@@ -36,8 +36,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">find_block_same_fid</span> : <span class="kwd">forall</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">br</span> <span class="id">phis</span> <span class="id">p</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">find_block_entry</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">br</span> = <span class="id">Some</span> (<span class="id">BlockEntry</span> <span class="id">phis</span> <span class="id">p</span>) -&gt; (<span class="id">fn</span> <span class="id">p</span>) = <span class="id">fid</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof167')">Proof.</div>
-<div class="proofscript" id="proof167">
+<div class="toggleproof" onclick="toggleDisplay('proof201')">Proof.</div>
+<div class="proofscript" id="proof201">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">fid</span> <span class="id">br</span> <span class="id">phis</span> <span class="id">p</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">find_block_entry</span> <span class="kwd">in</span> <span class="id">H</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">find_function</span> <span class="id">CFG</span> <span class="id">fid</span>); <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">H</span>; <span class="tactic">try</span> <span class="id">solve</span> [<span class="tactic">inversion</span> <span class="id">H</span>].<br/>
@@ -66,8 +66,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">H1</span>: <span class="id">CFG_has_code_at</span> <span class="id">CFG</span> (<span class="kwd">fun</span> <span class="id">p</span> =&gt; <span class="id">p</span> = <span class="id">pc2</span>) <span class="id">pc1</span> <span class="id">cd1</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">H2</span>: <span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc2</span> <span class="id">cd2</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc1</span> (<span class="id">cd1</span> ++ <span class="id">cd2</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof168')">Proof.</div>
-<div class="proofscript" id="proof168">
+<div class="toggleproof" onclick="toggleDisplay('proof202')">Proof.</div>
+<div class="proofscript" id="proof202">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">cd1</span> <span class="id">cd2</span> <span class="id">pc1</span> <span class="id">pc2</span> <span class="id">H1</span>.<br/>
 &nbsp;&nbsp;<span class="id">remember</span> (<span class="kwd">fun</span> <span class="id">p</span> =&gt; <span class="id">p</span> = <span class="id">pc2</span>) <span class="kwd">as</span> <span class="id">Q</span>.<br/>
 &nbsp;&nbsp;<span class="id">revert</span> <span class="id">cd2</span>.<br/>
@@ -82,8 +82,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="id">exists</span> <span class="id">pc2</span>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_has_code_at</span> <span class="id">CFG</span> (<span class="kwd">fun</span> <span class="id">p</span> =&gt; <span class="id">p</span> = <span class="id">pc2</span>) <span class="id">pc1</span> <span class="id">cd1</span> /\<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">CFG_has_code_at</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc2</span> <span class="id">cd2</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof169')">Proof.</div>
-<div class="proofscript" id="proof169">
+<div class="toggleproof" onclick="toggleDisplay('proof203')">Proof.</div>
+<div class="proofscript" id="proof203">
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CFG</span> <span class="id">P</span> <span class="id">pc1</span> <span class="id">cd1</span>.<br/>
 &nbsp;&nbsp;<span class="id">revert</span> <span class="id">pc1</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">cd1</span>; <span class="tactic">intros</span> <span class="id">pc1</span> <span class="id">cd2</span> <span class="id">H</span>; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">subst</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">auto</span>.<br/>

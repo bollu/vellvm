@@ -1,0 +1,1284 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module LoopReversalManualProof</title>
+<meta name="description" content="Documentation of Coq module LoopReversalManualProof" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module LoopReversalManualProof</h1>
+<div class="coq">
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">ZArith</span> <span class="id">List</span> <span class="id">String</span> <span class="id">Omega</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.AstLib</span> <span class="id">Vellvm.LLVMAst</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Classes</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Util</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.CFG</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMIO</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.DynamicValues</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.StepSemanticsTiered</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span>  <span class="id">Vellvm.Classes</span> <span class="id">Vellvm.Util</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.TypeUtil</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Memory</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Trace</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Setoid</span> <span class="id">Morphisms</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Coq.Setoids.Setoid</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">SetoidClass</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Coq.Classes.RelationClasses</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Coq.Classes.Equivalence</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.TopLevel</span>.<br/>
+<span class="kwd">Require</span> <span class="id">FunctionalExtensionality</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Eqdep_dec</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Classical</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Trace</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">FSets.FMapAVL</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Integers</span>.<br/>
+<span class="kwd">Require</span> <span class="id">Coq.Structures.OrderedTypeEx</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">ZMicromega</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Bool</span>.<br/>
+<span class="kwd">Import</span> <span class="id">IO.DV</span>.<br/>
+<span class="kwd">Import</span> <span class="id">Trace.MonadVerif</span>.<br/>
+<br/>
+<span class="kwd">Import</span> <span class="id">ListNotations</span>.<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">Z_scope</span>.<br/>
+<span class="kwd">Open</span> <span class="kwd">Scope</span> <span class="id">string_scope</span>.<br/>
+<br/>
+<span class="kwd">Set</span> <span class="kwd">Implicit</span> <span class="id">Arguments</span>.<br/>
+<span class="kwd">Set</span> <span class="id">Contextual</span> <span class="kwd">Implicit</span>.<br/>
+<br/>
+<div class="doc">SSReflect *</div>
+<br/>
+<span class="id">From</span> <span class="id">Coq</span> <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">ssreflect</span> <span class="id">ssrfun</span> <span class="id">ssrbool</span>.<br/>
+<span class="kwd">Set</span> <span class="kwd">Implicit</span> <span class="id">Arguments</span>.<br/>
+<span class="kwd">Unset</span> <span class="kwd">Strict</span> <span class="kwd">Implicit</span>.<br/>
+<span class="kwd">Import</span> <span class="id">ssreflect.SsrSyntax</span>.<br/>
+<span class="kwd">Set</span> <span class="id">Printing</span> <span class="kwd">Implicit</span> <span class="id">Defensive</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Memory</span>.<br/>
+<br/>
+<span class="id">Opaque</span> <span class="id">M.add_all_index</span>.<br/>
+<span class="id">Opaque</span> <span class="id">M.add</span>.<br/>
+<span class="id">Opaque</span> <span class="id">M.serialize_dvalue</span>.<br/>
+<span class="id">Opaque</span> <span class="id">M.lookup_all_index</span>.<br/>
+<span class="id">Opaque</span> <span class="id">M.make_empty_block</span>.<br/>
+<br/>
+<span class="kwd">Section</span> <span class="id">LOOPREV</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">ORIGTRIPCOUNT</span>: <span class="id">nat</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">TRIPCOUNT</span>: <span class="id">Z</span> := <span class="id">Z.of_nat</span> <span class="id">ORIGTRIPCOUNT</span>.<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+<span class="kwd">Notation</span> <span class="id">i32TY</span> := (<span class="id">TYPE_I</span> (32%<span class="id">Z</span>)).<br/>
+<span class="kwd">Definition</span> <span class="id">i32ARRTY</span> := (<span class="id">TYPE_Array</span> 2 <span class="id">i32TY</span>).<br/>
+<span class="kwd">Definition</span> <span class="id">i32ARRPTRTY</span> := (<span class="id">TYPE_Pointer</span> (<span class="id">TYPE_Array</span> 2 <span class="id">i32TY</span>)).<br/>
+<span class="kwd">Definition</span> <span class="id">i32PTRTY</span> := (<span class="id">TYPE_Pointer</span> <span class="id">i32TY</span>).<br/>
+<span class="kwd">Definition</span> <span class="id">mkI32</span> (<span class="id">i</span>: <span class="id">Z</span>): <span class="id">texp</span> := (<span class="id">i32TY</span>, <span class="id">EXP_Integer</span> <span class="id">i</span>).<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">break</span> (<span class="id">s</span>: <span class="id">string</span>): <span class="id">terminator</span> :=<br/>
+&nbsp;&nbsp;<span class="id">TERM_Br_1</span> (<span class="id">Name</span> <span class="id">s</span>).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">branch</span> (<span class="id">v</span>: <span class="id">texp</span>) (<span class="id">br1</span>: <span class="id">string</span>) (<span class="id">br2</span>: <span class="id">string</span>): <span class="id">terminator</span> :=<br/>
+&nbsp;&nbsp;<span class="id">TERM_Br</span> <span class="id">v</span> (<span class="id">Name</span> <span class="id">br1</span>) (<span class="id">Name</span> <span class="id">br2</span>).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">exp_ident</span> (<span class="id">s</span>: <span class="id">string</span>): <span class="id">exp</span> :=<br/>
+&nbsp;&nbsp;<span class="id">EXP_Ident</span> (<span class="id">ID_Local</span> (<span class="id">Name</span> <span class="id">s</span>)).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">texp_ident</span> (<span class="id">s</span>: <span class="id">string</span>): <span class="id">texp</span> :=<br/>
+&nbsp;&nbsp;(<span class="id">i32TY</span>, <span class="id">exp_ident</span> <span class="id">s</span>).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">exp_const_z</span>(<span class="id">z</span>: <span class="id">Z</span>): <span class="id">exp</span> := <span class="id">EXP_Integer</span> <span class="id">z</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">texp_const_z</span> (<span class="id">z</span>: <span class="id">Z</span>): <span class="id">texp</span> :=<br/>
+&nbsp;&nbsp;(<span class="id">i32TY</span>, <span class="id">exp_const_z</span> <span class="id">z</span>).<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">texp_to_exp</span> (<span class="id">te</span>: <span class="id">texp</span>): <span class="id">exp</span> := <span class="id">snd</span> <span class="id">te</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">exp_gep_at_ix</span> (<span class="id">arrty</span>: <span class="id">typ</span>) (<span class="id">ident</span>: <span class="id">string</span>) (<span class="id">ix</span>: <span class="id">texp</span>) : <span class="id">texp</span> :=<br/>
+&nbsp;&nbsp;(<span class="id">arrty</span>, <span class="id">OP_GetElementPtr</span> <span class="id">arrty</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">TYPE_Pointer</span> <span class="id">arrty</span>, (<span class="id">texp_to_exp</span> (<span class="id">texp_ident</span> <span class="id">ident</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id">ix</span>]).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">inst_store</span> (<span class="id">val</span>: <span class="id">texp</span>) (<span class="id">ix</span>: <span class="id">texp</span>): <span class="id">instr</span> :=<br/>
+&nbsp;&nbsp;<span class="id">INSTR_Store</span> <span class="id">false</span> <span class="id">val</span> <span class="id">ix</span> <span class="id">None</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">alloca_array</span> (<span class="id">name</span>: <span class="id">string</span>) (<span class="id">nbytes</span>: <span class="id">Z</span>): <span class="id">instr_id</span> * <span class="id">instr</span> :=<br/>
+&nbsp;&nbsp;(<span class="id">IId</span> (<span class="id">Name</span> <span class="id">name</span>), <span class="id">INSTR_Alloca</span> <span class="id">i32PTRTY</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Some</span> ((<span class="id">TYPE_I</span> (32%<span class="id">Z</span>)), <span class="id">EXP_Integer</span> <span class="id">nbytes</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">None</span>).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">arr_ty</span> := (<span class="id">TYPE_Array</span> <span class="id">TRIPCOUNT</span> <span class="id">i32TY</span>).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">exp_add</span> (<span class="id">v1</span>: <span class="id">exp</span>) (<span class="id">v2</span>: <span class="id">exp</span>): <span class="id">exp</span> :=<br/>
+&nbsp;&nbsp;<span class="id">OP_IBinop</span> (<span class="id">LLVMAst.Add</span> <span class="id">false</span> <span class="id">false</span>) (<span class="id">i32TY</span>) <span class="id">v1</span> <span class="id">v2</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">exp_lt</span> (<span class="id">v1</span>: <span class="id">exp</span>) (<span class="id">v2</span>: <span class="id">exp</span>): <span class="id">exp</span> :=<br/>
+&nbsp;&nbsp;<span class="id">OP_ICmp</span> <span class="id">Ule</span> (<span class="id">i32TY</span>) <span class="id">v1</span> <span class="id">v2</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">exp_eq</span> (<span class="id">v1</span>: <span class="id">exp</span>) (<span class="id">v2</span>: <span class="id">exp</span>): <span class="id">exp</span> :=<br/>
+&nbsp;&nbsp;<span class="id">OP_ICmp</span> <span class="id">Eq</span> (<span class="id">i32TY</span>) <span class="id">v1</span> <span class="id">v2</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">exp_increment_ident</span> (<span class="id">name</span>: <span class="id">string</span>): <span class="id">exp</span> :=<br/>
+&nbsp;&nbsp;<span class="id">exp_add</span> (<span class="id">exp_ident</span> <span class="id">name</span>) (<span class="id">exp_const_z</span> 1).<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">bbMain</span>: <span class="id">block</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_id</span> := <span class="id">Name</span> "<span class="id">main</span>";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_phis</span>  := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_code</span>  := [<span class="id">alloca_array</span> "<span class="id">arr</span>" <span class="id">TRIPCOUNT</span>];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_term</span> := (<span class="id">IVoid</span> 0%<span class="id">Z</span>, <span class="id">break</span> "<span class="id">loop</span>");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">bbInitRewrite</span>: <span class="id">block</span> := <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_id</span> := <span class="id">Name</span> "<span class="id">Main</span>";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_phis</span>  := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_code</span>  := [<span class="id">alloca_array</span> "<span class="id">arr</span>" <span class="id">TRIPCOUNT</span>];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_term</span> := (<span class="id">IVoid</span> (<span class="id">TRIPCOUNT</span> - 1), <span class="id">break</span> "<span class="id">loop</span>");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;|}.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">bbLoop</span> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_id</span> := <span class="id">Name</span> "<span class="id">loop</span>";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_phis</span> := [(<span class="id">Name</span> "<span class="id">iv</span>",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Phi</span> <span class="id">i32TY</span> [<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Name</span> "<span class="id">main</span>", <span class="id">exp_const_z</span> 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Name</span> "<span class="id">loop</span>", <span class="id">exp_ident</span> "<span class="id">iv.next</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;])];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_code</span> := [(<span class="id">IVoid</span> 100%<span class="id">Z</span>, <span class="id">inst_store</span> (<span class="id">texp_ident</span> "<span class="id">iv</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exp_gep_at_ix</span> <span class="id">arr_ty</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"<span class="id">arr</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">texp_ident</span> "<span class="id">iv</span>")));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">IId</span> (<span class="id">Name</span> "<span class="id">iv.next</span>"), <span class="id">INSTR_Op</span> (<span class="id">exp_increment_ident</span> "<span class="id">iv</span>"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">IId</span> (<span class="id">Name</span> "<span class="id">cond</span>"), <span class="id">INSTR_Op</span> (<span class="id">exp_eq</span> (<span class="id">exp_ident</span> "<span class="id">iv.next</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exp_const_z</span> <span class="id">TRIPCOUNT</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;))];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_term</span> := (<span class="id">IVoid</span> 101%<span class="id">Z</span>, <span class="id">branch</span> (<span class="id">texp_ident</span> "<span class="id">cond</span>") "<span class="id">exit</span>" "<span class="id">loop</span>")<br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">bbLoopRewrite</span> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_id</span> := <span class="id">Name</span> "<span class="id">loop</span>";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_phis</span> := [(<span class="id">Name</span> "<span class="id">iv</span>",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Phi</span> <span class="id">i32TY</span> [<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Name</span> "<span class="id">main</span>", <span class="id">exp_const_z</span> 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Name</span> "<span class="id">loop</span>", <span class="id">exp_ident</span> "<span class="id">iv.next</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;])];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_code</span> := [(<span class="id">IVoid</span> 100%<span class="id">Z</span>, <span class="id">inst_store</span> (<span class="id">texp_ident</span> "<span class="id">iv</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exp_gep_at_ix</span> <span class="id">arr_ty</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"<span class="id">arr</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">texp_ident</span> "<span class="id">iv</span>")));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">IId</span> (<span class="id">Name</span> "<span class="id">iv.next</span>"), <span class="id">INSTR_Op</span> (<span class="id">exp_increment_ident</span> "<span class="id">iv</span>"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">IId</span> (<span class="id">Name</span> "<span class="id">cond</span>"), <span class="id">INSTR_Op</span> (<span class="id">exp_eq</span> (<span class="id">exp_ident</span> "<span class="id">iv.next</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exp_const_z</span> (-1))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;))];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_term</span> := (<span class="id">IVoid</span> 101%<span class="id">Z</span>, <span class="id">branch</span> (<span class="id">texp_ident</span> "<span class="id">cond</span>") "<span class="id">exit</span>" "<span class="id">loop</span>")<br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<span class="kwd">Definition</span> <span class="id">bbExit</span> : <span class="id">block</span> :=<br/>
+&nbsp;&nbsp;{| <span class="id">blk_id</span> := <span class="id">Name</span> "<span class="id">exit</span>";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_phis</span> := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_code</span> := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blk_term</span> := (<span class="id">IVoid</span> 10%<span class="id">Z</span>, <span class="id">TERM_Ret</span> (<span class="id">texp_const_z</span> 0))<br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mainCFG</span> : <span class="id">cfg</span> := <br/>
+{|<br/>
+&nbsp;&nbsp;<span class="id">init</span> := <span class="id">Name</span> "<span class="id">main</span>";<br/>
+&nbsp;&nbsp;<span class="id">blks</span> := [<span class="id">bbMain</span>; <span class="id">bbLoop</span>; <span class="id">bbExit</span>];<br/>
+&nbsp;&nbsp;<span class="id">args</span> := [];<br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mainCFGRewrite</span> : <span class="id">cfg</span> := <br/>
+{|<br/>
+&nbsp;&nbsp;<span class="id">init</span> := <span class="id">Name</span> "<span class="id">main</span>";<br/>
+&nbsp;&nbsp;<span class="id">blks</span> := [<span class="id">bbInitRewrite</span>; <span class="id">bbLoopRewrite</span>; <span class="id">bbExit</span>];<br/>
+&nbsp;&nbsp;<span class="id">args</span> := [];<br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mainproto</span> : <span class="id">declaration</span> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_name</span>        := <span class="id">Name</span> "<span class="id">main</span>";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_type</span>        :=  <span class="id">TYPE_Function</span> <span class="id">TYPE_Void</span> [<span class="id">TYPE_I</span> 32];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_param_attrs</span> := ([], []);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_linkage</span>     := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_visibility</span>  := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_dll_storage</span> := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_cconv</span>       := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_attrs</span>       := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_section</span>     := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_align</span>       := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">dc_gc</span>          := <span class="id">None</span>;<br/>
+<br/>
+&nbsp;&nbsp;|}.<br/>
+<span class="kwd">Definition</span> <span class="id">mainDefinition</span>: <span class="id">definition</span> <span class="id">cfg</span> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">df_prototype</span>   := <span class="id">mainproto</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">df_args</span>        := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">df_instrs</span>      := <span class="id">mainCFG</span><br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">mainDefinition</span>': <span class="id">definition</span> <span class="id">cfg</span> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">df_prototype</span>   := <span class="id">mainproto</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">df_args</span>        := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">df_instrs</span>      := <span class="id">mainCFGRewrite</span><br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">program</span>: <span class="id">mcfg</span> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_name</span> := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_target</span> := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_datalayout</span> := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_type_defs</span> := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_globals</span> := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_declarations</span> := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_definitions</span>:= [<span class="id">mainDefinition</span>]<br/>
+&nbsp;&nbsp;|}.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">program</span>': <span class="id">mcfg</span> :=<br/>
+&nbsp;&nbsp;{|<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_name</span> := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_target</span> := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_datalayout</span> := <span class="id">None</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_type_defs</span> := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_globals</span> := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_declarations</span> := [];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">m_definitions</span>:= [<span class="id">mainDefinition</span>']<br/>
+&nbsp;&nbsp;|}.<br/>
+<span class="kwd">End</span> <span class="id">LOOPREV</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">LoopWriteSet</span> (<span class="id">n</span>: <span class="id">nat</span>) : <span class="id">list</span> <span class="id">nat</span> := <span class="id">seq</span> 1 <span class="id">n</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Transparent</span> <span class="id">SS.init_state</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Unfold</span> <span class="id">SS.init_state</span>.<br/>
+<br/>
+<span class="id">Create</span> <span class="id">HintDb</span> <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">SST.lookup_env_hd</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">SST.lookup_env_tl</span>: <span class="id">evaluation</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">SST.lookup_env_hd</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">SST.lookup_env_tl</span>: <span class="id">evaluation</span>.<br/>
+<br/>
+<br/>
+<h1>Expresssion effects </h1>
+<span class="kwd">Lemma</span> <span class="id">eval_exp_ident</span>: <span class="kwd">forall</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ot</span>: <span class="id">option</span> <span class="id">dtyp</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">name</span>: <span class="id">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">val</span>: <span class="id">dvalue</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> (<span class="id">SST.add_env</span> (<span class="id">Name</span> <span class="id">name</span>) <span class="id">val</span> <span class="id">e</span>) <span class="id">ot</span> (<span class="id">exp_ident</span> <span class="id">name</span>) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> <span class="id">val</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof324')">Proof.</div>
+<div class="proofscript" id="proof324">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_exp</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.lookup_env_hd</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">eval_exp_ident</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">eval_exp_ident</span>: <span class="id">evaluation</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">eval_exp_ident</span>': <span class="kwd">forall</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ot</span>: <span class="id">option</span> <span class="id">dtyp</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">name</span>: <span class="id">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">val</span>: <span class="id">dvalue</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATIDENT</span>: (<span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> <span class="id">name</span>)) = <span class="id">mret</span> <span class="id">val</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">ot</span> (<span class="id">exp_ident</span> <span class="id">name</span>) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> <span class="id">val</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof325')">Proof.</div>
+<div class="proofscript" id="proof325">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_exp</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">EATIDENT</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">eval_exp_ident</span>': <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">eval_exp_ident</span>': <span class="id">evaluation</span>.<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">eval_exp_gep</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrval</span> <span class="id">ivval</span>: <span class="id">dvalue</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">LOOKUPARR</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">arr</span>") = <span class="id">mret</span> <span class="id">arrval</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">LOOKUPIV</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">iv</span>") = <span class="id">mret</span> <span class="id">ivval</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">n</span>:<span class="id">nat</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Some</span> (<span class="id">SST.eval_typ</span> <span class="id">tds</span> (<span class="id">arr_ty</span> <span class="id">n</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">OP_GetElementPtr</span> (<span class="id">arr_ty</span> <span class="id">n</span>) (<span class="id">TYPE_Pointer</span> (<span class="id">arr_ty</span> <span class="id">n</span>), <span class="id">exp_ident</span> "<span class="id">arr</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id">texp_ident</span> "<span class="id">iv</span>"]) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Vis</span> (<span class="id">IO.GEP</span> (<span class="id">DTYPE_Array</span> (<span class="id">Z.of_nat</span> <span class="id">n</span>) (<span class="id">DTYPE_I</span> 32)) <span class="id">arrval</span> [<span class="id">ivval</span>])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">x</span> : <span class="id">dvalue</span> =&gt; <span class="id">Ret</span> <span class="id">x</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof326')">Proof.</div>
+<div class="proofscript" id="proof326">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">LOOKUPARR</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">LOOKUPIV</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">arr_ty</span>, <span class="id">SST.eval_typ</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">TRIPCOUNT</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">eval_exp_ident</span>': <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">eval_exp_ident</span>': <span class="id">evaluation</span>.<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">eval_exp_const</span>:  <span class="kwd">forall</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;(<span class="id">z</span>: <span class="id">Z</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">Some</span> (<span class="id">DTYPE_I</span> 32)) (<span class="id">exp_const_z</span> <span class="id">z</span>)  ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">DVALUE_I32</span> (<span class="id">Int32.repr</span> <span class="id">z</span>)).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof327')">Proof.</div>
+<div class="proofscript" id="proof327">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">eval_exp_const</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">eval_exp_const</span>: <span class="id">evaluation</span>.<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">eval_exp_increment_ident</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ivval</span>: <span class="id">dvalue</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">name</span>: <span class="id">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">LOOKUPIV</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> <span class="id">name</span>) = <span class="id">mret</span> <span class="id">ivval</span>),<br/>
+&nbsp;&nbsp;<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exp_increment_ident</span> <span class="id">name</span>) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">IO.lift_err_d</span> (<span class="id">eval_iop</span> (<span class="kwd">Add</span> <span class="id">false</span> <span class="id">false</span>) <span class="id">ivval</span> (<span class="id">DVALUE_I32</span> (<span class="id">Int32.repr</span> 1)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;[<span class="id">eta</span> <span class="id">Ret</span> (<span class="id">X</span>:=<span class="id">dvalue</span>)] .<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof328')">Proof.</div>
+<div class="proofscript" id="proof328">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">LOOKUPIV</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_typ</span>; <span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">eval_exp_increment_ident</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">eval_exp_increment_ident</span>: <span class="id">evaluation</span>.<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">eval_exp_eq_when_neq</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">val</span>: <span class="id">int32</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">name</span>: <span class="id">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">NEQ</span>: <span class="id">Int32.eq</span> <span class="id">val</span> (<span class="id">Int32.repr</span> (<span class="id">TRIPCOUNT</span> <span class="id">n</span>)) = <span class="id">false</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">LOOKUPIV</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> <span class="id">name</span>) = <span class="id">mret</span> (<span class="id">DVALUE_I32</span> <span class="id">val</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exp_eq</span> (<span class="id">exp_ident</span> <span class="id">name</span>) (<span class="id">exp_const_z</span> (<span class="id">TRIPCOUNT</span> <span class="id">n</span>))) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof329')">Proof.</div>
+<div class="proofscript" id="proof329">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">LOOKUPIV</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_typ</span>; <span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_icmp</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_i32_icmp</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">TRIPCOUNT</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">NEQ</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">eval_exp_eq_when_neq</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">eval_exp_eq_when_neq</span>: <span class="id">evaluation</span>.<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">eval_exp_eq_when_eq</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">val</span>: <span class="id">int32</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">name</span>: <span class="id">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EQ</span>: <span class="id">Int32.eq</span> <span class="id">val</span> (<span class="id">Int32.repr</span> (<span class="id">TRIPCOUNT</span> <span class="id">n</span>)) = <span class="id">true</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">LOOKUPIV</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> <span class="id">name</span>) = <span class="id">mret</span> (<span class="id">DVALUE_I32</span> <span class="id">val</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exp_eq</span> (<span class="id">exp_ident</span> <span class="id">name</span>) (<span class="id">exp_const_z</span> (<span class="id">TRIPCOUNT</span> <span class="id">n</span>))) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">DVALUE_I1</span> <span class="id">Int1.one</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof330')">Proof.</div>
+<div class="proofscript" id="proof330">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">LOOKUPIV</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_typ</span>; <span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_icmp</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">eval_i32_icmp</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">TRIPCOUNT</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">EQ</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">eval_exp_eq_when_eq</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">eval_exp_eq_when_eq</span>: <span class="id">evaluation</span>.<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">eval_exp_eq</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">val</span>: <span class="id">int32</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">name</span>: <span class="id">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">LOOKUPIV</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> <span class="id">name</span>) = <span class="id">mret</span> (<span class="id">DVALUE_I32</span> <span class="id">val</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">exp_eq</span> (<span class="id">exp_ident</span> <span class="id">name</span>) (<span class="id">exp_const_z</span> (<span class="id">TRIPCOUNT</span> <span class="id">n</span>))) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">if</span> <span class="id">Int32.eq</span> <span class="id">val</span> (<span class="id">Int32.repr</span> (<span class="id">Z.of_nat</span> <span class="id">n</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof331')">Proof.</div>
+<div class="proofscript" id="proof331">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_typ</span>; <span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">LOOKUPIV</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">eval_exp_eq</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">eval_exp_eq</span>: <span class="id">evaluation</span>.<br/>
+<span class="id">Opaque</span> <span class="id">SST.eval_exp</span>.<br/>
+<br/>
+<br/>
+<br/>
+<h1>Instruction effects </h1>
+<br/>
+<div class="doc">Effect of alloca </div>
+<span class="kwd">Lemma</span> <span class="id">exec_inst_alloca</span>:  <span class="kwd">forall</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>:  <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">id</span>: <span class="id">instr_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">name</span>: <span class="id">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">nbytes</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">i</span>: <span class="id">instr</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">M.memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ID</span>: <span class="id">id</span> = <span class="id">fst</span> (<span class="id">alloca_array</span> <span class="id">name</span> <span class="id">nbytes</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">INST</span>: <span class="id">i</span> = <span class="id">snd</span> (<span class="id">alloca_array</span> <span class="id">name</span> <span class="id">nbytes</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execInst</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">id</span> <span class="id">i</span>) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Ret</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> (<span class="id">M.size</span> <span class="id">mem</span>) (<span class="id">M.make_empty_block</span> (<span class="id">SST.eval_typ</span> <span class="id">tds</span> <span class="id">i32PTRTY</span>)) <span class="id">mem</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.IREnvEffect</span> (<span class="id">SST.add_env</span> (<span class="id">Name</span> <span class="id">name</span>) (<span class="id">DVALUE_Addr</span> (<span class="id">M.size</span> <span class="id">mem</span>, 0)) <span class="id">e</span>))).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof332')">Proof.</div>
+<div class="proofscript" id="proof332">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">exec_inst_alloca</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">exec_inst_alloca</span>: <span class="id">evaluation</span>.<br/>
+<div class="doc">Effect of store </div>
+<span class="kwd">Lemma</span> <span class="id">exec_inst_store</span>: <span class="kwd">forall</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>:  <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">id</span>: <span class="id">instr_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">M.memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">valt</span> <span class="id">ixt</span>: <span class="id">typ</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">vale</span> <span class="id">ixe</span>: <span class="id">exp</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">IDVAL</span>: <span class="id">exists</span> (<span class="id">i</span>: <span class="id">LLVMAst.int</span>), <span class="id">id</span> = <span class="id">IVoid</span> <span class="id">i</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mem</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.execInst</span> <span class="id">tds</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">ge</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">id</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">inst_store</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">valt</span>, <span class="id">vale</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ixt</span>, <span class="id">ixe</span>))) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bindM</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Some</span> (<span class="id">SST.eval_typ</span> <span class="id">tds</span> <span class="id">valt</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">vale</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">dv</span> : <span class="id">dvalue</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">bindM</span> (<span class="id">SST.eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">Some</span> (<span class="id">SST.eval_typ</span> <span class="id">tds</span> <span class="id">ixt</span>)) <span class="id">ixe</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">v</span> : <span class="id">dvalue</span> =&gt; <span class="id">Vis</span> (<span class="id">IO.Store</span> <span class="id">v</span> <span class="id">dv</span>) (<span class="kwd">fun</span> <span class="id">_</span> : () =&gt; <span class="id">Ret</span> <span class="id">SST.IRNone</span>)))).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof333')">Proof.</div>
+<div class="proofscript" id="proof333">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">inst_store</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.execInst</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">IDVAL</span> <span class="kwd">as</span> [<span class="id">idval</span> <span class="id">IDVAL</span>].<br/>
+&nbsp;&nbsp;<span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.execInst</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.execInst</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">exec_inst_store</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">exec_inst_store</span>: <span class="id">evaluation</span>.<br/>
+<br/>
+<h3>Evaluate INSTR_OP </h3>
+<span class="kwd">Lemma</span> <span class="id">exec_inst_op</span>: <span class="kwd">forall</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>:  <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">vale</span>: <span class="id">exp</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">dvale</span>: <span class="id">dvalue</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">name</span>: <span class="id">string</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">VALE_VALUE</span>: <span class="id">SST.eval_op</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">vale</span> ≡ <span class="id">Ret</span> <span class="id">dvale</span>) ,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.execInst</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">IId</span> (<span class="id">Name</span> <span class="id">name</span>)) (<span class="id">INSTR_Op</span> <span class="id">vale</span>) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">SST.IREnvEffect</span> (<span class="id">SST.add_env</span> (<span class="id">Name</span> <span class="id">name</span>) <span class="id">dvale</span> <span class="id">e</span>)).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof334')">Proof.</div>
+<div class="proofscript" id="proof334">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">VALE_VALUE</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+&nbsp;&nbsp;<br/>
+<br/>
+<span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">exec_inst_op</span>: <span class="id">evaluation</span>.<br/>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> @<span class="id">exec_inst_op</span>: <span class="id">evaluation</span>.<br/>
+<span class="id">Opaque</span> <span class="id">SST.execInst</span>.<br/>
+<br/>
+<h1>Basic block effects </h1>
+<span class="kwd">Lemma</span> <span class="id">exec_bbMain</span>: <span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">M.memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">None</span> (<span class="id">bbMain</span> <span class="id">n</span>)) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">M.add</span> (<span class="id">M.size</span> <span class="id">mem</span>) (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>) <span class="id">mem</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.BBRBreak</span> (<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">arr</span>") (<span class="id">DVALUE_Addr</span> (<span class="id">M.size</span> <span class="id">mem</span>, 0)) <span class="id">e</span>) (<span class="id">Name</span> "<span class="id">loop</span>")).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof335')">Proof.</div>
+<div class="proofscript" id="proof335">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.execBB</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.evalPhis</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">bbMain</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.memEffect_commutes_with_bind</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_inst_alloca</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">i32PTRTY</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_typ</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+Qed.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">exec_bbInitRewrite</span>: <span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">M.memory</span>), <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">None</span> (<span class="id">bbInitRewrite</span> <span class="id">n</span>)) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Ret</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> (<span class="id">M.size</span> <span class="id">mem</span>) (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>) <span class="id">mem</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.BBRBreak</span> (<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">arr</span>") (<span class="id">DVALUE_Addr</span> (<span class="id">M.size</span> <span class="id">mem</span>, 0)) <span class="id">e</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Name</span> "<span class="id">loop</span>"))).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof336')">Proof.</div>
+<div class="proofscript" id="proof336">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">bbInitRewrite</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.execBB</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.evalPhis</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.BBResultFromTermResult</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.memEffect_commutes_with_bind</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_inst_alloca</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_typ</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">i32PTRTY</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<div class="doc">Equivalence of init BBs </div>
+<span class="kwd">Lemma</span> <span class="id">exec_bbMain_exec_bbInitRewrite_equiv</span>:<br/>
+&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">M.memory</span>), <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">None</span> (<span class="id">bbInitRewrite</span> <span class="id">n</span>)) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">None</span> (<span class="id">bbMain</span> <span class="id">n</span>)).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof337')">Proof.</div>
+<div class="proofscript" id="proof337">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_bbMain</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_bbInitRewrite</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">reflexivity</span>.<br/>
+Qed.</div>
+<br/>
+<div class="doc">Since we can factor `memEffect`, we can reason separately about phi
+    node evaluation </div>
+<span class="kwd">Lemma</span> <span class="id">exec_bbLoop_phis_from_init</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">M.memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.evalPhis</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">Some</span> (<span class="id">Name</span> "<span class="id">main</span>"))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">blk_phis</span> (<span class="id">bbLoop</span> <span class="id">n</span>))) ≡ (<span class="id">Ret</span> (<span class="id">mem</span>, <span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv</span>") (<span class="id">DVALUE_I32</span> (<span class="id">Int32.repr</span> 0)) <span class="id">e</span>)).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof338')">Proof.</div>
+<div class="proofscript" id="proof338">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.evalPhis</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">bbLoop</span>. <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.evalPhi</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_typ</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_const</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">exec_bbLoop_from_init</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">N_GT_1</span>: (<span class="id">n</span> &gt;= 1)%<span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">N_IN_RANGE</span>: <span class="id">Z.of_nat</span> <span class="id">n</span> &lt;= <span class="id">Int32.max_unsigned</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span> <span class="id">initmem</span>: <span class="id">M.memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrblockidx</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATARR</span>: (<span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">arr</span>")) = <span class="id">mret</span> (<span class="id">DVALUE_Addr</span> (<span class="id">arrblockidx</span>, 0)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">MEMATARR</span>: <span class="id">mem</span> = (<span class="id">M.add</span> <span class="id">arrblockidx</span> (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>) <span class="id">initmem</span>)),<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">Some</span> (<span class="id">Name</span> "<span class="id">main</span>")) (<span class="id">bbLoop</span> <span class="id">n</span>)) ≡<br/>
+<br/>
+&nbsp;&nbsp;<span class="id">M.memEffect</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> <span class="id">arrblockidx</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add_all_index</span> (<span class="id">M.serialize_dvalue</span> (<span class="id">DVALUE_I32</span> (<span class="id">Int32.repr</span> 0)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.unsigned</span> (<span class="id">Int32.repr</span> 0) * 8) (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> <span class="id">arrblockidx</span> (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>) <span class="id">initmem</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mapM</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.BBResultFromTermResult</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">cond</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">if</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Int32.eq</span> (<span class="id">Int32.add</span> (<span class="id">Int32.repr</span> 0) (<span class="id">Int32.repr</span> 1))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.repr</span> (<span class="id">Z.of_nat</span> <span class="id">n</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv.next</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">DVALUE_I32</span> (<span class="id">Int32.add</span> (<span class="id">Int32.repr</span> 0) (<span class="id">Int32.repr</span> 1)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv</span>") (<span class="id">DVALUE_I32</span> (<span class="id">Int32.repr</span> 0)) <span class="id">e</span>))))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bindM</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">if</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Int32.eq</span> (<span class="id">Int32.add</span> (<span class="id">Int32.repr</span> 0) (<span class="id">Int32.repr</span> 1))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.repr</span> (<span class="id">Z.of_nat</span> <span class="id">n</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Addr</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I1</span> <span class="id">comparison_bit</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">Int1.eq</span> <span class="id">comparison_bit</span> <span class="id">Int1.one</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">Ret</span> (<span class="id">Name</span> "<span class="id">exit</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">Ret</span> (<span class="id">Name</span> "<span class="id">loop</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I32</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I64</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Double</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Float</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Undef</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Poison</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_None</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Struct</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Packed_struct</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Array</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Vector</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span> (<span class="kwd">fun</span> <span class="id">br</span> : <span class="id">block_id</span> =&gt; <span class="id">Ret</span> (<span class="id">SST.TRBreak</span> <span class="id">br</span>)))).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof339')">Proof.</div>
+<div class="proofscript" id="proof339">
+&nbsp;&nbsp;<span class="id">Opaque</span> <span class="id">SST.execBBInstrs</span>.<br/>
+&nbsp;&nbsp;<span class="id">Opaque</span> <span class="id">SST.execInst</span>.<br/>
+&nbsp;&nbsp;<span class="id">Opaque</span> <span class="id">SST.eval_exp</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.execBB</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.evalPhis</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.memEffect_commutes_with_bind</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">setoid_rewrite</span> <span class="id">exec_bbLoop_phis_from_init</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">bindM_Ret</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.force_exec_bb_instrs</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.memEffect_commutes_with_bind</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">setoid_rewrite</span> <span class="id">exec_inst_store</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_ident</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_gep</span>.<br/>
+<div class="doc">I shouldn't have to do this :( </div>
+&nbsp;&nbsp;<span class="id">all</span>: <span class="id">cycle</span> -2.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.lookup_env_tl</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">EATARR</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.lookup_env_hd</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<br/>
+<div class="doc">MEM is OK here *</div>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">MEMATARR</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.lookup_add</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.lookup_add</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+<div class="doc">MEM is too large here *</div>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">N_NOT_LEQ_0</span>: <span class="id">Z.of_nat</span> <span class="id">n</span> &lt;=? <span class="id">Int32.unsigned</span> (<span class="id">Int32.repr</span> 0) = <span class="id">false</span>).<br/>
+<div class="doc">since n &gt;= 1, n is not &lt;= 0 *</div>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Int32.unsigned_repr</span>; <span class="id">cycle</span> 1.<br/>
+&nbsp;&nbsp;<span class="tactic">compute</span>; <span class="tactic">split</span>; <span class="tactic">intros</span>; <span class="tactic">congruence</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">Z.of_nat</span> <span class="id">n</span> &lt;=? 0) <span class="id">eqn</span>:<span class="id">DESTRUCT</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- <span class="id">Zle_is_le_bool</span> <span class="kwd">in</span> <span class="id">DESTRUCT</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">omega</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">N_NOT_LEQ_0</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+<div class="doc">MEM is too large here *</div>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;TODO:&nbsp;fix&nbsp;the&nbsp;opening&nbsp;of&nbsp;add_all_index&nbsp;*)</span>&nbsp;evaluate&nbsp;iv.next&nbsp;*)</span>&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.force_exec_bb_instrs</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_inst_op</span>; <span class="id">cycle</span> 1.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_op</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_increment_ident</span>.<br/>
+&nbsp;&nbsp;<span class="id">all</span>: <span class="id">cycle</span> 1.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.lookup_env_hd</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="id">all</span>: <span class="id">cycle</span> 1.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;eval&nbsp;checking&nbsp;of&nbsp;iv.next&nbsp;*)</span>&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.force_exec_bb_instrs</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_inst_op</span>.<br/>
+&nbsp;&nbsp;<span class="id">all</span>: <span class="id">cycle</span> 1.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_op</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_eq</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.lookup_env_hd</span>; <span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;done&nbsp;with&nbsp;loop&nbsp;*)</span>&nbsp;eval&nbsp;branch&nbsp;*)</span>&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.force_exec_bb_instrs</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+<div class="doc">Missing eutt proper instance for mapM *</div>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_ident</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">progress</span> <span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">exec_bbLoop_phis_from_loop</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ivnextval</span>: <span class="id">dvalue</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATIVNEXT</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">iv.next</span>") = <span class="id">mret</span> <span class="id">ivnextval</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">M.memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.evalPhis</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">Some</span> (<span class="id">blk_id</span> (<span class="id">bbLoop</span> <span class="id">n</span>))) (<span class="id">blk_phis</span> (<span class="id">bbLoop</span> <span class="id">n</span>))) ≡ <br/>
+&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">mem</span>, <span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv</span>") <span class="id">ivnextval</span> <span class="id">e</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof340')">Proof.</div>
+<div class="proofscript" id="proof340">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.evalPhis</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">bbLoop</span>. <span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.evalPhi</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_typ</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.memEffect_commutes_with_bind</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_ident</span>'; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<br/>
+<br/>
+<div class="doc">The spine of the computation when evaluating from the backedge,
+with the conditionals left in. This can be refined based on things that are
+known about the program </div>
+<span class="kwd">Lemma</span> <span class="id">exec_bbLoop_from_bbLoop_spine</span>: <span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ivnextval</span>: <span class="id">int32</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">initmem</span> <span class="id">mem</span>: <span class="id">M.memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrblockidx</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrblock</span>: <span class="id">M.mem_block</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATARR</span>: (<span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">arr</span>")) = <span class="id">mret</span> (<span class="id">DVALUE_Addr</span> (<span class="id">arrblockidx</span>, 0)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">MEMATARR</span>: <span class="id">mem</span> = (<span class="id">M.add</span> <span class="id">arrblockidx</span> <span class="id">arrblock</span> <span class="id">initmem</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATIVNEXT</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">iv.next</span>") = <span class="id">mret</span> (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Some</span> (<span class="id">blk_id</span> (<span class="id">bbLoop</span> <span class="id">n</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbLoop</span> <span class="id">n</span>)) ≡<br/>
+&nbsp;&nbsp;<span class="id">M.memEffect</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> <span class="id">arrblockidx</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add_all_index</span> (<span class="id">M.serialize_dvalue</span> (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">if</span> <span class="id">Z.of_nat</span> <span class="id">n</span> &lt;=? <span class="id">Int32.unsigned</span> <span class="id">ivnextval</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">None</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">Some</span> (<span class="id">DTYPE_I</span> 32, <span class="id">Int32.unsigned</span> <span class="id">ivnextval</span> * 8))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> (<span class="id">_</span>, <span class="id">offset</span>) =&gt; <span class="id">offset</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; 0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span> <span class="id">arrblock</span>) (<span class="id">M.add</span> <span class="id">arrblockidx</span> <span class="id">arrblock</span> <span class="id">initmem</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mapM</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.BBResultFromTermResult</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">cond</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">if</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Int32.eq</span> (<span class="id">Int32.add</span> <span class="id">ivnextval</span> (<span class="id">Int32.repr</span> 1))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.repr</span> (<span class="id">Z.of_nat</span> <span class="id">n</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv.next</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">DVALUE_I32</span> (<span class="id">Int32.add</span> <span class="id">ivnextval</span> (<span class="id">Int32.repr</span> 1)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv</span>") (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>) <span class="id">e</span>))))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bindM</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">if</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Int32.eq</span> (<span class="id">Int32.add</span> <span class="id">ivnextval</span> (<span class="id">Int32.repr</span> 1))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.repr</span> (<span class="id">Z.of_nat</span> <span class="id">n</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.one</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Addr</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I1</span> <span class="id">comparison_bit</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">if</span> <span class="id">Int1.eq</span> <span class="id">comparison_bit</span> <span class="id">Int1.one</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">then</span> <span class="id">Ret</span> (<span class="id">Name</span> "<span class="id">exit</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">else</span> <span class="id">Ret</span> (<span class="id">Name</span> "<span class="id">loop</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I32</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_I64</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Double</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Float</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Undef</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Poison</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_None</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Struct</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Packed_struct</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Array</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">DVALUE_Vector</span> <span class="id">_</span> =&gt; <span class="id">Err</span> "<span class="id">Br</span> <span class="id">got</span> <span class="id">non</span>-<span class="id">bool</span> <span class="id">value</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span> (<span class="kwd">fun</span> <span class="id">br</span> : <span class="id">block_id</span> =&gt; <span class="id">Ret</span> (<span class="id">SST.TRBreak</span> <span class="id">br</span>)))).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof341')">Proof.</div>
+<div class="proofscript" id="proof341">
+&nbsp;&nbsp;<span class="id">Opaque</span> <span class="id">SST.execBBInstrs</span>.<br/>
+&nbsp;&nbsp;<span class="id">Opaque</span> <span class="id">SST.execInst</span>.<br/>
+&nbsp;&nbsp;<span class="id">Opaque</span> <span class="id">SST.eval_exp</span>.<br/>
+&nbsp;&nbsp;<span class="id">Opaque</span> <span class="id">M.lookup</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.execBB</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.memEffect_commutes_with_bind</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">setoid_rewrite</span> <span class="id">exec_bbLoop_phis_from_loop</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+<br/>
+&nbsp;Now&nbsp;we&nbsp;ave&nbsp;evaluted&nbsp;PHI&nbsp;nodes,&nbsp;time&nbsp;to&nbsp;evaluate&nbsp;instructions&nbsp;*)</span><div class="doc">Compute store *</div>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.force_exec_bb_instrs</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.memEffect_commutes_with_bind</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_inst_store</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_ident</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_gep</span>; <span class="tactic">try</span> (<span class="tactic">eauto</span> 2 <span class="kwd">with</span> <span class="id">evaluation</span>).<br/>
+&nbsp;&nbsp;<span class="id">all</span>: <span class="id">cycle</span> -1.<br/>
+&nbsp;Why&nbsp;did&nbsp;eauto&nbsp;not&nbsp;find&nbsp;this?&nbsp;*)</span>&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.lookup_env_tl</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">MEMATARR</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.lookup_add</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.lookup_add</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+<div class="doc">Compute iv.next *</div>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.force_exec_bb_instrs</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.memEffect_commutes_with_bind</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_inst_op</span>; <span class="id">cycle</span> -1.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_op</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_increment_ident</span>; <span class="tactic">simpl</span>; <span class="tactic">eauto</span> <span class="kwd">with</span> <span class="id">evaluation</span>; <span class="tactic">simpl</span>; <span class="tactic">eauto</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+<br/>
+<div class="doc">evaluate condition *</div>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.force_exec_bb_instrs</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">M.memEffect_commutes_with_bind</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_inst_op</span>; <span class="id">cycle</span> -1.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_op</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_eq</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.lookup_env_hd</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.force_exec_bb_instrs</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_ident</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">exec_bbLoop_from_bbLoop_inner_iterations</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">NINRANGE</span>: <span class="id">Z.of_nat</span> <span class="id">n</span> &lt;= <span class="id">Int32.max_unsigned</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ivnextval</span>: <span class="id">int32</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">IVNEXT_PLUS_1_LT_N</span>: <span class="id">Int32.unsigned</span> <span class="id">ivnextval</span> + 1 &lt; <span class="id">Z.of_nat</span> <span class="id">n</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">initmem</span> <span class="id">mem</span>: <span class="id">M.memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrblockidx</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrblock</span>: <span class="id">M.mem_block</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATARR</span>: (<span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">arr</span>")) = <span class="id">mret</span> (<span class="id">DVALUE_Addr</span> (<span class="id">arrblockidx</span>, 0)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">MEMATARR</span>: <span class="id">mem</span> = (<span class="id">M.add</span> <span class="id">arrblockidx</span> <span class="id">arrblock</span> <span class="id">initmem</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATIVNEXT</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">iv.next</span>") = <span class="id">mret</span> (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Some</span> (<span class="id">blk_id</span> (<span class="id">bbLoop</span> <span class="id">n</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbLoop</span> <span class="id">n</span>)) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> <span class="id">arrblockidx</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add_all_index</span> (<span class="id">M.serialize_dvalue</span> (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.unsigned</span> <span class="id">ivnextval</span> * 8) <span class="id">arrblock</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> <span class="id">arrblockidx</span> <span class="id">arrblock</span> <span class="id">initmem</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.BBRBreak</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">cond</span>") (<span class="id">DVALUE_I1</span> <span class="id">Int1.zero</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv.next</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">DVALUE_I32</span> (<span class="id">Int32.add</span> <span class="id">ivnextval</span> (<span class="id">Int32.repr</span> 1)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv</span>") (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>) <span class="id">e</span>))) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Name</span> "<span class="id">loop</span>")) .<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof342')">Proof.</div>
+<div class="proofscript" id="proof342">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_bbLoop_from_bbLoop_spine</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">N_LEQ_IVNEXTVAL</span>: <span class="id">reflect</span> ((<span class="id">Z.of_nat</span> <span class="id">n</span> &lt;= <span class="id">Int32.unsigned</span> <span class="id">ivnextval</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Z.of_nat</span> <span class="id">n</span> &lt;=? <span class="id">Int32.unsigned</span> <span class="id">ivnextval</span>)).<br/>
+&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">Z.leb_spec0</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">N_LEQ_IVNEXTVAL</span>; <span class="tactic">try</span> <span class="tactic">omega</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">IVNEXTVAL_NEQ_N</span>:<span class="id">Int32.eq</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.add</span> <span class="id">ivnextval</span> (<span class="id">Int32.repr</span> 1))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.repr</span> (<span class="id">Z.of_nat</span> <span class="id">n</span>)) = <span class="id">false</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Int32.eq</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">rewrite</span> <span class="id">Int32.unsigned_repr</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">Coqlib.zeq</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">Z.eq_dec</span> (<span class="id">Int32.unsigned</span> <span class="id">ivnextval</span> + 1) (<span class="id">Z.of_nat</span> <span class="id">n</span>)); <span class="tactic">auto</span>; <span class="tactic">try</span> <span class="tactic">omega</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">compute</span>; <span class="tactic">split</span>; <span class="tactic">intros</span>; <span class="tactic">congruence</span>.<br/>
+&nbsp;&nbsp;<span class="id">admit</span>.<br/>
+&nbsp;&nbsp;<span class="id">admit</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">split</span>; <span class="tactic">omega</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">IVNEXTVAL_NEQ_N</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Admitted.</div>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">exec_bbLoop_from_bbLoop_final_iteration</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ivnextval</span>: <span class="id">int32</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">IVNEXT_EQ_N</span>: <span class="id">Int32.unsigned</span> <span class="id">ivnextval</span> + 1 = <span class="id">Z.of_nat</span> <span class="id">n</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">initmem</span> <span class="id">mem</span>: <span class="id">M.memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrblockidx</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATARR</span>: (<span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">arr</span>")) = <span class="id">mret</span> (<span class="id">DVALUE_Addr</span> (<span class="id">arrblockidx</span>, 0)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">MEMATARR</span>: <span class="id">mem</span> = (<span class="id">M.add</span> <span class="id">arrblockidx</span> (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>) <span class="id">initmem</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATIVNEXT</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">iv.next</span>") = <span class="id">mret</span> (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Some</span> (<span class="id">blk_id</span> (<span class="id">bbLoop</span> <span class="id">n</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbLoop</span> <span class="id">n</span>)) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> <span class="id">arrblockidx</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add_all_index</span> (<span class="id">M.serialize_dvalue</span> (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.unsigned</span> <span class="id">ivnextval</span> * 8) (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> <span class="id">arrblockidx</span> (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>) <span class="id">initmem</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">SST.BBRBreak</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">cond</span>") (<span class="id">DVALUE_I1</span> <span class="id">Int1.one</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv.next</span>")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">DVALUE_I32</span> (<span class="id">Int32.add</span> <span class="id">ivnextval</span> (<span class="id">Int32.repr</span> 1)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.add_env</span> (<span class="id">Name</span> "<span class="id">iv</span>") (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>) <span class="id">e</span>))) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Name</span> "<span class="id">exit</span>")) .<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof343')">Proof.</div>
+<div class="proofscript" id="proof343">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">exec_bbLoop_from_bbLoop_spine</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">N_LEQ_IVNEXTVAL</span>: <span class="id">reflect</span> ((<span class="id">Z.of_nat</span> <span class="id">n</span> &lt;= <span class="id">Int32.unsigned</span> <span class="id">ivnextval</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Z.of_nat</span> <span class="id">n</span> &lt;=? <span class="id">Int32.unsigned</span> <span class="id">ivnextval</span>)).<br/>
+&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">Z.leb_spec0</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">N_LEQ_IVNEXTVAL</span>; <span class="tactic">try</span> <span class="tactic">omega</span>.<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">IVNEXTVAL_NEQ_N</span>: <span class="id">Int32.eq</span>  (<span class="id">Int32.add</span> <span class="id">ivnextval</span> (<span class="id">Int32.repr</span> 1))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.repr</span> (<span class="id">Z.of_nat</span> <span class="id">n</span>)) = <span class="id">true</span>).<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> &lt;- <span class="id">IVNEXT_EQ_N</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Int32.add_unsigned</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">Int32.unsigned_repr</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">Int32.eq_true</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">split</span>; <span class="tactic">simpl</span>; <span class="tactic">try</span> <span class="tactic">omega</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">compute</span>. <span class="tactic">intros</span>; <span class="tactic">congruence</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">IVNEXTVAL_NEQ_N</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+&nbsp;&nbsp;<span class="id">M.forcemem</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<span class="kwd">Lemma</span> <span class="id">exec_exit</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">prev</span>: <span class="id">block_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span>: <span class="id">M.memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">Some</span> <span class="id">prev</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbExit</span>)) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">Ret</span> (<span class="id">SST.BBRRet</span> (<span class="id">DVALUE_I32</span> (<span class="id">Int32.repr</span> 0)))).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof344')">Proof.</div>
+<div class="proofscript" id="proof344">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.execBB</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.evalPhis</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">SST.force_exec_bb_instrs</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">simpl</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">SST.eval_typ</span>. <span class="tactic">rewrite</span> <span class="id">normalize_type_equation</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">eval_exp_const</span>.<br/>
+&nbsp;&nbsp;<span class="id">euttnorm</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<h1>Conditions for bbLoop (S n) = bbloop S n </h1>
+<span class="kwd">Lemma</span> <span class="id">exec_bbLoop_from_bbLoop_inner_iterations_decrement_tripcount</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">NINRANGE</span>: <span class="id">Z.of_nat</span> (<span class="id">S</span> <span class="id">n</span>) &lt;= <span class="id">Int32.max_unsigned</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ivnextval</span>: <span class="id">int32</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">IVNEXT_PLUS_1_LT_N</span>: <span class="id">Int32.unsigned</span> <span class="id">ivnextval</span> + 1 &lt; <span class="id">Z.of_nat</span> <span class="id">n</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">initmem</span> <span class="id">mem</span>: <span class="id">M.memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrblockidx</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrblock</span>: <span class="id">M.mem_block</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATARR</span>: (<span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">arr</span>")) = <span class="id">mret</span> (<span class="id">DVALUE_Addr</span> (<span class="id">arrblockidx</span>, 0)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">MEMATARR</span>: <span class="id">mem</span> = (<span class="id">M.add</span> <span class="id">arrblockidx</span> <span class="id">arrblock</span> <span class="id">initmem</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">EATIVNEXT</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">iv.next</span>") = <span class="id">mret</span> (<span class="id">DVALUE_I32</span> <span class="id">ivnextval</span>)),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Some</span> (<span class="id">blk_id</span> (<span class="id">bbLoop</span> <span class="id">n</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbLoop</span> ( <span class="id">S</span> <span class="id">n</span>))) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Some</span> (<span class="id">blk_id</span> (<span class="id">bbLoop</span> <span class="id">n</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbLoop</span> <span class="id">n</span>)).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof345')">Proof.</div>
+<div class="proofscript" id="proof345">
+&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="tactic">rewrite</span> <span class="id">exec_bbLoop_from_bbLoop_inner_iterations</span>; <span class="tactic">eauto</span>; <span class="id">zify</span>; <span class="tactic">omega</span>.<br/>
+Qed.</div>
+<br/>
+<br/>
+<br/>
+<br/>
+<div class="doc">TODO: create a function that shows what memory looks like on n iterations *</div>
+<span class="kwd">Definition</span> <span class="id">nat_to_int32</span> (<span class="id">n</span>: <span class="id">nat</span>): <span class="id">int32</span> :=<br/>
+&nbsp;&nbsp;<span class="id">Int32.repr</span> (<span class="id">Z.of_nat</span> <span class="id">n</span>).<br/>
+<br/>
+<h1>Effect of memory by one iteration </h1>
+<span class="kwd">Definition</span> <span class="id">mem_effect_at_iteration</span> (<span class="id">blockloc</span>: <span class="id">Z</span>) (<span class="id">i</span>: <span class="id">nat</span>) (<span class="id">mem</span>: <span class="id">M.memory</span>): <span class="id">M.memory</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add</span> <span class="id">blockloc</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">M.add_all_index</span> (<span class="id">M.serialize_dvalue</span> (<span class="id">DVALUE_I32</span> (<span class="id">nat_to_int32</span> <span class="id">i</span>)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Int32.unsigned</span> (<span class="id">nat_to_int32</span> <span class="id">i</span>) * 8) (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>)) <span class="id">mem</span>).<br/>
+&nbsp;&nbsp;<br/>
+<br/>
+<br/>
+<h1>Effect of memory by n iterations of the loop </h1>
+<span class="kwd">Definition</span> <span class="id">schedule</span> := <span class="id">nat</span> -&gt; <span class="id">nat</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">VIV</span> := <span class="id">nat</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">UB</span> := <span class="id">nat</span>.<br/>
+<span class="kwd">Inductive</span> <span class="id">exec_loop</span>: <span class="id">Z</span> -&gt; <span class="id">schedule</span> -&gt; <span class="id">VIV</span> -&gt; <span class="id">UB</span> -&gt; <span class="id">M.memory</span> -&gt; <span class="id">M.memory</span> -&gt; <span class="kwd">Prop</span> :=<br/>
+| <span class="id">exec_loop_exit</span>:  <span class="kwd">forall</span>  (<span class="id">blockloc</span>: <span class="id">Z</span>) (<span class="id">s</span>: <span class="id">schedule</span>) (<span class="id">viv</span>: <span class="id">nat</span>) (<span class="id">ub</span>: <span class="id">nat</span>) (<span class="id">mem</span>: <span class="id">M.memory</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">viv</span> &gt;= <span class="id">ub</span>)%<span class="id">nat</span> -&gt; <span class="id">exec_loop</span> <span class="id">blockloc</span> <span class="id">s</span> <span class="id">viv</span> <span class="id">ub</span> <span class="id">mem</span> <span class="id">mem</span><br/>
+| <span class="id">exec_loop_loop</span> : <span class="kwd">forall</span> (<span class="id">blockloc</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">s</span>: <span class="id">schedule</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">viv</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ub</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem1</span> <span class="id">mem2</span> <span class="id">mem3</span>: <span class="id">M.memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">VIV_INRANGE</span>: (<span class="id">viv</span> &lt; <span class="id">ub</span>)%<span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ITER_EFFECT</span>: <span class="id">mem_effect_at_iteration</span> <span class="id">blockloc</span> (<span class="id">s</span> <span class="id">viv</span>) <span class="id">mem1</span> = <span class="id">mem2</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_loop</span> <span class="id">blockloc</span> <span class="id">s</span> (<span class="id">viv</span> + 1)%<span class="id">nat</span> <span class="id">ub</span> <span class="id">mem2</span> <span class="id">mem3</span> -&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_loop</span> <span class="id">blockloc</span> <span class="id">s</span> <span class="id">viv</span> <span class="id">ub</span> <span class="id">mem1</span> <span class="id">mem3</span>.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">schedule_id</span> (<span class="id">viv</span>: <span class="id">nat</span>): <span class="id">nat</span> := <span class="id">viv</span>.<br/>
+<span class="kwd">Definition</span> <span class="id">schedule_rev</span> (<span class="id">MAXN</span>: <span class="id">nat</span>)(<span class="id">viv</span>: <span class="id">nat</span>): <span class="id">nat</span> := <span class="id">MAXN</span> - <span class="id">viv</span> + 1.<br/>
+<br/>
+<span class="kwd">Definition</span> <span class="id">schedule_witness</span> (<span class="id">s</span>: <span class="id">schedule</span>) : <span class="kwd">Prop</span> := <span class="id">True</span>.<br/>
+<br/>
+<span class="kwd">Theorem</span> <span class="id">all_bijective_schedules_in_range_are_equal</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">s</span>: <span class="id">schedule</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">WITNESS</span>: <span class="id">schedule_witness</span> <span class="id">s</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">blockid</span> <span class="id">viv</span> <span class="id">ub</span> <span class="id">mem1</span> <span class="id">mem2</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_loop</span> <span class="id">blockid</span> <span class="id">schedule_id</span> <span class="id">viv</span> <span class="id">ub</span> <span class="id">mem1</span> <span class="id">mem2</span> = <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">exec_loop</span> <span class="id">blockid</span> <span class="id">s</span> <span class="id">viv</span> <span class="id">ub</span> <span class="id">mem1</span> <span class="id">mem2</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof346')">Proof.</div>
+<div class="proofscript" id="proof346">
+Admitted.</div>
+<br/>
+<br/>
+<br/>
+<h1>Relate execution of program of length (S n) to program of length n </h1>
+<div class="doc">Roughly, exec (p (S n)) === exec (P n ; loop)) </div>
+<div class="doc">This will not work, so the correct thing to do is to do the compcert thing where we have a
+    - exec n till_i = &lt;inductive proposition like CompCert&gt;
+*</div>
+<span class="kwd">Lemma</span> <span class="id">program_sn_execution_as_program_n</span>:<br/>
+&nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">n</span>: <span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">N_GE_1</span>: (<span class="id">n</span> &gt;= 1)%<span class="id">nat</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">SST.env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">SST.genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mem</span> <span class="id">initmem</span>: <span class="id">M.memory</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbprevid</span>: <span class="id">block_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ivnextval</span>: <span class="id">int</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">arrblockidx</span>: <span class="id">Z</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ENV_AT_ARR</span>: <span class="id">SST.lookup_env</span> <span class="id">e</span> (<span class="id">Name</span> "<span class="id">arr</span>") = <span class="id">mret</span> (<span class="id">DVALUE_Addr</span> (<span class="id">arrblockidx</span>, 0)))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">INITMEM_ARR</span>: <span class="id">mem</span> = <span class="id">M.add</span> <span class="id">arrblockidx</span> (<span class="id">M.make_empty_block</span> <span class="id">DTYPE_Pointer</span>) <span class="id">initmem</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">N_INRANGE</span>: <span class="id">Z.of_nat</span> <span class="id">n</span> &lt;= <span class="id">Int32.max_unsigned</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mapM</span> <span class="id">fst</span> (<span class="id">M.memEffect</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mem</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">SST.execFunction</span> [] <span class="id">ge</span> <span class="id">e</span> (<span class="id">mainCFG</span> (<span class="id">S</span> <span class="id">n</span>)) (<span class="id">Name</span> "<span class="id">main</span>"))) ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">mapM</span> (<span class="id">mem_effect_at_iteration</span> <span class="id">arrblockidx</span> (<span class="id">S</span> <span class="id">n</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">mapM</span> <span class="id">fst</span> (<span class="id">M.memEffect</span> <span class="id">mem</span> (<span class="id">SST.execFunction</span> [] <span class="id">ge</span> <span class="id">e</span> (<span class="id">mainCFG</span> <span class="id">n</span>) (<span class="id">Name</span> "<span class="id">main</span>")))).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof347')">Proof.</div>
+<div class="proofscript" id="proof347">
+Abort.</div>
+<h1>Full effects </h1>
+<br/>
+<h1>For experimentation, see how to execute the main function </h1>
+</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>

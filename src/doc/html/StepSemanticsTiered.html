@@ -21,6 +21,7 @@
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">compcert.lib.Integers</span> <span class="id">compcert.lib.Floats</span>.<br/>
 <br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Classes</span>.<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Util</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.Trace</span>.<br/>
 <span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Vellvm.LLVMAst</span>.<br/>
@@ -102,6 +103,84 @@ over instructions, from which we try to recover higher level semantics
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">add_env</span> := <span class="id">ENV.add</span>.<br/>
+<br/>
+<h1>Theorems about the environment </h1>
+&nbsp;&nbsp;<span class="kwd">Section</span> <span class="id">ENVFACTS</span>.<br/>
+<div class="doc">Lookup on an aliasing add, aka gss </div>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lookup_env_hd</span> : <span class="kwd">forall</span> {<span class="id">X</span>: <span class="kwd">Type</span>} (<span class="id">id</span>: <span class="id">ENV.key</span>) (<span class="id">dv</span>: <span class="id">X</span>) (<span class="id">e</span>: <span class="id">ENV.t</span> <span class="id">X</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">lookup_env</span> (<span class="id">add_env</span> <span class="id">id</span> <span class="id">dv</span> <span class="id">e</span>) <span class="id">id</span> = <span class="id">mret</span> <span class="id">dv</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof267')">Proof.</div>
+<div class="proofscript" id="proof267">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">lookup_env</span>. <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">add_env</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">erewrite</span> <span class="id">ENV.find_1</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENV.add_1</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Qed.</div>
+<br/>
+<br/>
+<br/>
+<div class="doc">Lookup on a non-aliasing add, aka gso </div>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lookup_env_tl</span> : <span class="kwd">forall</span> {<span class="id">X</span>: <span class="kwd">Type</span>} (<span class="id">id1</span> <span class="id">id2</span>: <span class="id">ENV.key</span>) (<span class="id">v1</span>: <span class="id">X</span>) (<span class="id">e</span>: <span class="id">ENV.t</span> <span class="id">X</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">id1</span> &lt;&gt; <span class="id">id2</span> -&gt; <span class="id">lookup_env</span> (<span class="id">add_env</span> <span class="id">id1</span> <span class="id">v1</span> <span class="id">e</span>) <span class="id">id2</span> = <span class="id">lookup_env</span> <span class="id">e</span> <span class="id">id2</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof268')">Proof.</div>
+<div class="proofscript" id="proof268">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">lookup_env</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">add_env</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">ENV.find</span> <span class="id">id2</span> <span class="id">e</span>) <span class="id">eqn</span>: <span class="id">FINDID2</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="comment">(**&nbsp;Some&nbsp;x&nbsp;**)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">ID2_MAPSTO</span>: <span class="id">ENV.MapsTo</span> <span class="id">id2</span> <span class="id">x</span> <span class="id">e</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENV.find_2</span>; <span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">ID2_MAPSTO_ADDED_E</span>': <span class="id">ENV.MapsTo</span> <span class="id">id2</span> <span class="id">x</span> (<span class="id">ENV.add</span> <span class="id">id1</span> <span class="id">v1</span> <span class="id">e</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">ENV.add_2</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">erewrite</span> <span class="id">ENV.find_1</span>; <span class="tactic">eauto</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="tactic">assert</span> (<span class="id">ID2_NOT_IN</span>: ~ <span class="id">ENV.In</span>  <span class="id">id2</span> <span class="id">e</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">ENVFacts.not_find_in_iff</span>; <span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">ID2_NOT_IN_E</span>': ~ <span class="id">ENV.In</span> <span class="id">id2</span> (<span class="id">ENV.add</span> <span class="id">id1</span> <span class="id">v1</span> <span class="id">e</span>)).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">CONTRA</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">ENVFacts.add_in_iff</span> <span class="kwd">in</span> <span class="id">CONTRA</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">CONTRA</span>; <span class="tactic">try</span> <span class="id">contradiction</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">ENVFacts.not_find_in_iff</span> <span class="kwd">in</span> <span class="id">ID2_NOT_IN_E</span>'.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">ID2_NOT_IN_E</span>'.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Qed.</div>
+<br/>
+<br/>
+<div class="doc">Extract information from a lookup-of-add </div>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">Lemma</span> <span class="id">lookup_add_env_inv</span> :<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">forall</span> {<span class="id">X</span>: <span class="kwd">Type</span>} (<span class="id">id1</span> <span class="id">id2</span>: <span class="id">ENV.key</span>) (<span class="id">u</span> <span class="id">v</span>: <span class="id">X</span>) (<span class="id">e</span>: <span class="id">ENV.t</span> <span class="id">X</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<span class="id">ID_EQ_DEC</span>: <span class="kwd">forall</span> <span class="id">id1</span> <span class="id">id2</span>: <span class="id">ENV.key</span>, {<span class="id">id1</span> = <span class="id">id2</span>} + {<span class="id">id1</span> &lt;&gt; <span class="id">id2</span>}}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">Hl</span>: <span class="id">lookup_env</span> (<span class="id">add_env</span> <span class="id">id1</span> <span class="id">v</span> <span class="id">e</span>) <span class="id">id2</span> = <span class="id">mret</span> <span class="id">u</span>),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">id1</span> = <span class="id">id2</span> /\ <span class="id">v</span> = <span class="id">u</span>) \/ (<span class="id">id1</span> &lt;&gt; <span class="id">id2</span> /\ <span class="id">lookup_env</span> <span class="id">e</span> <span class="id">id2</span> = <span class="id">mret</span> <span class="id">u</span>).<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof269')">Proof.</div>
+<div class="proofscript" id="proof269">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">ID12_EQ_DEC</span>: {<span class="id">id1</span> = <span class="id">id2</span>}+ {<span class="id">id1</span> &lt;&gt; <span class="id">id2</span>}).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">ID12_EQ_DEC</span>); <span class="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="comment">(*&nbsp;id1&nbsp;=&nbsp;id2&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">left</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">split</span>; <span class="tactic">auto</span>.<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">lookup_env_hd</span> <span class="kwd">in</span> <span class="id">Hl</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">inversion</span> <span class="id">Hl</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="comment">(*&nbsp;id1&nbsp;&lt;&gt;&nbsp;id2&nbsp;*)</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">right</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">split</span>; <span class="tactic">auto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">erewrite</span> &lt;- <span class="id">lookup_env_tl</span>; <span class="tactic">eauto</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Qed.</div>
+&nbsp;&nbsp;<span class="kwd">End</span> <span class="id">ENVFACTS</span>.<br/>
 <br/>
 &nbsp;&nbsp;<br/>
 &nbsp;&nbsp;<span class="kwd">Section</span> <span class="id">CONVERSIONS</span>.<br/>
@@ -186,7 +265,7 @@ over instructions, from which we try to recover higher level semantics
       so that our proofs about these objects don't drag in the entire mcfg. This makes showing
       semantic preservation at least theoretically cleaner.
   </div>
-&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">tds</span>: <span class="id">typedefs</span>.<br/>
+&nbsp;&nbsp;<span class="kwd">Variable</span> <span class="id">tds</span>: <span class="id">LLVMAst.typedefs</span>.<br/>
 <br/>
 <span class="kwd">Definition</span> <span class="id">eval_typ</span> (<span class="id">t</span>:<span class="id">typ</span>) : <span class="id">dtyp</span> :=<br/>
 &nbsp;&nbsp;<span class="id">TypeUtil.normalize_type</span> <span class="id">tds</span> <span class="id">t</span>.<br/>
@@ -402,6 +481,9 @@ execution. Each of these follow the old model of returning a <span class="bracke
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">id</span>: <span class="id">instr_id</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">i</span>: <span class="id">instr</span>): <span class="id">Trace</span> <span class="id">InstResult</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">id</span>, <span class="id">i</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">IId</span> <span class="id">id</span>, <span class="id">INSTR_Op</span> <span class="id">op</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">dv</span> &lt;- <span class="id">eval_op</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">op</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Trace.Ret</span> (<span class="id">IREnvEffect</span> (<span class="id">add_env</span> <span class="id">id</span> <span class="id">dv</span> <span class="id">e</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">IId</span> <span class="id">id</span>, <span class="id">INSTR_Load</span> <span class="id">_</span> <span class="id">t</span> (<span class="id">u</span>,<span class="id">ptr</span>) <span class="id">_</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">dv</span> &lt;- <span class="id">eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> (<span class="id">Some</span> (<span class="id">eval_typ</span> <span class="id">tds</span> <span class="id">u</span>)) <span class="id">ptr</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Trace.Vis</span> (<span class="kwd">Load</span> (<span class="id">eval_typ</span> <span class="id">tds</span> <span class="id">t</span>) <span class="id">dv</span>)<br/>
@@ -559,6 +641,7 @@ execution. Each of these follow the old model of returning a <span class="bracke
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">findInstrsAfterInstr_</span> <span class="id">li</span> <span class="id">needle</span> 0.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 <br/>
+<div class="doc">Do note that this does not to run PHI nodes *</div>
 &nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">execBBAfterLoc</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">genv</span>)<br/>
@@ -572,21 +655,75 @@ execution. Each of these follow the old model of returning a <span class="bracke
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">findInstrsAfterInstr</span> (<span class="id">blk_code</span> <span class="id">bb</span>) <span class="id">loc</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">snd</span> (<span class="id">blk_term</span> <span class="id">bb</span>))<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">loc</span> + 1)%<span class="id">nat</span>.<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Check</span> (<span class="id">assoc</span>).<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<h1>Phi node evaluation
+  Phi updates are supposed to be like function calls:
+  That is, the entire phi environment should be updated in one-shot.
+  So, evaluating a previous phi should not affect the next phi,
+  counterexample would be something like:
+    entry:
+        br counterex
+    counterex:
+        iv = phi <span class="bracket">0, <span class="id">entry</span></span> <span class="bracket"><span class="id">iv.next</span>, <span class="id">counterex</span></span>
+        x = phi<span class="bracket">0, <span class="id">entry</span></span> <span class="bracket"><span class="id">y</span>, <span class="id">counterex</span></span>
+        y = phi <span class="bracket">0, <span class="id">entry</span></span> <span class="bracket"><span class="id">iv.next</span>, <span class="id">counterex</span></span>
+        iv.next = iv + 1
+        br counterex
+    According to LLVM semantics, the values should be:
+    {iv: 0, x: 0, y: 0}
+    {iv:1, y:1, x:0}
+   So, we evaluate the phis according to `einit`, while updating and `ecur`.
+    </h1>
+<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">evalPhi</span> (<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">prev_blk_id</span>: <span class="id">block_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">einit</span>: <span class="id">env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ecur</span>: <span class="id">env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">id_phi</span>: <span class="id">raw_id</span> * <span class="id">phi</span>) : <span class="id">Trace</span> <span class="id">env</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">snd</span> <span class="id">id_phi</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Phi</span> <span class="id">typ</span> <span class="id">args</span> =&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">assoc</span> <span class="id">RawIDOrd.eq_dec</span> <span class="id">prev_blk_id</span> <span class="id">args</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">expr</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">dt</span> := <span class="id">eval_typ</span> <span class="id">tds</span> <span class="id">typ</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">dv</span> &lt;- <span class="id">eval_exp</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">einit</span> (<span class="id">Some</span> <span class="id">dt</span>) <span class="id">expr</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span>  (<span class="id">add_env</span> (<span class="id">fst</span> <span class="id">id_phi</span>) <span class="id">dv</span> <span class="id">ecur</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">Err</span> ("<span class="id">jump</span>: <span class="id">block</span> " ++ <span class="id">string_of</span> <span class="id">prev_blk_id</span> ++ " <span class="id">not</span> <span class="id">found</span> <span class="kwd">in</span> " ++<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">string_of</span> (<span class="id">fst</span> <span class="id">id_phi</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;<span class="kwd">Definition</span>  <span class="id">evalPhis</span> (<span class="id">tds</span>: <span class="id">typedefs</span>) (<span class="id">ge</span>: <span class="id">genv</span>) (<span class="id">einit</span>: <span class="id">env</span>) (<span class="id">oprev_blk_id</span>: <span class="id">option</span> <span class="id">block_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">phis</span>: <span class="id">list</span> (<span class="id">raw_id</span> * <span class="id">phi</span>)) : <span class="id">Trace</span> <span class="id">env</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">oprev_blk_id</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">prev_blk_id</span> =&gt; <span class="id">monad_fold_right</span> (<span class="id">evalPhi</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">prev_blk_id</span> <span class="id">einit</span>) <span class="id">phis</span> <span class="id">einit</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; <span class="id">Ret</span> <span class="id">einit</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 <br/>
-<div class="doc">TODO: add PHI nodes! </div>
 <div class="doc">On adding PHI nodes, we will simply have another
   function call sequenced before the execBBInstrs which executes
   the PHI nodes </div>
 &nbsp;&nbsp;<span class="kwd">Definition</span> <span class="id">execBB</span> (<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">genv</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">oprev_blk_id</span>: <span class="id">option</span> <span class="id">block_id</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bb</span>: <span class="id">block</span>):<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Trace</span> <span class="id">BBResult</span> := <span class="id">execBBInstrs</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">blk_id</span> <span class="id">bb</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">blk_code</span> <span class="id">bb</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">snd</span> (<span class="id">blk_term</span> <span class="id">bb</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0%<span class="id">nat</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Trace</span> <span class="id">BBResult</span> :=<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">bindM</span> (<span class="id">evalPhis</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">oprev_blk_id</span> (<span class="id">blk_phis</span> <span class="id">bb</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">e</span>' =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">execBBInstrs</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span>'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">blk_id</span> <span class="id">bb</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">blk_code</span> <span class="id">bb</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">snd</span> (<span class="id">blk_term</span> <span class="id">bb</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0%<span class="id">nat</span>).<br/>
 <span class="kwd">End</span> <span class="id">BASICBLOCK</span>.<br/>
 <br/>
 <br/>
@@ -626,16 +763,22 @@ It is at function level execution that <span class="bracket"><span class="kwd">C
 the game, since we can provide no guarantees about the termination
 capabilities of a function call.
    </div>
-&nbsp;&nbsp;<span class="kwd">CoFixpoint</span> <span class="id">execFunctionAtBBId</span> (<span class="id">tds</span>: <span class="id">typedefs</span>)(<span class="id">ge</span>: <span class="id">genv</span>) (<span class="id">e</span>: <span class="id">env</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">CFG</span>: <span class="id">cfg</span>) (<span class="id">fnid</span>: <span class="id">function_id</span>) (<span class="id">bbid</span>: <span class="id">block_id</span>):<br/>
+&nbsp;&nbsp;<span class="kwd">CoFixpoint</span> <span class="id">execFunctionAtBBId</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">tds</span>: <span class="id">typedefs</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">genv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">env</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">CFG</span>: <span class="id">cfg</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fnid</span>: <span class="id">function_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">oprev_blk_id</span>: <span class="id">option</span> <span class="id">block_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbid</span>: <span class="id">block_id</span>): <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Trace</span> <span class="id">FunctionResult</span> :=<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">find_block</span> (<span class="id">blks</span> <span class="id">CFG</span>) <span class="id">bbid</span> <span class="kwd">with</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Err</span> "<span class="id">no</span> <span class="id">block</span> <span class="id">found</span>"<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">bb</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">bbres</span> &lt;- <span class="id">execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">bb</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">bbres</span> &lt;- <span class="id">execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">oprev_blk_id</span> <span class="id">bb</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">bbres</span> <span class="kwd">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRBreak</span> <span class="id">e</span>' <span class="id">bbid</span>' =&gt; <span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span>' <span class="id">CFG</span> <span class="id">fnid</span> <span class="id">bbid</span>' <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRBreak</span> <span class="id">e</span>' <span class="id">bbid</span>' =&gt; <span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span>' <span class="id">CFG</span> <span class="id">fnid</span> (<span class="id">Some</span> <span class="id">bbid</span>) <span class="id">bbid</span>' <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRRet</span> <span class="id">dv</span> =&gt; <span class="id">Ret</span> (<span class="id">FRReturn</span> <span class="id">dv</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRRetVoid</span> =&gt; <span class="id">Ret</span> <span class="id">FRReturnVoid</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRCall</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> <span class="id">retinstid</span> <span class="id">instid</span> <span class="id">bbid</span> =&gt;<br/>
@@ -651,10 +794,11 @@ capabilities of a function call.
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">e</span>: <span class="id">env</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">CFG</span>: <span class="id">cfg</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fnid</span>: <span class="id">function_id</span>) : <span class="id">Trace</span> <span class="id">FunctionResult</span> :=<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">CFG</span> <span class="id">fnid</span> (<span class="id">init</span> <span class="id">CFG</span>).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">CFG</span> <span class="id">fnid</span> <span class="id">None</span> (<span class="id">init</span> <span class="id">CFG</span>).<br/>
 <br/>
 &nbsp;&nbsp;<br/>
 <br/>
+<div class="doc">Do note that DOES NOT  RUN PHI nodes *</div>
 &nbsp;&nbsp;<span class="kwd">CoFixpoint</span> <span class="id">execFunctionAtBBIdAfterLoc</span> (<span class="id">tds</span>: <span class="id">typedefs</span>) (<span class="id">ge</span>: <span class="id">genv</span>) (<span class="id">e</span>: <span class="id">env</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">CFG</span>: <span class="id">cfg</span>) (<span class="id">fnid</span>: <span class="id">function_id</span>) (<span class="id">bbid</span>: <span class="id">block_id</span>) (<span class="id">loc</span>: <span class="id">instr_pt</span>):<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Trace</span> <span class="id">FunctionResult</span> :=<br/>
@@ -664,7 +808,7 @@ capabilities of a function call.
 &nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">bb</span> =&gt;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">bbres</span> &lt;- <span class="id">execBBAfterLoc</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">bb</span> <span class="id">loc</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">bbres</span> <span class="kwd">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRBreak</span> <span class="id">e</span>' <span class="id">bbid</span>' =&gt; <span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span>' <span class="id">CFG</span> <span class="id">fnid</span> <span class="id">bbid</span>' <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRBreak</span> <span class="id">e</span>' <span class="id">bbid</span>' =&gt; <span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span>' <span class="id">CFG</span> <span class="id">fnid</span> (<span class="id">Some</span> <span class="id">bbid</span>) <span class="id">bbid</span>' <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRRet</span> <span class="id">dv</span> =&gt; <span class="id">Ret</span> (<span class="id">FRReturn</span> <span class="id">dv</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRRetVoid</span> =&gt; <span class="id">Ret</span> <span class="id">FRReturnVoid</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRCall</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> <span class="id">retinstid</span> <span class="id">instid</span> <span class="id">bbid</span> =&gt;<br/>
@@ -860,8 +1004,8 @@ having to unfold and force them manually. The proof terms are
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">step_sem_tiered</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">st</span> <span class="id">MCFG</span> <span class="id">r</span>) ≡<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;('<span class="id">rnext</span> &lt;- <span class="id">execInterpreter</span> <span class="id">ge</span> <span class="id">e</span>  <span class="id">st</span> <span class="id">MCFG</span> <span class="id">r</span> ;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">step_sem_tiered</span> <span class="id">ge</span> <span class="id">e</span>  <span class="id">st</span> <span class="id">MCFG</span> <span class="id">rnext</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof230')">Proof.</div>
-<div class="proofscript" id="proof230">
+<div class="toggleproof" onclick="toggleDisplay('proof270')">Proof.</div>
+<div class="proofscript" id="proof270">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">r</span>.<br/>
 <br/>
@@ -916,8 +1060,8 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">IRNone</span> =&gt; <span class="id">execBBInstrs</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">bbid</span> <span class="id">irest</span> <span class="id">term</span> (<span class="id">pt</span> + 1)%<span class="id">nat</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof231')">Proof.</div>
-<div class="proofscript" id="proof231">
+<div class="toggleproof" onclick="toggleDisplay('proof271')">Proof.</div>
+<div class="proofscript" id="proof271">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">instrs</span>; <span class="tactic">reflexivity</span>.<br/>
 Defined.</div>
@@ -928,26 +1072,38 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">ge</span>: <span class="id">genv</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">CFG</span>: <span class="id">cfg</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">fnid</span>: <span class="id">function_id</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbid</span>: <span class="id">block_id</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bbid</span>: <span class="id">block_id</span>) (<span class="id">oprev_blk_id</span>: <span class="id">option</span> <span class="id">block_id</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">bb</span>:<span class="id">block</span>)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">BLK</span>: <span class="id">find_block</span> (<span class="id">blks</span> <span class="id">CFG</span>) <span class="id">bbid</span> = <span class="id">Some</span> <span class="id">bb</span>),<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span>  <span class="id">CFG</span> <span class="id">fnid</span> <span class="id">bbid</span> ≡<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">bbres</span> &lt;- <span class="id">execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">bb</span>;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">bbres</span> <span class="kwd">with</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRBreak</span> <span class="id">e</span>' <span class="id">bbid</span>' =&gt; <span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span>' <span class="id">CFG</span> <span class="id">fnid</span> <span class="id">bbid</span>' <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRRet</span> <span class="id">dv</span> =&gt; <span class="id">Ret</span> (<span class="id">FRReturn</span> <span class="id">dv</span>)<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRRetVoid</span> =&gt; <span class="id">Ret</span> <span class="id">FRReturnVoid</span><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRCall</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> <span class="id">retinstid</span> <span class="id">instid</span> <span class="id">bbid</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">FRCall</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> <span class="id">retinstid</span> (<span class="id">instid</span>, <span class="id">bbid</span>, <span class="id">fnid</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRCallVoid</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> <span class="id">instid</span> <span class="id">bbid</span> =&gt;<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">FRCallVoid</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> (<span class="id">instid</span>, <span class="id">bbid</span>, <span class="id">fnid</span>))<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof232')">Proof.</div>
-<div class="proofscript" id="proof232">
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span>  <span class="id">CFG</span> <span class="id">fnid</span> <span class="id">oprev_blk_id</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">bbid</span> ≡<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">find_block</span> (<span class="id">blks</span> <span class="id">CFG</span>) <span class="id">bbid</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">None</span> =&gt; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Err</span> "<span class="id">no</span> <span class="id">block</span> <span class="id">found</span>"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">Some</span> <span class="id">bb</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'<span class="id">bbres</span> &lt;- <span class="id">execBB</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span> <span class="id">oprev_blk_id</span> <span class="id">bb</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">bbres</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRBreak</span> <span class="id">e</span>' <span class="id">bbid</span>' =&gt; <span class="id">execFunctionAtBBId</span> <span class="id">tds</span> <span class="id">ge</span> <span class="id">e</span>' <span class="id">CFG</span> <span class="id">fnid</span> (<span class="id">Some</span> <span class="id">bbid</span>) <span class="id">bbid</span>' <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRRet</span> <span class="id">dv</span> =&gt; <span class="id">Ret</span> (<span class="id">FRReturn</span> <span class="id">dv</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRRetVoid</span> =&gt; <span class="id">Ret</span> <span class="id">FRReturnVoid</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRCall</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> <span class="id">retinstid</span> <span class="id">instid</span> <span class="id">bbid</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">FRCall</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> <span class="id">retinstid</span> (<span class="id">instid</span>, <span class="id">bbid</span>, <span class="id">fnid</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">BBRCallVoid</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> <span class="id">instid</span> <span class="id">bbid</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">Ret</span> (<span class="id">FRCallVoid</span> <span class="id">e</span>' <span class="id">fnid</span> <span class="id">args</span> (<span class="id">instid</span>, <span class="id">bbid</span>, <span class="id">fnid</span>))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<div class="toggleproof" onclick="toggleDisplay('proof272')">Proof.</div>
+<div class="proofscript" id="proof272">
 Admitted.</div>
 <br/>
 <span class="kwd">Ltac</span> <span class="id">forcesst</span> := <span class="tactic">do</span> [<span class="tactic">rewrite</span> <span class="id">force_step_sem_tiered</span> |<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">force_exec_function_at_bb_id</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">rewrite</span> <span class="id">force_exec_function_at_bb_id</span>].<br/>
+<br/>
+<h1>Opacity: make all the exec functions opaque so they don't unfold </h1>
+<span class="id">Opaque</span> <span class="id">execBB</span>.<br/>
+<span class="id">Opaque</span> <span class="id">execBBInstrs</span>.<br/>
+<span class="id">Opaque</span> <span class="id">execFunctionAtBBId</span>.<br/>
+<span class="id">Opaque</span> <span class="id">execInterpreter</span>.<br/>
 <span class="kwd">End</span> <span class="id">StepSemanticsTiered</span>.</div>
 <div class="footer"><hr/>Generated by coq2html</div>
 </body>

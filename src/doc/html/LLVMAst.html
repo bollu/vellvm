@@ -40,8 +40,8 @@
 .<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eq_dec_linkage</span>: <span class="kwd">forall</span> (<span class="id">l1</span> <span class="id">l2</span>: <span class="id">linkage</span>), {<span class="id">l1</span> = <span class="id">l2</span>} + {<span class="id">l1</span> &lt;&gt; <span class="id">l2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof1')">Proof.</div>
-<div class="proofscript" id="proof1">
+<div class="toggleproof" onclick="toggleDisplay('proof35')">Proof.</div>
+<div class="proofscript" id="proof35">
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>.<br/>
 Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
@@ -51,8 +51,8 @@ Qed.</div>
 .      <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eq_dec_dll_storage</span>: <span class="kwd">forall</span> (<span class="id">ds1</span> <span class="id">ds2</span>: <span class="id">dll_storage</span>), {<span class="id">ds1</span> = <span class="id">ds2</span>} + {<span class="id">ds1</span> &lt;&gt; <span class="id">ds2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof2')">Proof.</div>
-<div class="proofscript" id="proof2">
+<div class="toggleproof" onclick="toggleDisplay('proof36')">Proof.</div>
+<div class="proofscript" id="proof36">
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>.<br/>
 Qed.</div>
 <br/>
@@ -64,8 +64,8 @@ Qed.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eq_dec_visibility</span>: <span class="kwd">forall</span> (<span class="id">v1</span> <span class="id">v2</span>: <span class="id">visibility</span>), {<span class="id">v1</span> = <span class="id">v2</span>} + {<span class="id">v1</span> &lt;&gt; <span class="id">v2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof3')">Proof.</div>
-<div class="proofscript" id="proof3">
+<div class="toggleproof" onclick="toggleDisplay('proof37')">Proof.</div>
+<div class="proofscript" id="proof37">
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>.<br/>
 Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
@@ -140,8 +140,8 @@ Qed.</div>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">Float.eq_dec</span>.<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">eq_dec_raw_id</span>: <span class="kwd">forall</span> (<span class="id">r1</span> <span class="id">r2</span>: <span class="id">raw_id</span>), {<span class="id">r1</span> = <span class="id">r2</span>} + {<span class="id">r1</span> &lt;&gt; <span class="id">r2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof4')">Proof.</div>
-<div class="proofscript" id="proof4">
+<div class="toggleproof" onclick="toggleDisplay('proof38')">Proof.</div>
+<div class="proofscript" id="proof38">
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <br/>
@@ -154,8 +154,8 @@ Qed.</div>
 <br/>
 <br/>
 <span class="kwd">Theorem</span> <span class="id">ident_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">a</span> <span class="id">b</span>: <span class="id">ident</span>), {<span class="id">a</span> = <span class="id">b</span> } + {<span class="id">a</span> &lt;&gt; <span class="id">b</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof5')">Proof.</div>
-<div class="proofscript" id="proof5">
+<div class="toggleproof" onclick="toggleDisplay('proof39')">Proof.</div>
+<div class="proofscript" id="proof39">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
@@ -276,8 +276,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">FORALL_DECEQ</span>: <span class="id">ForallListT</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">fun</span> <span class="id">t1</span> : <span class="id">A</span> =&gt; <span class="kwd">forall</span> <span class="id">t2</span> : <span class="id">A</span>, {<span class="id">t1</span> = <span class="id">t2</span>} + {<span class="id">t1</span> &lt;&gt; <span class="id">t2</span>}) <span class="id">l1</span>),<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;{<span class="id">l1</span> = <span class="id">l2</span>} + {<span class="id">l1</span> &lt;&gt; <span class="id">l2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof6')">Proof.</div>
-<div class="proofscript" id="proof6">
+<div class="toggleproof" onclick="toggleDisplay('proof40')">Proof.</div>
+<div class="proofscript" id="proof40">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">generalize</span> <span class="tactic">dependent</span> <span class="id">l2</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">l1</span>.<br/>
@@ -302,8 +302,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">type_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">t1</span> <span class="id">t2</span>: <span class="id">typ</span>), {<span class="id">t1</span> = <span class="id">t2</span>} + {<span class="id">t1</span> &lt;&gt; <span class="id">t2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof7')">Proof.</div>
-<div class="proofscript" id="proof7">
+<div class="toggleproof" onclick="toggleDisplay('proof41')">Proof.</div>
+<div class="proofscript" id="proof41">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">t1</span> <span class="kwd">using</span> <span class="id">typ_nested_ind</span>;<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">auto</span>; <span class="tactic">destruct</span> <span class="id">t2</span>; <span class="tactic">auto</span>; <span class="tactic">try</span> <span class="tactic">discriminate</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">assert</span> (<span class="id">SZ_CASES</span>: {<span class="id">sz</span> = <span class="id">sz0</span>} + {<span class="id">sz</span> &lt;&gt; <span class="id">sz0</span>}); <span class="tactic">auto</span>.<br/>
@@ -372,8 +372,8 @@ Qed.</div>
 .<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">ibinop_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">ib1</span> <span class="id">ib2</span>: <span class="id">ibinop</span>), {<span class="id">ib1</span> = <span class="id">ib2</span>} + {<span class="id">ib1</span> &lt;&gt; <span class="id">ib2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof8')">Proof.</div>
-<div class="proofscript" id="proof8">
+<div class="toggleproof" onclick="toggleDisplay('proof42')">Proof.</div>
+<div class="proofscript" id="proof42">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
@@ -384,8 +384,8 @@ Qed.</div>
 <br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">fbinop_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">fb1</span> <span class="id">fb2</span>: <span class="id">fbinop</span>), {<span class="id">fb1</span> = <span class="id">fb2</span>} + {<span class="id">fb1</span> &lt;&gt; <span class="id">fb2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof9')">Proof.</div>
-<div class="proofscript" id="proof9">
+<div class="toggleproof" onclick="toggleDisplay('proof43')">Proof.</div>
+<div class="proofscript" id="proof43">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
@@ -395,8 +395,8 @@ Qed.</div>
 &nbsp;&nbsp;<span class="id">Nnan</span> | <span class="id">Ninf</span> | <span class="id">Nsz</span> | <span class="id">Arcp</span> | <span class="id">Fast</span>.<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">fast_math_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">fm1</span> <span class="id">fm2</span>: <span class="id">fast_math</span>), {<span class="id">fm1</span> = <span class="id">fm2</span>} + {<span class="id">fm1</span> &lt;&gt; <span class="id">fm2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof10')">Proof.</div>
-<div class="proofscript" id="proof10">
+<div class="toggleproof" onclick="toggleDisplay('proof44')">Proof.</div>
+<div class="proofscript" id="proof44">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
@@ -409,8 +409,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">conversion_type_eq_dec</span>:<br/>
 &nbsp;&nbsp;<span class="kwd">forall</span> (<span class="id">c1</span> <span class="id">c2</span>: <span class="id">conversion_type</span>), {<span class="id">c1</span> = <span class="id">c2</span>} + {<span class="id">c1</span> &lt;&gt; <span class="id">c2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof11')">Proof.</div>
-<div class="proofscript" id="proof11">
+<div class="toggleproof" onclick="toggleDisplay('proof45')">Proof.</div>
+<div class="proofscript" id="proof45">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
@@ -448,8 +448,8 @@ Qed.</div>
 .<br/>
 <br/>
 <span class="kwd">Fixpoint</span> <span class="id">exp_eq_dec</span> (<span class="id">e1</span> <span class="id">e2</span>: <span class="id">exp</span>): {<span class="id">e1</span> = <span class="id">e2</span>} + {<span class="id">e1</span> &lt;&gt; <span class="id">e2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof12')">Proof.</div>
-<div class="proofscript" id="proof12">
+<div class="toggleproof" onclick="toggleDisplay('proof46')">Proof.</div>
+<div class="proofscript" id="proof46">
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>; <span class="tactic">do</span> 2 <span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">exp_eq_dec</span>.<br/>
@@ -457,8 +457,8 @@ Qed.</div>
 <br/>
 <span class="kwd">Definition</span> <span class="id">texp</span> : <span class="kwd">Set</span> := <span class="id">typ</span> * <span class="id">exp</span>.<br/>
 <span class="kwd">Lemma</span> <span class="id">texp_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">te1</span> <span class="id">te2</span>: <span class="id">texp</span>), {<span class="id">te1</span> = <span class="id">te2</span>} + {<span class="id">te1</span> &lt;&gt; <span class="id">te2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof13')">Proof.</div>
-<div class="proofscript" id="proof13">
+<div class="toggleproof" onclick="toggleDisplay('proof47')">Proof.</div>
+<div class="proofscript" id="proof47">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>.<br/>
 Qed.</div>
@@ -470,8 +470,8 @@ Qed.</div>
 .<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">instr_id_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">iid1</span> <span class="id">iid2</span>: <span class="id">instr_id</span>), {<span class="id">iid1</span> = <span class="id">iid2</span>} + {<span class="id">iid1</span> &lt;&gt; <span class="id">iid2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof14')">Proof.</div>
-<div class="proofscript" id="proof14">
+<div class="toggleproof" onclick="toggleDisplay('proof48')">Proof.</div>
+<div class="proofscript" id="proof48">
 &nbsp;&nbsp;<span class="id">decide</span> <span class="id">equality</span>.<br/>
 Qed.</div>
 <br/>
@@ -496,8 +496,8 @@ Qed.</div>
 .<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">instr_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">i1</span> <span class="id">i2</span>: <span class="id">instr</span>), {<span class="id">i1</span> = <span class="id">i2</span>} + {<span class="id">i1</span> &lt;&gt; <span class="id">i2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof15')">Proof.</div>
-<div class="proofscript" id="proof15">
+<div class="toggleproof" onclick="toggleDisplay('proof49')">Proof.</div>
+<div class="proofscript" id="proof49">
 &nbsp;&nbsp;<span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="id">decide</span> <span class="id">equality</span>; <span class="tactic">auto</span>).<br/>
 Qed.</div>
@@ -516,8 +516,8 @@ Qed.</div>
 .<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">terminator_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">t1</span> <span class="id">t2</span>: <span class="id">terminator</span>), {<span class="id">t1</span> = <span class="id">t2</span>} + {<span class="id">t1</span> &lt;&gt; <span class="id">t2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof16')">Proof.</div>
-<div class="proofscript" id="proof16">
+<div class="toggleproof" onclick="toggleDisplay('proof50')">Proof.</div>
+<div class="proofscript" id="proof50">
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="id">decide</span> <span class="id">equality</span>).<br/>
 Qed.</div>
 <span class="kwd">Hint</span> <span class="kwd">Resolve</span> <span class="id">terminator_eq_dec</span>.<br/>
@@ -574,8 +574,8 @@ Qed.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;}.<br/>
 <br/>
 <span class="kwd">Lemma</span> <span class="id">code_eq_dec</span>: <span class="kwd">forall</span> (<span class="id">c1</span> <span class="id">c2</span>: <span class="id">code</span>), {<span class="id">c1</span> = <span class="id">c2</span>} +  {<span class="id">c1</span> &lt;&gt; <span class="id">c2</span>}.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof17')">Proof.</div>
-<div class="proofscript" id="proof17">
+<div class="toggleproof" onclick="toggleDisplay('proof51')">Proof.</div>
+<div class="proofscript" id="proof51">
 &nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="id">decide</span> <span class="id">equality</span>).<br/>
 Qed.</div>
 <br/>

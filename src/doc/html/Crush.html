@@ -1,0 +1,262 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Module Crush</title>
+<meta name="description" content="Documentation of Coq module Crush" />
+<link href="coq2html.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="coq2html.js"> </script>
+</head>
+
+<body onload="hideAll('proofscript')">
+<h1 class="title">Module Crush</h1>
+<div class="coq">
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Coq.Logic.Eqdep</span> <span class="id">Coq.Lists.List</span>.<br/>
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Omega</span>.<br/>
+<br/>
+<br/>
+<span class="kwd">Set</span> <span class="id">Primitive</span> <span class="id">Projection</span>.<br/>
+<span class="kwd">Set</span> <span class="kwd">Implicit</span> <span class="id">Arguments</span>.<br/>
+<br/>
+<br/>
+<div class="doc">A version of <span class="bracket"><span class="tactic">injection</span></span> that does some standard simplifications afterward: clear the hypothesis in question, bring the new facts above the double line, and attempt substitution for known variables. </div>
+<span class="kwd">Ltac</span> <span class="id">inject</span> <span class="id">H</span> := <span class="tactic">injection</span> <span class="id">H</span>; <span class="tactic">clear</span> <span class="id">H</span>; <span class="tactic">intros</span>; <span class="tactic">try</span> <span class="tactic">subst</span>.<br/>
+<br/>
+<div class="doc">Try calling tactic function <span class="bracket"><span class="id">f</span></span> on all hypotheses, keeping the first application that doesn't fail. </div>
+<span class="kwd">Ltac</span> <span class="id">appHyps</span> <span class="id">f</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="id">f</span> <span class="id">H</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">Succeed iff <span class="bracket"><span class="id">x</span></span> is in the list <span class="bracket"><span class="id">ls</span></span>, represented with left-associated nested tuples. </div>
+<span class="kwd">Ltac</span> <span class="id">inList</span> <span class="id">x</span> <span class="id">ls</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">ls</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">x</span> =&gt; <span class="id">idtac</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">_</span>, <span class="id">x</span>) =&gt; <span class="id">idtac</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (?<span class="id">LS</span>, <span class="id">_</span>) =&gt; <span class="id">inList</span> <span class="id">x</span> <span class="id">LS</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">Try calling tactic function <span class="bracket"><span class="id">f</span></span> on every element of tupled list <span class="bracket"><span class="id">ls</span></span>, keeping the first call not to fail. </div>
+<span class="kwd">Ltac</span> <span class="id">app</span> <span class="id">f</span> <span class="id">ls</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">ls</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (?<span class="id">LS</span>, ?<span class="id">X</span>) =&gt; <span class="id">f</span> <span class="id">X</span> || <span class="id">app</span> <span class="id">f</span> <span class="id">LS</span> || <span class="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">f</span> <span class="id">ls</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">Run <span class="bracket"><span class="id">f</span></span> on every element of <span class="bracket"><span class="id">ls</span></span>, not just the first that doesn't fail. </div>
+<span class="kwd">Ltac</span> <span class="id">all</span> <span class="id">f</span> <span class="id">ls</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">ls</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (?<span class="id">LS</span>, ?<span class="id">X</span>) =&gt; <span class="id">f</span> <span class="id">X</span>; <span class="id">all</span> <span class="id">f</span> <span class="id">LS</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">_</span>, <span class="id">_</span>) =&gt; <span class="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">f</span> <span class="id">ls</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">Workhorse tactic to simplify hypotheses for a variety of proofs.
+   * Argument <span class="bracket"><span class="id">invOne</span></span> is a tuple-list of predicates for which we always do inversion automatically. </div>
+<span class="kwd">Ltac</span> <span class="id">simplHyp</span> <span class="id">invOne</span> :=<br/>
+<div class="doc">Helper function to do inversion on certain hypotheses, where <span class="bracket"><span class="id">H</span></span> is the hypothesis and <span class="bracket"><span class="id">F</span></span> its head symbol </div>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">invert</span> <span class="id">H</span> <span class="id">F</span> :=<br/>
+<div class="doc">We only proceed for those predicates in <span class="bracket"><span class="id">invOne</span></span>. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">inList</span> <span class="id">F</span> <span class="id">invOne</span>;<br/>
+<div class="doc">This case covers an inversion that succeeds immediately, meaning no constructors of <span class="bracket"><span class="id">F</span></span> applied. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">fail</span>)<br/>
+<div class="doc">Otherwise, we only proceed if inversion eliminates all but one constructor case. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| (<span class="tactic">inversion</span> <span class="id">H</span>; [<span class="id">idtac</span>]; <span class="tactic">clear</span> <span class="id">H</span>; <span class="tactic">try</span> <span class="tactic">subst</span>) <span class="kwd">in</span><br/>
+<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+<div class="doc">Eliminate all existential hypotheses. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">ex</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="tactic">destruct</span> <span class="id">H</span><br/>
+<br/>
+<div class="doc">Find opportunities to take advantage of injectivity of data constructors, for several different arities. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : ?<span class="id">F</span> ?<span class="id">X</span> = ?<span class="id">F</span> ?<span class="id">Y</span> |- ?<span class="id">G</span> ] =&gt;<br/>
+<div class="doc">This first branch of the <span class="bracket">||</span> fails the whole attempt iff the arguments of the constructor applications are already easy to prove equal. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="tactic">assert</span> (<span class="id">X</span> = <span class="id">Y</span>); [ <span class="tactic">assumption</span> | <span class="tactic">fail</span> 1 ])<br/>
+<div class="doc">If we pass that filter, then we use injection on <span class="bracket"><span class="id">H</span></span> and do some simplification as in <span class="bracket"><span class="id">inject</span></span>.
+         * The odd-looking check of the goal form is to avoid cases where <span class="bracket"><span class="tactic">injection</span></span> gives a more complex result because of dependent typing, which we aren't equipped to handle here. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| (<span class="tactic">injection</span> <span class="id">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ |- <span class="id">X</span> = <span class="id">Y</span> -&gt; <span class="id">G</span> ] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">try</span> <span class="tactic">clear</span> <span class="id">H</span>; <span class="tactic">intros</span>; <span class="tactic">try</span> <span class="tactic">subst</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : ?<span class="id">F</span> ?<span class="id">X</span> ?<span class="id">U</span> = ?<span class="id">F</span> ?<span class="id">Y</span> ?<span class="id">V</span> |- ?<span class="id">G</span> ] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="tactic">assert</span> (<span class="id">X</span> = <span class="id">Y</span>); [ <span class="tactic">assumption</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="tactic">assert</span> (<span class="id">U</span> = <span class="id">V</span>); [ <span class="tactic">assumption</span> | <span class="tactic">fail</span> 1 ] ])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| (<span class="tactic">injection</span> <span class="id">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ |- <span class="id">U</span> = <span class="id">V</span> -&gt; <span class="id">X</span> = <span class="id">Y</span> -&gt; <span class="id">G</span> ] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">try</span> <span class="tactic">clear</span> <span class="id">H</span>; <span class="tactic">intros</span>; <span class="tactic">try</span> <span class="tactic">subst</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>)<br/>
+<br/>
+<div class="doc">Consider some different arities of a predicate <span class="bracket"><span class="id">F</span></span> in a hypothesis that we might want to invert. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : ?<span class="id">F</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="id">invert</span> <span class="id">H</span> <span class="id">F</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : ?<span class="id">F</span> <span class="id">_</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="id">invert</span> <span class="id">H</span> <span class="id">F</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : ?<span class="id">F</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="id">invert</span> <span class="id">H</span> <span class="id">F</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : ?<span class="id">F</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="id">invert</span> <span class="id">H</span> <span class="id">F</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : ?<span class="id">F</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="id">invert</span> <span class="id">H</span> <span class="id">F</span><br/>
+<br/>
+<div class="doc">Use an (axiom-dependent!) inversion principle for dependent pairs, from the standard library. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">existT</span> <span class="id">_</span> ?<span class="id">T</span> <span class="id">_</span> = <span class="id">existT</span> <span class="id">_</span> ?<span class="id">T</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="tactic">generalize</span> (<span class="id">inj_pair2</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">H</span>); <span class="tactic">clear</span> <span class="id">H</span><br/>
+<br/>
+<div class="doc">If we're not ready to use that principle yet, try the standard inversion, which often enables the previous rule. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">existT</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> = <span class="id">existT</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="tactic">inversion</span> <span class="id">H</span>; <span class="tactic">clear</span> <span class="id">H</span><br/>
+<br/>
+<div class="doc">Similar logic to the cases for constructor injectivity above, but specialized to <span class="bracket"><span class="id">Some</span></span>, since the above cases won't deal with polymorphic constructors. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">Some</span> <span class="id">_</span> = <span class="id">Some</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="tactic">injection</span> <span class="id">H</span>; <span class="tactic">clear</span> <span class="id">H</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">Find some hypothesis to rewrite with, ensuring that <span class="bracket"><span class="tactic">auto</span></span> proves all of the extra subgoals added by <span class="bracket"><span class="tactic">rewrite</span></span>. </div>
+<span class="kwd">Ltac</span> <span class="id">rewriteHyp</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="tactic">rewrite</span> <span class="id">H</span> <span class="tactic">by</span> <span class="id">solve</span> [ <span class="tactic">auto</span> ]<br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">Combine <span class="bracket"><span class="id">autorewrite</span></span> with automatic hypothesis rewrites. </div>
+<span class="kwd">Ltac</span> <span class="id">rewriterP</span> := <span class="tactic">repeat</span> (<span class="id">rewriteHyp</span>; <span class="id">autorewrite</span> <span class="kwd">with</span> <span class="id">core</span> <span class="kwd">in</span> *).<br/>
+<span class="kwd">Ltac</span> <span class="id">rewriter</span> := <span class="id">autorewrite</span> <span class="kwd">with</span> <span class="id">core</span> <span class="kwd">in</span> *; <span class="id">rewriterP</span>.<br/>
+<br/>
+<div class="doc">This one is just so darned useful, let's add it as a hint here. </div>
+<span class="kwd">Hint</span> <span class="id">Rewrite</span> <span class="id">app_ass</span>.<br/>
+<br/>
+<div class="doc">Devious marker predicate to use for encoding state within proof goals </div>
+<span class="kwd">Definition</span> <span class="id">done</span> (<span class="id">T</span> : <span class="kwd">Type</span>) (<span class="id">x</span> : <span class="id">T</span>) := <span class="id">True</span>.<br/>
+<br/>
+<div class="doc">Try a new instantiation of a universally quantified fact, proved by <span class="bracket"><span class="id">e</span></span>.
+   * <span class="bracket"><span class="id">trace</span></span> is an accumulator recording which instantiations we choose. </div>
+<span class="kwd">Ltac</span> <span class="id">inster</span> <span class="id">e</span> <span class="id">trace</span> :=<br/>
+<div class="doc">Does <span class="bracket"><span class="id">e</span></span> have any quantifiers left? </div>
+&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">type</span> <span class="id">of</span> <span class="id">e</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="kwd">forall</span> <span class="id">x</span> : <span class="id">_</span>, <span class="id">_</span> =&gt;<br/>
+<div class="doc">Yes, so let's pick the first context variable of the right type. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">_</span> |- <span class="id">_</span> ] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">inster</span> (<span class="id">e</span> <span class="id">H</span>) (<span class="id">trace</span>, <span class="id">H</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="tactic">fail</span> 2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt;<br/>
+<div class="doc">No more quantifiers, so now we check if the trace we computed was already used. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">trace</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| (<span class="id">_</span>, <span class="id">_</span>) =&gt;<br/>
+<div class="doc">We only reach this case if the trace is nonempty, ensuring that <span class="bracket"><span class="id">inster</span></span> fails if no progress can be made. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">done</span> (<span class="id">trace</span>, <span class="id">_</span>) |- <span class="id">_</span> ] =&gt;<br/>
+<div class="doc">Uh oh, found a record of this trace in the context!  Backtrack to try another trace. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt;<br/>
+<div class="doc">What is the type of the proof <span class="bracket"><span class="id">e</span></span> now? </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">T</span> := <span class="id">type</span> <span class="id">of</span> <span class="id">e</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">type</span> <span class="id">of</span> <span class="id">T</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="kwd">Prop</span> =&gt;<br/>
+<div class="doc"><span class="bracket"><span class="id">e</span></span> should be thought of as a proof, so let's add it to the context, and also add a new marker hypothesis recording our choice of trace. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="id">e</span>; <span class="tactic">intro</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">done</span> (<span class="id">trace</span>, <span class="id">tt</span>)) <span class="tactic">by</span> <span class="id">constructor</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt;<br/>
+<div class="doc"><span class="bracket"><span class="id">e</span></span> is something beside a proof.  Better make sure no element of our current trace was generated by a previous call to <span class="bracket"><span class="id">inster</span></span>, or we might get stuck in an infinite loop!  (We store previous <span class="bracket"><span class="id">inster</span></span> terms in second positions of tuples used as arguments to <span class="bracket"><span class="id">done</span></span> in hypotheses.  Proofs instantiated by <span class="bracket"><span class="id">inster</span></span> merely use <span class="bracket"><span class="id">tt</span></span> in such positions.) </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">all</span> <span class="id">ltac</span>:(<span class="kwd">fun</span> <span class="id">X</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">done</span> (<span class="id">_</span>, <span class="id">X</span>) |- <span class="id">_</span> ] =&gt; <span class="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="id">idtac</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>) <span class="id">trace</span>;<br/>
+<div class="doc">Pick a new name for our new instantiation. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">i</span> := <span class="tactic">fresh</span> "<span class="id">i</span>" <span class="kwd">in</span> (<span class="id">pose</span> (<span class="id">i</span> := <span class="id">e</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">done</span> (<span class="id">trace</span>, <span class="id">i</span>)) <span class="tactic">by</span> <span class="id">constructor</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">After a round of application with the above, we will have a lot of junk <span class="bracket"><span class="id">done</span></span> markers to clean up; hence this tactic. </div>
+<span class="kwd">Ltac</span> <span class="id">un_done</span> :=<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">done</span> <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="tactic">clear</span> <span class="id">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">JMeq</span>.<br/>
+<br/>
+<div class="doc">A more parameterized version of the famous <span class="bracket"><span class="id">crush</span></span>.  Extra arguments are:
+   * - A tuple-list of lemmas we try <span class="bracket"><span class="id">inster</span></span>-ing 
+   * - A tuple-list of predicates we try inversion for </div>
+<span class="kwd">Ltac</span> <span class="id">crush</span>' <span class="id">lemmas</span> <span class="id">invOne</span> :=<br/>
+<div class="doc">A useful combination of standard automation </div>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">sintuition</span> := <span class="tactic">simpl</span> <span class="kwd">in</span> *; <span class="tactic">intuition</span>; <span class="tactic">try</span> <span class="tactic">subst</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="id">simplHyp</span> <span class="id">invOne</span>; <span class="tactic">intuition</span>; <span class="tactic">try</span> <span class="tactic">subst</span>); <span class="tactic">try</span> <span class="tactic">congruence</span> <span class="kwd">in</span><br/>
+<br/>
+<div class="doc">A fancier version of <span class="bracket"><span class="id">rewriter</span></span> from above, which uses <span class="bracket"><span class="id">crush</span>'</span> to discharge side conditions </div>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">rewriter</span> := <span class="id">autorewrite</span> <span class="kwd">with</span> <span class="id">core</span> <span class="kwd">in</span> *;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : ?<span class="id">P</span> |- <span class="id">_</span> ] =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">P</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">context</span>[<span class="id">JMeq</span>] =&gt; <span class="tactic">fail</span> 1 <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt; <span class="tactic">rewrite</span> <span class="id">H</span> <span class="tactic">by</span> <span class="id">crush</span>' <span class="id">lemmas</span> <span class="id">invOne</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>; <span class="id">autorewrite</span> <span class="kwd">with</span> <span class="id">core</span> <span class="kwd">in</span> *) <span class="kwd">in</span><br/>
+<br/>
+<div class="doc">Now the main sequence of heuristics: </div>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id">sintuition</span>; <span class="id">rewriter</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">lemmas</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">false</span> =&gt; <span class="id">idtac</span> <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt;<br/>
+<div class="doc">Try a loop of instantiating lemmas... </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> ((<span class="id">app</span> <span class="id">ltac</span>:(<span class="kwd">fun</span> <span class="id">L</span> =&gt; <span class="id">inster</span> <span class="id">L</span> <span class="id">L</span>) <span class="id">lemmas</span><br/>
+<div class="doc">...or instantiating hypotheses... </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| <span class="id">appHyps</span> <span class="id">ltac</span>:(<span class="kwd">fun</span> <span class="id">L</span> =&gt; <span class="id">inster</span> <span class="id">L</span> <span class="id">L</span>));<br/>
+<div class="doc">...and then simplifying hypotheses. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">repeat</span> (<span class="id">simplHyp</span> <span class="id">invOne</span>; <span class="tactic">intuition</span>)); <span class="id">un_done</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">sintuition</span>; <span class="id">rewriter</span>; <span class="id">sintuition</span>;<br/>
+<div class="doc">End with a last attempt to prove an arithmetic fact with <span class="bracket"><span class="tactic">omega</span></span>, or prove any sort of fact in a context that is contradictory by reasoning that <span class="bracket"><span class="tactic">omega</span></span> can do. </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">try</span> <span class="tactic">omega</span>; <span class="tactic">try</span> (<span class="tactic">elimtype</span> <span class="id">False</span>; <span class="tactic">omega</span>)).<br/>
+<br/>
+<div class="doc"><span class="bracket"><span class="id">crush</span></span> instantiates <span class="bracket"><span class="id">crush</span>'</span> with the simplest possible parameters. </div>
+<span class="kwd">Ltac</span> <span class="id">crush</span> := <span class="id">crush</span>' <span class="id">false</span> <span class="tactic">fail</span>.<br/>
+<br/>
+<h1> Wrap Program's <span class="bracket"><span class="tactic">dependent</span> <span class="tactic">destruction</span></span> in a slightly more pleasant form </h1>
+<br/>
+<span class="kwd">Require</span> <span class="kwd">Import</span> <span class="id">Program.Equality</span>.<br/>
+<br/>
+<div class="doc">Run <span class="bracket"><span class="tactic">dependent</span> <span class="tactic">destruction</span></span> on <span class="bracket"><span class="id">E</span></span> and look for opportunities to simplify the result.
+   The weird introduction of <span class="bracket"><span class="id">x</span></span> helps get around limitations of <span class="bracket"><span class="tactic">dependent</span> <span class="tactic">destruction</span></span>, in terms of which sorts of arguments it will accept (e.g., variables bound to hypotheses within Ltac <span class="bracket"><span class="kwd">match</span></span>es). </div>
+<span class="kwd">Ltac</span> <span class="id">dep_destruct</span> <span class="id">E</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">x</span> := <span class="tactic">fresh</span> "<span class="id">x</span>" <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">remember</span> <span class="id">E</span> <span class="kwd">as</span> <span class="id">x</span>; <span class="tactic">simpl</span> <span class="kwd">in</span> <span class="id">x</span>; <span class="tactic">dependent</span> <span class="tactic">destruction</span> <span class="id">x</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">try</span> <span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">_</span> = <span class="id">E</span> |- <span class="id">_</span> ] =&gt; <span class="tactic">try</span> <span class="tactic">rewrite</span> &lt;- <span class="id">H</span> <span class="kwd">in</span> *; <span class="tactic">clear</span> <span class="id">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">Nuke all hypotheses that we can get away with, without invalidating the goal statement. </div>
+<span class="kwd">Ltac</span> <span class="id">clear_all</span> :=<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="kwd">match</span> <span class="id">goal</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id">H</span> : <span class="id">_</span> |- <span class="id">_</span> ] =&gt; <span class="tactic">clear</span> <span class="id">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">Instantiate a quantifier in a hypothesis <span class="bracket"><span class="id">H</span></span> with value <span class="bracket"><span class="id">v</span></span>, or, if <span class="bracket"><span class="id">v</span></span> doesn't have the right type, with a new unification variable.
+   * Also prove the lefthand sides of any implications that this exposes, simplifying <span class="bracket"><span class="id">H</span></span> to leave out those implications. </div>
+<span class="kwd">Ltac</span> <span class="id">guess</span> <span class="id">v</span> <span class="id">H</span> :=<br/>
+&nbsp;&nbsp;<span class="tactic">repeat</span> <span class="kwd">match</span> <span class="id">type</span> <span class="id">of</span> <span class="id">H</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="kwd">forall</span> <span class="id">x</span> : ?<span class="id">T</span>, <span class="id">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">match</span> <span class="id">type</span> <span class="id">of</span> <span class="id">T</span> <span class="kwd">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="kwd">Prop</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="kwd">let</span> <span class="id">H</span>' := <span class="tactic">fresh</span> "<span class="id">H</span>'" <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">assert</span> (<span class="id">H</span>' : <span class="id">T</span>); [<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">solve</span> [ <span class="tactic">eauto</span> 6 ]<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">specialize</span> (<span class="id">H</span> <span class="id">H</span>'); <span class="tactic">clear</span> <span class="id">H</span>' ])<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| <span class="tactic">fail</span> 1<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="id">_</span> =&gt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">specialize</span> (<span class="id">H</span> <span class="id">v</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| <span class="kwd">let</span> <span class="id">x</span> := <span class="tactic">fresh</span> "<span class="id">x</span>" <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id">evar</span> (<span class="id">x</span> : <span class="id">T</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">x</span>' := <span class="id">eval</span> <span class="tactic">unfold</span> <span class="id">x</span> <span class="kwd">in</span> <span class="id">x</span> <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">clear</span> <span class="id">x</span>; <span class="id">specialize</span> (<span class="id">H</span> <span class="id">x</span>')<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kwd">end</span>.<br/>
+<br/>
+<div class="doc">Version of <span class="bracket"><span class="id">guess</span></span> that leaves the original <span class="bracket"><span class="id">H</span></span> intact </div>
+<span class="kwd">Ltac</span> <span class="id">guessKeep</span> <span class="id">v</span> <span class="id">H</span> :=<br/>
+&nbsp;&nbsp;<span class="kwd">let</span> <span class="id">H</span>' := <span class="tactic">fresh</span> "<span class="id">H</span>'" <span class="kwd">in</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">generalize</span> <span class="id">H</span>; <span class="tactic">intro</span> <span class="id">H</span>'; <span class="id">guess</span> <span class="id">v</span> <span class="id">H</span>'.<br/>
+</div>
+<div class="footer"><hr/>Generated by coq2html</div>
+</body>
+</html>

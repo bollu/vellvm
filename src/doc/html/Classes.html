@@ -67,8 +67,8 @@ reverse. </div>
 <span class="kwd">Class</span> <span class="id">LeibnizEquiv</span> <span class="id">A</span> `{<span class="id">Equiv</span> <span class="id">A</span>} := <span class="id">leibniz_equiv</span> <span class="id">x</span> <span class="id">y</span> : <span class="id">x</span> ≡ <span class="id">y</span> → <span class="id">x</span> = <span class="id">y</span>.<br/>
 <span class="kwd">Lemma</span> <span class="id">leibniz_equiv_iff</span> `{<span class="id">LeibnizEquiv</span> <span class="id">A</span>, !<span class="id">Reflexive</span> (@<span class="id">equiv</span> <span class="id">A</span> <span class="id">_</span>)} (<span class="id">x</span> <span class="id">y</span> : <span class="id">A</span>) :<br/>
 &nbsp;&nbsp;<span class="id">x</span> ≡ <span class="id">y</span> ↔ <span class="id">x</span> = <span class="id">y</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof18')">Proof.</div>
-<div class="proofscript" id="proof18">
+<div class="toggleproof" onclick="toggleDisplay('proof52')">Proof.</div>
+<div class="proofscript" id="proof52">
  <span class="tactic">split</span>. <span class="tactic">apply</span> <span class="id">leibniz_equiv</span>. <span class="tactic">intros</span> -&gt;; <span class="tactic">reflexivity</span>. Qed.</div>
 &nbsp;<br/>
 <span class="kwd">Ltac</span> <span class="id">fold_leibniz</span> := <span class="tactic">repeat</span><br/>
@@ -99,8 +99,8 @@ reverse. </div>
 <span class="kwd">Hint</span> <span class="kwd">Extern</span> 100 (<span class="id">_</span> ≠ <span class="id">_</span>) =&gt; <span class="tactic">discriminate</span>.<br/>
 <br/>
 <span class="kwd">Instance</span>: @<span class="id">PreOrder</span> <span class="id">A</span> (=).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof19')">Proof.</div>
-<div class="proofscript" id="proof19">
+<div class="toggleproof" onclick="toggleDisplay('proof53')">Proof.</div>
+<div class="proofscript" id="proof53">
  <span class="tactic">split</span>; <span class="tactic">repeat</span> <span class="tactic">intro</span>; <span class="tactic">congruence</span>. Qed.</div>
 <br/>
 <span class="kwd">Instance</span> <span class="id">equivL</span> {<span class="id">A</span>} : <span class="id">Equiv</span> <span class="id">A</span> := (=).<br/>
@@ -137,14 +137,14 @@ on a type <span class="bracket"><span class="id">A</span></span> we write <span 
 &nbsp;&nbsp;<span class="kwd">end</span>.<br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">eq_dec_bool</span> : <span class="id">eq_dec</span> <span class="id">bool</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof20')">Proof.</div>
-<div class="proofscript" id="proof20">
+<div class="toggleproof" onclick="toggleDisplay('proof54')">Proof.</div>
+<div class="proofscript" id="proof54">
 &nbsp;&nbsp;<span class="id">decide_eq_dec</span>.<br/>
 Defined.</div>
 <br/>
 <span class="kwd">Instance</span> <span class="id">eq_dec_nat</span> : <span class="id">eq_dec</span> <span class="id">nat</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof21')">Proof.</div>
-<div class="proofscript" id="proof21">
+<div class="toggleproof" onclick="toggleDisplay('proof55')">Proof.</div>
+<div class="proofscript" id="proof55">
 &nbsp;&nbsp;<span class="id">decide_eq_dec</span>.<br/>
 Defined.</div>
 <br/>
@@ -154,20 +154,20 @@ Defined.</div>
 <span class="kwd">Instance</span> <span class="id">eq_dec_z</span> : <span class="id">eq_dec</span> <span class="id">Z</span> := <span class="id">Z.eq_dec</span>.<br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">eq_dec_pair</span> {<span class="id">A</span> <span class="id">B</span>} `(<span class="id">EA</span>:<span class="id">eq_dec</span> <span class="id">A</span>) `(<span class="id">EB</span>:<span class="id">eq_dec</span> <span class="id">B</span>) : <span class="id">eq_dec</span> (<span class="id">A</span> * <span class="id">B</span>)%<span class="id">type</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof22')">Proof.</div>
-<div class="proofscript" id="proof22">
+<div class="toggleproof" onclick="toggleDisplay('proof56')">Proof.</div>
+<div class="proofscript" id="proof56">
 &nbsp;&nbsp;<span class="id">decide_eq_dec</span>.<br/>
 Defined.</div>
 <br/>
 <span class="kwd">Instance</span> <span class="id">eq_dec_option</span> {<span class="id">A</span>} `(<span class="id">EA</span>:<span class="id">eq_dec</span> <span class="id">A</span>) : <span class="id">eq_dec</span> (<span class="id">option</span> <span class="id">A</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof23')">Proof.</div>
-<div class="proofscript" id="proof23">
+<div class="toggleproof" onclick="toggleDisplay('proof57')">Proof.</div>
+<div class="proofscript" id="proof57">
 &nbsp;&nbsp;<span class="id">decide_eq_dec</span>.<br/>
 Defined.</div>
 <br/>
 <span class="kwd">Instance</span> <span class="id">eq_dec_list</span> {<span class="id">A</span>} `(<span class="id">EA</span>:<span class="id">eq_dec</span> <span class="id">A</span>) : <span class="id">eq_dec</span> (<span class="id">list</span> <span class="id">A</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof24')">Proof.</div>
-<div class="proofscript" id="proof24">
+<div class="toggleproof" onclick="toggleDisplay('proof58')">Proof.</div>
+<div class="proofscript" id="proof58">
 &nbsp;&nbsp;<span class="id">decide_eq_dec</span>.<br/>
 Defined.</div>
 <br/>
@@ -190,8 +190,8 @@ Defined.</div>
 <span class="kwd">Instance</span> <span class="id">option_equiv</span> {<span class="id">A</span>} : <span class="id">Equiv</span> (<span class="id">option</span> <span class="id">A</span>) := (@<span class="id">eq</span> (<span class="id">option</span> <span class="id">A</span>)).<br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">option_functor_eq_laws</span> : (@<span class="id">FunctorLaws</span> <span class="id">option</span>) <span class="id">option_functor</span> (@<span class="id">option_equiv</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof25')">Proof.</div>
-<div class="proofscript" id="proof25">
+<div class="toggleproof" onclick="toggleDisplay('proof59')">Proof.</div>
+<div class="proofscript" id="proof59">
 &nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">unfold</span> <span class="id">fmap</span>. <span class="tactic">unfold</span> <span class="id">option_functor</span>. <span class="tactic">unfold</span> <span class="id">option_map</span>. <span class="tactic">destruct</span> <span class="id">a</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">reflexivity</span>. <span class="tactic">reflexivity</span>.<br/>
@@ -202,8 +202,8 @@ Defined.</div>
 <span class="kwd">Instance</span> <span class="id">list_functor</span>: @<span class="id">Functor</span> <span class="id">list</span> := <span class="id">List.map</span>.<br/>
 <span class="kwd">Instance</span> <span class="id">list_equiv</span> {<span class="id">A</span>} : <span class="id">Equiv</span> (<span class="id">list</span> <span class="id">A</span>) := (@<span class="id">eq</span> (<span class="id">list</span> <span class="id">A</span>)).<br/>
 <span class="kwd">Instance</span> <span class="id">list_functor_eq_laws</span> : (@<span class="id">FunctorLaws</span> <span class="id">list</span>) <span class="id">list_functor</span> (@<span class="id">list_equiv</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof26')">Proof.</div>
-<div class="proofscript" id="proof26">
+<div class="toggleproof" onclick="toggleDisplay('proof60')">Proof.</div>
+<div class="proofscript" id="proof60">
 &nbsp;&nbsp;<span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">List.map_id</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">apply</span> <span class="id">List.map_map</span>.<br/>
@@ -276,44 +276,44 @@ Defined.</div>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">option_monad</span> : (@<span class="id">Monad</span> <span class="id">option</span>) <span class="id">option_functor</span> := <span class="id">_</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof27')">Next Obligation.</div>
-<div class="proofscript" id="proof27">
+<div class="toggleproof" onclick="toggleDisplay('proof61')">Next Obligation.</div>
+<div class="proofscript" id="proof61">
 &nbsp;&nbsp;<span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A</span> <span class="id">X</span>. <span class="tactic">exact</span> (<span class="id">Some</span> <span class="id">X</span>).<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A</span> <span class="id">B</span> <span class="id">X</span> <span class="id">X0</span>.  <span class="tactic">destruct</span> <span class="id">X</span>. <span class="tactic">apply</span> <span class="id">X0</span>. <span class="tactic">exact</span> <span class="id">a</span>. <span class="tactic">exact</span> <span class="id">None</span>.<br/>
 Defined.</div>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">option_monad_eq_laws</span> : (@<span class="id">MonadLaws</span> <span class="id">option</span>) <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof28')">Next Obligation.</div>
-<div class="proofscript" id="proof28">
+<div class="toggleproof" onclick="toggleDisplay('proof62')">Next Obligation.</div>
+<div class="proofscript" id="proof62">
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>. <span class="tactic">reflexivity</span>. <span class="tactic">reflexivity</span>.<br/>
 Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof29')">Next Obligation.</div>
-<div class="proofscript" id="proof29">
+<div class="toggleproof" onclick="toggleDisplay('proof63')">Next Obligation.</div>
+<div class="proofscript" id="proof63">
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>; <span class="tactic">try</span> <span class="tactic">reflexivity</span>.<br/>
 Defined.</div>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">list_monad</span> : (@<span class="id">Monad</span> <span class="id">list</span>) <span class="id">list_functor</span> := <span class="id">_</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof30')">Next Obligation.</div>
-<div class="proofscript" id="proof30">
+<div class="toggleproof" onclick="toggleDisplay('proof64')">Next Obligation.</div>
+<div class="proofscript" id="proof64">
 &nbsp;&nbsp;<span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A</span> <span class="id">X</span>. <span class="tactic">exact</span> ([<span class="id">X</span>]).<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A</span> <span class="id">B</span>. <span class="tactic">exact</span> (<span class="kwd">fun</span> <span class="id">l</span> <span class="id">f</span> =&gt; <span class="id">flat_map</span> <span class="id">f</span> <span class="id">l</span>).<br/>
 Defined.</div>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">list_monad_eq_laws</span> : (@<span class="id">MonadLaws</span> <span class="id">list</span>) <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof31')">Next Obligation.</div>
-<div class="proofscript" id="proof31">
+<div class="toggleproof" onclick="toggleDisplay('proof65')">Next Obligation.</div>
+<div class="proofscript" id="proof65">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">a</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">simpl</span>. <span class="tactic">rewrite</span> <span class="id">IHa</span>. <span class="tactic">reflexivity</span>.<br/>
 Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof32')">Next Obligation.</div>
-<div class="proofscript" id="proof32">
+<div class="toggleproof" onclick="toggleDisplay('proof66')">Next Obligation.</div>
+<div class="proofscript" id="proof66">
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">app_nil_r</span>.<br/>
 Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof33')">Next Obligation.</div>
-<div class="proofscript" id="proof33">
+<div class="toggleproof" onclick="toggleDisplay('proof67')">Next Obligation.</div>
+<div class="proofscript" id="proof67">
 &nbsp;&nbsp;<span class="tactic">induction</span> <span class="id">a</span>.<br/>
 &nbsp;&nbsp;-  <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;-  <span class="tactic">simpl</span>.<br/>
@@ -336,8 +336,8 @@ Defined.</div>
 <span class="kwd">Instance</span> <span class="id">sum_functor</span> {<span class="id">X</span>:<span class="kwd">Type</span>} : @<span class="id">Functor</span> (<span class="id">sum</span> <span class="id">X</span>) := (@<span class="id">sum_map</span> <span class="id">X</span>).<br/>
 <span class="kwd">Instance</span> <span class="id">sum_equiv</span> {<span class="id">X</span>:<span class="kwd">Type</span>} <span class="id">A</span> : <span class="id">Equiv</span> (<span class="id">sum</span> <span class="id">X</span> <span class="id">A</span>) := (@<span class="id">eq</span> (<span class="id">sum</span> <span class="id">X</span> <span class="id">A</span>)).<br/>
 <span class="kwd">Instance</span> <span class="id">sum_functor_eq_laws</span> {<span class="id">X</span>:<span class="kwd">Type</span>} : (@<span class="id">FunctorLaws</span>(<span class="id">sum</span> <span class="id">X</span>)) <span class="id">sum_functor</span> (@<span class="id">sum_equiv</span> <span class="id">X</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof34')">Proof.</div>
-<div class="proofscript" id="proof34">
+<div class="toggleproof" onclick="toggleDisplay('proof68')">Proof.</div>
+<div class="proofscript" id="proof68">
 &nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span>. <span class="tactic">unfold</span> <span class="id">fmap</span>. <span class="tactic">unfold</span> <span class="id">sum_functor</span>. <span class="tactic">unfold</span> <span class="id">sum_map</span>. <span class="tactic">destruct</span> <span class="id">a</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">reflexivity</span>. <span class="tactic">reflexivity</span>.<br/>
@@ -346,20 +346,20 @@ Defined.</div>
 Defined.</div>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">sum_monad</span> {<span class="id">X</span>:<span class="kwd">Type</span>} : (@<span class="id">Monad</span> (<span class="id">sum</span> <span class="id">X</span>)) <span class="id">sum_functor</span> := <span class="id">_</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof35')">Next Obligation.</div>
-<div class="proofscript" id="proof35">
+<div class="toggleproof" onclick="toggleDisplay('proof69')">Next Obligation.</div>
+<div class="proofscript" id="proof69">
 &nbsp;&nbsp;<span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A</span> <span class="id">a</span>. <span class="tactic">exact</span> (<span class="id">inr</span> <span class="id">a</span>).<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A</span> <span class="id">B</span> <span class="id">x</span> <span class="id">f</span>.  <span class="tactic">destruct</span> <span class="id">x</span>. <span class="id">left</span>. <span class="tactic">exact</span> <span class="id">x</span>. <span class="tactic">apply</span> <span class="id">f</span>. <span class="tactic">exact</span> <span class="id">a</span>.<br/>
 Defined.</div>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">sum_monad_eq_laws</span> {<span class="id">X</span>:<span class="kwd">Type</span>} : (@<span class="id">MonadLaws</span> (<span class="id">sum</span> <span class="id">X</span>)) <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof36')">Next Obligation.</div>
-<div class="proofscript" id="proof36">
+<div class="toggleproof" onclick="toggleDisplay('proof70')">Next Obligation.</div>
+<div class="proofscript" id="proof70">
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>. <span class="tactic">reflexivity</span>. <span class="tactic">reflexivity</span>.<br/>
 Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof37')">Next Obligation.</div>
-<div class="proofscript" id="proof37">
+<div class="toggleproof" onclick="toggleDisplay('proof71')">Next Obligation.</div>
+<div class="proofscript" id="proof71">
 &nbsp;&nbsp;<span class="tactic">destruct</span> <span class="id">a</span>; <span class="tactic">try</span> <span class="tactic">reflexivity</span>.<br/>
 Defined.</div>
 <br/>
@@ -367,8 +367,8 @@ Defined.</div>
 <span class="kwd">Definition</span> <span class="id">cont</span> (<span class="id">A</span>:<span class="kwd">Type</span>) := (<span class="id">A</span> -&gt; <span class="id">False</span>) -&gt; <span class="id">False</span>.<br/>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">cont_functor</span> : (@<span class="id">Functor</span> <span class="id">cont</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof38')">Next Obligation.</div>
-<div class="proofscript" id="proof38">
+<div class="toggleproof" onclick="toggleDisplay('proof72')">Next Obligation.</div>
+<div class="proofscript" id="proof72">
 &nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">cont</span> <span class="kwd">in</span> *. <span class="tactic">intros</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">H</span>. <span class="tactic">intros</span>. <span class="tactic">apply</span> <span class="id">X</span> <span class="kwd">in</span> <span class="id">X0</span>. <span class="tactic">apply</span> <span class="id">H0</span>. <span class="tactic">apply</span> <span class="id">X0</span>.<br/>
 Defined.</div>
@@ -376,16 +376,16 @@ Defined.</div>
 <span class="kwd">Instance</span> <span class="id">cont_equiv</span> <span class="id">A</span> : <span class="id">Equiv</span> (<span class="id">cont</span> <span class="id">A</span>) := (@<span class="id">eq</span> (<span class="id">cont</span> <span class="id">A</span>)).<br/>
 <br/>
 <span class="kwd">Instance</span> <span class="id">cont_functor_laws_eq</span> : (@<span class="id">FunctorLaws</span> <span class="id">cont</span>) <span class="id">cont_functor</span> (@<span class="id">cont_equiv</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof39')">Proof.</div>
-<div class="proofscript" id="proof39">
+<div class="toggleproof" onclick="toggleDisplay('proof73')">Proof.</div>
+<div class="proofscript" id="proof73">
 &nbsp;&nbsp;<span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">reflexivity</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">reflexivity</span>.<br/>
 Defined.</div>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">cont_monad</span> : (@<span class="id">Monad</span> <span class="id">cont</span>) <span class="id">cont_functor</span> := <span class="id">_</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof40')">Next Obligation.</div>
-<div class="proofscript" id="proof40">
+<div class="toggleproof" onclick="toggleDisplay('proof74')">Next Obligation.</div>
+<div class="proofscript" id="proof74">
 &nbsp;&nbsp;<span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span>. <span class="tactic">unfold</span> <span class="id">cont</span>. <span class="tactic">exact</span> (<span class="kwd">fun</span> (<span class="id">k</span> : <span class="id">A</span> -&gt; <span class="id">False</span>) =&gt; <span class="id">k</span> <span class="id">X</span>).<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A</span> <span class="id">B</span> <span class="id">f</span> <span class="id">g</span>.<br/>
@@ -411,8 +411,8 @@ Defined.</div>
 <span class="kwd">Instance</span> <span class="id">st_functor</span> {<span class="id">M</span>} : (@<span class="id">Functor</span> (<span class="id">ST</span> <span class="id">M</span>)) := (@<span class="id">st_map</span> <span class="id">M</span>).<br/>
 <span class="kwd">Instance</span> <span class="id">st_equiv</span> {<span class="id">M</span>} <span class="id">A</span> : <span class="id">Equiv</span> (<span class="id">ST</span> <span class="id">M</span> <span class="id">A</span>) := (@<span class="id">eq</span> (<span class="id">ST</span> <span class="id">M</span> <span class="id">A</span>)).<br/>
 <span class="kwd">Instance</span> <span class="id">st_functor_eq_laws</span> {<span class="id">M</span>} `{<span class="id">Equiv</span> <span class="id">M</span>} : (@<span class="id">FunctorLaws</span> (<span class="id">ST</span> <span class="id">M</span>)) <span class="id">st_functor</span> (@<span class="id">st_equiv</span> <span class="id">M</span>).<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof41')">Proof.</div>
-<div class="proofscript" id="proof41">
+<div class="toggleproof" onclick="toggleDisplay('proof75')">Proof.</div>
+<div class="proofscript" id="proof75">
 &nbsp;&nbsp;<span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A</span> <span class="id">a</span>. <span class="tactic">unfold</span> <span class="id">fmap</span>. <span class="tactic">unfold</span> <span class="id">st_functor</span>. <span class="tactic">unfold</span> <span class="id">st_map</span>.<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="tactic">unfold</span> <span class="id">ST</span> <span class="kwd">in</span> <span class="id">a</span>.<br/>
@@ -427,8 +427,8 @@ Defined.</div>
 Defined.</div>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">st_monad</span> : <span class="kwd">forall</span> <span class="id">A</span>, (@<span class="id">Monad</span> (<span class="id">ST</span> <span class="id">A</span>)) <span class="id">st_functor</span> := <span class="id">_</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof42')">Next Obligation.</div>
-<div class="proofscript" id="proof42">
+<div class="toggleproof" onclick="toggleDisplay('proof76')">Next Obligation.</div>
+<div class="proofscript" id="proof76">
 &nbsp;&nbsp;<span class="tactic">split</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A0</span> <span class="id">X</span>. <span class="tactic">unfold</span> <span class="id">ST</span>. <span class="tactic">auto</span>.<br/>
 &nbsp;&nbsp;- <span class="tactic">intros</span> <span class="id">A0</span> <span class="id">B</span> <span class="id">X</span> <span class="id">X0</span>. <span class="tactic">unfold</span> <span class="id">ST</span> <span class="kwd">in</span> *.<br/>
@@ -436,13 +436,13 @@ Defined.</div>
 Defined.</div>
 <br/>
 <span class="kwd">Program</span> <span class="kwd">Instance</span> <span class="id">st_monad_eq_laws</span> : <span class="kwd">forall</span> <span class="id">A</span>, (@<span class="id">MonadLaws</span> (<span class="id">ST</span> <span class="id">A</span>)) <span class="id">st_functor</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span> <span class="id">_</span>.<br/>
-<div class="toggleproof" onclick="toggleDisplay('proof43')">Next Obligation.</div>
-<div class="proofscript" id="proof43">
+<div class="toggleproof" onclick="toggleDisplay('proof77')">Next Obligation.</div>
+<div class="proofscript" id="proof77">
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">functional_extensionality</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x</span>. <span class="tactic">simpl</span>. <span class="tactic">destruct</span> (<span class="id">a</span> <span class="id">x</span>). <span class="tactic">reflexivity</span>.<br/>
 Defined.</div>
-<div class="toggleproof" onclick="toggleDisplay('proof44')">Next Obligation.</div>
-<div class="proofscript" id="proof44">
+<div class="toggleproof" onclick="toggleDisplay('proof78')">Next Obligation.</div>
+<div class="proofscript" id="proof78">
 &nbsp;&nbsp;<span class="tactic">apply</span> <span class="id">functional_extensionality</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">intros</span> <span class="id">x</span>.<br/>
 &nbsp;&nbsp;<span class="tactic">destruct</span> (<span class="id">a</span> <span class="id">x</span>).<br/>
