@@ -615,7 +615,10 @@ Module SCOP(P: POLYHEDRAL_THEORY).
             (evalScopStmtSchedule params vivcur safter).
     
   (** Execute a scop at a point given that the statements are sorted
-      in ASCENDING order: That is, the first element of the list is the lex smallest *)
+      in DESCENGIN order:
+    That is, the first element of the list is the lex LARGEST.
+   So, the first element in the list is executed LAST.
+   `[s1, s0]` is executed in the order `(s0; s1)`. *)
     Inductive exec_scop_at_point_sorted_stmts: P.ParamsT
                                   -> ScopEnvironment
                                   -> viv
@@ -643,11 +646,17 @@ Module SCOP(P: POLYHEDRAL_THEORY).
               stmtIsScheduledAfter params viv curstmt s = true)
           (EXECPREV: exec_scop_at_point_sorted_stmts  params se viv initmem (mkScop prevstmts) mem1)
           (EXECCUR: exec_scop_stmt params se viv mem1 curstmt mem2),
-          exec_scop_at_point_sorted_stmts params se viv initmem (mkScop (prevstmts ++ [curstmt])) mem2.
+          exec_scop_at_point_sorted_stmts
+            params
+            se
+            viv
+            initmem
+            (mkScop (curstmt::prevstmts))
+            mem2.
 
 
     (** sort statement in the ascending order acording to their schedule *)
-    Definition sortStmtsBySchedAscend (params: P.ParamsT)
+    Definition sortStmtsBySchedDescend (params: P.ParamsT)
                (viv: viv)
              (l: list ScopStmt): list ScopStmt := l.
 
@@ -663,7 +672,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       se
       viv
       initmem
-      (mkScop (sortStmtsBySchedAscend params viv (scopStmts scop)))
+      (mkScop (sortStmtsBySchedDescend params viv (scopStmts scop)))
       finalmem.
 
     Definition getScopDomain (scop: Scop): P.PolyT :=
@@ -912,7 +921,11 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         (viv: viv)
         (scopWriteB: scopWriteb params chunk ix scop = b),
         scopWriteb params chunk ix
-                   {| scopStmts := sortStmtsBySchedAscend params viv (scopStmts scop) |} = b.
+                   {| scopStmts := sortStmtsBySchedDescend
+                                     params
+                                     viv
+                                     (scopStmts scop)
+                   |} = b.
     Proof.
     Admitted.
 
@@ -1010,12 +1023,9 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       unfold scopWriteb in *; simpl in *.
       
       assert (POINT_NOT_IN_POLY_CONJ:
-                existsb (scopStmtWriteb params chunk ix) prevstmts = false  /\
-                scopStmtWriteb params chunk  ix curstmt = false).
-      (** TODO: proof automation should have worked *)
-      rewrite existsb_app_single in POINT_NOT_IN_POLY.
-      apply orb_false_elim.
-      auto.
+                scopStmtWriteb params chunk  ix curstmt = false /\
+                existsb (scopStmtWriteb params chunk ix) prevstmts = false).
+      auto with list.
 
       
       destruct POINT_NOT_IN_POLY_CONJ as [P_NOT_IN_CUR_STMT  P_NOT_IN_OTHER_STMTS].
@@ -1192,12 +1202,12 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       noWritesAliasInDomain (scopStmtDomain stmt)
                             (scopStmtMemAccesses stmt).
 
+
     Hint Unfold ScopStmt_noWritesAlias: proofdb.
 
         
 
-    (** **Any write that runs after AT last write (LEXCUR_EQ_VIVLW) which aliases with the
-last write must write the value the last write wrote *)
+    (** **Any write that runs after AT last write (LEXCUR_EQ_VIVLW) which aliases with the last write must write the value the last write wrote *)
     Lemma LastWriteImposesMemoryValueAtLastWriteIx_scop_stmt:
       forall (params: P.ParamsT)
         (se: ScopEnvironment)
@@ -1304,6 +1314,112 @@ last write must write the value the last write wrote *)
         inversion CONTRA.
     Qed.
 
+    
+    (** No statements in the scop have write aliases between them *)
+    Definition scopNoWritesAlias (scop: Scop) :=
+      forall (stmt: ScopStmt)
+        (STMT_IN_SCOP: List.In stmt (scopStmts scop)),
+        ScopStmt_noWritesAlias stmt.
+
+    Lemma scopNoWritesAlias_inclusive_on_subset:
+      forall (stmt: ScopStmt)
+        (stmts: list ScopStmt)
+        (NOWRITES_LARGER: scopNoWritesAlias (mkScop (stmt::stmts))),
+        scopNoWritesAlias (mkScop stmts).
+    Proof.
+      intros.
+      unfold scopNoWritesAlias in *.
+      intros.
+      apply NOWRITES_LARGER.
+      simpl. auto.
+    Qed.
+
+    
+    Lemma LastWriteImposesMemoryValueAtLastWriteIx_exec_scop_at_point_sorted_stmts:
+      
+      forall (params: P.ParamsT)
+        (se: ScopEnvironment)
+        (initmem finalmem: Memory)
+        (scop: Scop)
+        (vivlw: viv)
+        (EXEC_SCOP_AT_POINT: exec_scop_at_point_sorted_stmts
+                               params
+                               se
+                               vivlw
+                               initmem
+                               scop
+                               finalmem)
+        (lwaccessfn: AccessFunction)
+        (lwchunk: ChunkNum)
+        (lwix: list Z)
+        (lwssv: ScopStoreValue)
+        (lwssvval: Value)
+        (EVAL_LWSSV: exec_scop_store_value params se vivlw lwssv lwssvval)
+        (LASTWRITE: IsLastWrite params
+                                (P.getLexLeqPoly params (getScopDomain scop) vivlw)
+                                (MAStore lwchunk lwaccessfn lwssv)
+                                lwchunk
+                                vivlw
+                                lwix)
+        (LASTWRITE_IN_SCOP: List.In (MAStore lwchunk lwaccessfn lwssv)
+                                    (getScopMemoryAccesses scop))
+      (NOWRITEALIAS: scopNoWritesAlias scop),
+        loadMemory lwchunk lwix finalmem = Some lwssvval.
+    Proof.
+      intros until 1.
+      induction EXEC_SCOP_AT_POINT.
+
+      - intros.
+        simpl in LASTWRITE_IN_SCOP.
+        contradiction.
+
+      - intros.
+        unfold getScopMemoryAccesses in LASTWRITE_IN_SCOP.
+        simpl in *.
+        rewrite List.in_app_iff in LASTWRITE_IN_SCOP.
+        destruct (LASTWRITE_IN_SCOP) as [LASTWRITE_IN_CUR_STMT |
+                                         LASTWRITE_IN_PREV_STMTS].
+
+        + (* We are executing the current stmt *)
+          eapply LastWriteImposesMemoryValueAtLastWriteIx_scop_stmt;
+            eauto.
+          eapply LastWrite_domain_inclusive with
+              (largerdomain := P.getLexLeqPoly
+                                 params 
+                                 (getScopDomain {| scopStmts := curstmt:: prevstmts |})
+                                 viv0); auto.
+          (** TODO: proof automation should have done this **)
+          rewrite getScopDomain_cons.
+          apply P.getLexLeqPoly_proper_wrt_subset.
+          apply P.subset_of_union.
+          unfold scopNoWritesAlias in NOWRITEALIAS.
+          apply NOWRITEALIAS; simpl; auto.
+
+          
+        + (** Lastwrite was in the other statements *)
+          assert (MEM2: loadMemory lwchunk lwix mem2 =
+                        loadMemory lwchunk lwix mem1).
+          admit.
+
+          assert (MEM1: loadMemory lwchunk lwix mem1 = Some lwssvval).
+          eapply IHEXEC_SCOP_AT_POINT; eauto.
+          eapply LastWrite_domain_inclusive with
+              (largerdomain := P.getLexLeqPoly
+                                 params 
+                                 (getScopDomain {| scopStmts := curstmt:: prevstmts |})
+                                 viv0); auto.
+          (** TODO: proof automation should have done this **)
+          rewrite getScopDomain_cons.
+          apply P.getLexLeqPoly_proper_wrt_subset.
+          rewrite P.unionPoly_commutative.
+          apply P.subset_of_union.
+          eapply scopNoWritesAlias_inclusive_on_subset; eauto.
+
+          (** MEM1 and MEM2 *)
+          congruence.
+    Qed.
+
+
 
     
     Lemma LastWriteImposesMemoryValueAtLastWriteIx_exec_scop_at_point:
@@ -1330,49 +1446,7 @@ last write must write the value the last write wrote *)
       (NOWRITEALIAS: True),
         loadMemory lwchunk lwix finalmem = Some lwssvval.
     Proof.
-      intros until 1.
-      induction EXEC_SCOP_AT_POINT.
-
-      - intros.
-        simpl in LASTWRITE_IN_SCOP.
-        contradiction.
-
-      - intros.
-        unfold getScopMemoryAccesses in LASTWRITE_IN_SCOP.
-        simpl in *.
-        rewrite List.in_app_iff in LASTWRITE_IN_SCOP.
-        destruct (LASTWRITE_IN_SCOP) as [LASTWRITE_IN_CUR_STMT |
-                                         LASTWRITE_IN_PREV_STMTS].
-
-        + (* We are executing the current stmt *)
-          eapply LastWriteImposesMemoryValueAtLastWriteIx_scop_stmt;
-            eauto.
-          eapply LastWrite_domain_inclusive with
-              (largerdomain := P.getLexLeqPoly
-                                 params 
-                                 (getScopDomain {| scopStmts := stmt:: stmts |})
-                                 viv0); auto.
-          (** TODO: proof automation should have done this **)
-          rewrite getScopDomain_cons.
-          apply P.getLexLeqPoly_proper_wrt_subset.
-          apply P.subset_of_union.
-
-          
-          admit.
-
-          
-        + (* Lastwrite was in the other statements *)
-          eapply IHEXEC_SCOP_AT_POINT; eauto.
-          eapply LastWrite_domain_inclusive with
-              (largerdomain := P.getLexLeqPoly
-                                 params 
-                                 (getScopDomain {| scopStmts := stmt:: stmts |})
-                                 viv0); auto.
-          (** TODO: proof automation should have done this **)
-          rewrite getScopDomain_cons.
-          apply P.getLexLeqPoly_proper_wrt_subset.
-          rewrite P.unionPoly_commutative.
-          apply P.subset_of_union.
+      (* Use the version of sorted_stmts *)
     Qed.
 
 
