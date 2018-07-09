@@ -7,6 +7,8 @@ Require Import Ncring.
 Require Import Ring_tac.
 Require Import FunctionalExtensionality.
 Require Import Maps.
+Require Import Sorting.
+Require Import ListSet.
 
 Require Import Vellvm.Crush.
 Require Import Vellvm.polyir.PolyIRUtil.
@@ -318,6 +320,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Record ScopStmt :=
     mkScopStmt {
         scopStmtDomain: VIVSpace; (**r Stmt is executed if viv \in scopStmtDomain *)
+        
         scopStmtSchedule : P.AffineFnT; (**r VIVSpace -> ScatterSpace *)
         scopStmtMemAccesses: list MemoryAccess (**r List of memory accesses *)
       }.
@@ -511,6 +514,12 @@ Module SCOP(P: POLYHEDRAL_THEORY).
                               (MAStore chunk accessfn ssv)
                               (storeMemory chunk accessix storeval initmem).
 
+  (** Evaluate a scop statement schedule to get the timepoint in the scatterspace *)
+  Definition evalScopStmtSchedule (params: P.ParamsT) (viv: P.PointT)
+             (stmt: ScopStmt) : list Z :=
+    P.evalAffineFn params (scopStmtSchedule stmt) viv.
+
+
 
     (** Execute a statement. Checks if the statement is active or inactive before
        execution *)
@@ -555,7 +564,10 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           exec_scop_stmt params se viv initmem (mkScopStmt domain schedule mas) initmem
   .
 
-    Inductive exec_scop_at_point: P.ParamsT
+
+  (** Execute a scop at a point given that the statements are sorted
+      in ASCENDING order: That is, the first element of the list is the lex smallest *)
+    Inductive exec_scop_at_point_sorted_stmts: P.ParamsT
                                   -> ScopEnvironment
                                   -> viv
                                   -> Memory
@@ -568,7 +580,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (initmem: Memory)
           (scop: Scop)
           (mem': Memory),
-          exec_scop_at_point  params se viv initmem (mkScop []) initmem
+          exec_scop_at_point_sorted_stmts  params se viv initmem (mkScop []) initmem
     | exec_scop_at_point_cons:
         forall (params: P.ParamsT)
           (se: ScopEnvironment)
@@ -578,9 +590,30 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (stmt: ScopStmt)
           (stmts: list ScopStmt)
           (mem1 mem2: Memory)
-          (EXECPREV: exec_scop_at_point  params se viv initmem (mkScop stmts) mem1)
+          (EXECPREV: exec_scop_at_point_sorted_stmts  params se viv initmem (mkScop stmts) mem1)
           (EXECSTMT: exec_scop_stmt params se viv mem1 stmt mem2),
-          exec_scop_at_point params se viv initmem (mkScop (cons stmt stmts)) mem2.
+          exec_scop_at_point_sorted_stmts params se viv initmem (mkScop (cons stmt stmts)) mem2.
+
+
+  Definition sortStmts (params: P.ParamsT) (viv: viv) (l: list ScopStmt): list ScopStmt.
+  Admitted.
+
+  (** Sort points in ascending order and then execute them *)
+  Definition exec_scop_at_point (params: P.ParamsT)
+             (se: ScopEnvironment)
+             (viv: viv)
+             (initmem: Memory)
+             (scop: Scop)
+             (finalmem: Memory) : Prop :=
+    exec_scop_at_point_sorted_stmts params
+                                    se
+                                    viv
+                                    initmem
+                                    (mkScop (sortStmts params viv (scopStmts scop)))
+                                    finalmem.
+    
+
+  
     
 
 
