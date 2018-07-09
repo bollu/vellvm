@@ -14,7 +14,7 @@ Require Import Vellvm.Crush.
 Require Import Vellvm.polyir.PolyIRUtil.
 Require Import Vellvm.polyir.PolyIRDefinition.
 
-(** Import VPL for polyhedral goodness **)
+(** Import VPL for polyhedral goodness *)
 From Vpl Require Import PedraQ DomainInterfaces.
 Require Import VplTactic.Tactic.
 Add Field Qcfield: Qcft (decidable Qc_eq_bool_correct, constants [vpl_cte]).
@@ -58,10 +58,16 @@ Qed.
 Hint Resolve ix_eq_decidable.
 
 Module Type POLYHEDRAL_THEORY.
+  (** A point in a polyhedra *)
   Parameter PointT: Type.
+  (** A polyhedra *)
   Parameter PolyT: Type.
+  (** Affine function *)
   Parameter AffineFnT: Type.
+  (** Affine relation *)
   Parameter AffineRelT: Type.
+  (** Paramter values, which allows to instantiate a parametric
+      polyhedra into a concrete polyhedra *)
   Parameter ParamsT: Type.
   (** Some way to specify a dimension *)
   Parameter DimensionT: Type.
@@ -73,7 +79,7 @@ Module Type POLYHEDRAL_THEORY.
   (** Convert a point x0 to a polyhedra {x | x = x0 } *)
   Parameter pointToPoly: PointT -> PolyT.
 
-  
+  (** Compose an affine function *)
   Parameter composeAffineFunction: AffineFnT -> AffineFnT -> AffineFnT.
 
   (** Find the inverse of a concrete evaluation of an affine function **)
@@ -122,7 +128,8 @@ Module Type POLYHEDRAL_THEORY.
   Notation "p >l q" := (isLexGT p q) (at level 50).
 
 
-  Axiom isLexLT_GT: forall (a b :PointT), isLexLT a b = Some true <-> isLexGT b a = Some true.
+  Axiom isLexLT_GT: forall (a b :PointT), isLexLT a b = Some true
+                                     <-> isLexGT b a = Some true.
 
   Axiom isLexGT_not_refl: forall (p: PointT), isLexGT p p = Some false.
 
@@ -161,7 +168,8 @@ Module Type POLYHEDRAL_THEORY.
       (small large: PolyT)
       (p: PointT),
       isPolySubset small large = true ->
-      isPolySubset (getLexLeqPoly params small p) (getLexLeqPoly params large p) = true.
+      isPolySubset (getLexLeqPoly params small p)
+                   (getLexLeqPoly params large p) = true.
 
 
   Axiom getLexLeqPoly_contains_leq_point:
@@ -218,11 +226,13 @@ Module Type POLYHEDRAL_THEORY.
   (** Defines what it means to be a dependence relation. This is the
         over-approximate definition. In particular, it does not ask for
         exact dependence relations .
+<<  
         t1 --R1--> p 
         t2 --R2--> p
         t1 < t2
         ===============
           t1 --D--> t2
+>>
    *)
   Definition relationIsDependenceBetweenRelations
              (r1 r2: AffineRelT)
@@ -241,10 +251,14 @@ Module Type POLYHEDRAL_THEORY.
   (** An induction principle on all points that are lex smaller tha a
   given point in the polyhedra *)
   Axiom polyhedra_ind_lex_smaller_points: forall
-      (params: ParamsT) (P: PointT -> Prop) (Q: PolyT -> Prop) (fullpoly: PolyT),
-      (Q emptyPoly) -> (forall (curpoint: PointT),
-                          Q (getLexLtPoly params fullpoly curpoint) -> P curpoint ->
-                          Q (getLexLeqPoly params fullpoly curpoint)) ->
+      (params: ParamsT)
+      (P: PointT -> Prop)
+      (Q: PolyT -> Prop)
+      (fullpoly: PolyT),
+      (Q emptyPoly) -> (
+        forall (curpoint: PointT),
+          Q (getLexLtPoly params fullpoly curpoint) -> P curpoint ->
+          Q (getLexLeqPoly params fullpoly curpoint)) ->
       Q fullpoly.
 
   
@@ -280,7 +294,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
   
   (** The identifier of some loaded value, to be stored in the abstract
-    scop environment **)
+    scop environment *)
   Definition ScopLoadIdent := Z.
 
   (** Mapping from load identifiers to values *)
@@ -289,8 +303,10 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   (** The things that a store expression is allowed to store
    A[i, j, k, ..] = <ScopStore>*)
   Inductive ScopStoreValue :=
-  | SSVIndvarFn (indvarfn: list Z -> Z): ScopStoreValue (**r function of indvars *)
-  | SSVLoadedVal (itostore: ScopLoadIdent): ScopStoreValue (**r store some loaded value *)
+  | SSVIndvarFn (indvarfn: list Z -> Z):
+      ScopStoreValue (**r function of indvars *)
+  | SSVLoadedVal (itostore: ScopLoadIdent):
+      ScopStoreValue (**r store some loaded value *)
   .
 
   Inductive MemoryAccess :=
@@ -319,9 +335,10 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   
   Record ScopStmt :=
     mkScopStmt {
-        scopStmtDomain: VIVSpace; (**r Stmt is executed if viv \in scopStmtDomain *)
+        scopStmtDomain: VIVSpace; (**r Stmt is executed if `viv \in scopStmtDomain` *)
         
-        scopStmtSchedule : P.AffineFnT; (**r VIVSpace -> ScatterSpace *)
+
+        scopStmtSchedule : P.AffineFnT; (**r `VIVSpace -> ScatterSpace` *)
         scopStmtMemAccesses: list MemoryAccess (**r List of memory accesses *)
       }.
 
@@ -415,7 +432,9 @@ Module SCOP(P: POLYHEDRAL_THEORY).
              (ss: ScopStmt):  ScopStmt :=
     {|
       scopStmtDomain := scopStmtDomain ss;
-      scopStmtSchedule := P.composeAffineFunction (scopStmtSchedule ss) schedule;
+      scopStmtSchedule := P.composeAffineFunction
+                            (scopStmtSchedule ss)
+                            schedule;
       scopStmtMemAccesses := scopStmtMemAccesses ss
     |}.
 
@@ -445,7 +464,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Hint Resolve P.isLexLT_next_implies_isLexLEQ_current:proofdb.
   Hint Resolve Z.eqb_refl: proofdb.
 
-  (** List rewrite rules **)
+  (** List rewrite rules *)
   Lemma existsb_app_single: forall {A: Type} (l: list A) (a: A)
     (pred: A -> bool),
       existsb pred (l ++ [a]) = existsb pred l || pred a.
@@ -480,14 +499,22 @@ Module SCOP(P: POLYHEDRAL_THEORY).
                           (evalviv: list Z)
                           (EVALVIV: P.evalPoint params viv = evalviv)
                           (indvarfn: list Z -> Z),
-      exec_scop_store_value params se viv (SSVIndvarFn indvarfn) (indvarfn evalviv)
+      exec_scop_store_value params
+                            se
+                            viv
+                            (SSVIndvarFn indvarfn)
+                            (indvarfn evalviv)
   | eval_ssv_loaded_value: forall (viv: P.PointT)
                              (se: ScopEnvironment)
                              (params: P.ParamsT)
                              (ident: ScopLoadIdent)
                              (identval: Value)
                              (SE_AT_IDENT: se ## ident = Some identval),
-      exec_scop_store_value params se viv (SSVLoadedVal ident) identval
+      exec_scop_store_value params
+                            se
+                            viv
+                            (SSVLoadedVal ident)
+                            identval
   .
 
   Lemma exec_scop_store_value_deterministic:
@@ -619,8 +646,10 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           exec_scop_at_point_sorted_stmts params se viv initmem (mkScop (prevstmts ++ [curstmt])) mem2.
 
 
-  Definition sortStmts (params: P.ParamsT) (viv: viv) (l: list ScopStmt): list ScopStmt.
-  Admitted.
+    (** sort statement in the ascending order acording to their schedule *)
+    Definition sortStmtsBySchedAscend (params: P.ParamsT)
+               (viv: viv)
+             (l: list ScopStmt): list ScopStmt := l.
 
   (** Sort points in ascending order and then execute them *)
   Definition exec_scop_at_point (params: P.ParamsT)
@@ -629,17 +658,13 @@ Module SCOP(P: POLYHEDRAL_THEORY).
              (initmem: Memory)
              (scop: Scop)
              (finalmem: Memory) : Prop :=
-    exec_scop_at_point_sorted_stmts params
-                                    se
-                                    viv
-                                    initmem
-                                    (mkScop (sortStmts params viv (scopStmts scop)))
-                                    finalmem.
-    
-
-  
-    
-
+    exec_scop_at_point_sorted_stmts
+      params
+      se
+      viv
+      initmem
+      (mkScop (sortStmtsBySchedAscend params viv (scopStmts scop)))
+      finalmem.
 
     Definition getScopDomain (scop: Scop): P.PolyT :=
       List.fold_left P.unionPoly (map scopStmtDomain (scopStmts scop)) P.emptyPoly.
@@ -887,7 +912,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         (viv: viv)
         (scopWriteB: scopWriteb params chunk ix scop = b),
         scopWriteb params chunk ix
-                   {| scopStmts := sortStmts params viv (scopStmts scop) |} = b.
+                   {| scopStmts := sortStmtsBySchedAscend params viv (scopStmts scop) |} = b.
     Proof.
     Admitted.
 
