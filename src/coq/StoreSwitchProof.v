@@ -28,7 +28,20 @@ Require Import Coq.Setoids.Setoid.
 Require Import SetoidClass.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Classes.Equivalence.
-Require Import Vellvm.StoreSwitch.
+Require Import Integers.
+
+Print Module Integers.
+
+Module Type AND_THEOREMS (wordsize: WORDSIZE).
+  Include Integers.Make(wordsize).
+
+  Lemma foo: forall (i: int) (j: nat), True.
+  Proof.
+    intros.
+
+End  AND_THEOREMS.
+
+
 Require Import Vellvm.TopLevel.
 Require Import Vellvm.Memory.
 Require FunctionalExtensionality.

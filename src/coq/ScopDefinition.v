@@ -6,13 +6,14 @@ Require Import List.
 Require Import Ncring.
 Require Import Ring_tac.
 Require Import FunctionalExtensionality.
-Require Import Maps.
 Require Import Sorting.
 Require Import ListSet.
+Require Import Coqlib.
+Require Import Maps.
+Require Import EquivDec.
+Require Import Equalities.
 
 Require Import Vellvm.Crush.
-Require Import Vellvm.polyir.PolyIRUtil.
-Require Import Vellvm.polyir.PolyIRDefinition.
 
 (** Import VPL for polyhedral goodness *)
 From Vpl Require Import PedraQ DomainInterfaces.
@@ -31,6 +32,18 @@ its inputs *)
 
 Open Scope list_scope.
 Import ListNotations.
+
+
+Definition option_bind
+           {A B: Type}
+           (oa: option A)
+           (f: A -> option B) : option B :=
+  match oa with
+  | None => None
+  | Some a => f a
+  end.
+
+Infix ">>=" := option_bind (at level 100).
 
 Fixpoint option_traverse {A: Type} (lo: list (option A)): option (list A) :=
   match lo with
@@ -54,8 +67,9 @@ Lemma ix_eq_decidable: forall (ix1 ix2: list Z),
     {ix1 = ix2} + {ix1 <> ix2}.
 Proof.
   decide equality; auto.
-Qed.
+Admitted.
 Hint Resolve ix_eq_decidable.
+
 
 Module Type POLYHEDRAL_THEORY.
   (** A point in a polyhedra *)
@@ -99,20 +113,39 @@ Module Type POLYHEDRAL_THEORY.
   (** Check if a point is within a polyhedra *)
   Parameter isPointInPoly: PointT -> PolyT -> bool.
 
+
   (** x \in { x0 } -> x = x0 *)
   Axiom pointInSingletonPoly: forall (p: PointT) (singleton: PointT),
       isPointInPoly p (pointToPoly singleton) = true ->
       p = singleton.
 
-  (* x \in Smaller, Smaller \subset Larger -> x \in Larger *)
-  Axiom pointInSubsetPoly: forall (p: PointT) (smaller larger: PolyT),
-      isPointInPoly p smaller = true ->
-      isPointInPoly p larger = true.
 
 
   (** isPolySubset P Q = is P a subset of Q *)
   Parameter isPolySubset: PolyT -> PolyT -> bool.
 
+  (* x \in Smaller, Smaller \subset Larger -> x \in Larger *)
+  Axiom isPolySubset_spec: forall (smaller larger: PolyT),
+      (isPolySubset smaller larger = true) <->
+      (forall (pt: PointT),
+          isPointInPoly pt smaller = true -> isPointInPoly pt larger = true).
+
+  
+  (* x \notin Larger, Smaller \subset Larger -> x \notin Smaller *)
+  Lemma pointInSubsetPoly_false:
+    forall (p: PointT)
+      (smaller larger: PolyT)
+      (P_NOT_IN_LARGER: isPointInPoly p larger = false)
+      (SUBSET: isPolySubset smaller larger = true),
+      isPointInPoly p smaller = false.
+  Proof.
+    intros.
+    destruct (isPointInPoly p smaller) eqn:POINT_IN_SMALLER; auto.
+
+    assert (P_IN_LARGER: isPointInPoly p larger = true).
+    eapply isPolySubset_spec; eauto.
+    congruence.
+  Qed.
 
 
   
@@ -122,10 +155,20 @@ Module Type POLYHEDRAL_THEORY.
   Notation "p <l q" := (isLexLT p q) (at level 50).
 
   
+  Definition isLexLE (p q: PointT) :=
+    isLexLT p q = Some true \/ p = q.
+
+  Notation "p <=l q" := (isLexLE p q) (at level 50).
+  
   (** Returns whether one point is lex > than the other *)
   Parameter isLexGT: PointT -> PointT -> option (bool).
 
   Notation "p >l q" := (isLexGT p q) (at level 50).
+
+  Definition isLexGE (p q: PointT) :=
+    isLexGT p q = Some true \/ p = q.
+
+  Notation "p >=l q" := (isLexGE p q) (at level 50).
 
 
   Axiom isLexLT_GT: forall (a b :PointT), isLexLT a b = Some true
@@ -159,25 +202,49 @@ Module Type POLYHEDRAL_THEORY.
   (** Get the polyhedra of points which are lex <=  the given point *)
   Parameter getLexLeqPoly: ParamsT -> PolyT -> PointT -> PolyT.
 
+  Axiom getLexLeqPoly_spec:
+    forall (params: ParamsT)
+      (poly: PolyT)
+      (p: PointT)
+      (lexsmall: PointT),
+      isPointInPoly (lexsmall) (getLexLeqPoly params poly p) = true <->
+      (lexsmall <=l p).
+
   (** Get the polyhedra of points which are lex <  the given point *)
   Parameter getLexLtPoly: ParamsT -> PolyT -> PointT -> PolyT.
-
-
-  Axiom getLexLeqPoly_proper_wrt_subset:
+  
+  Lemma getLexLeqPoly_proper_wrt_subset:
     forall (params: ParamsT)
       (small large: PolyT)
-      (p: PointT),
-      isPolySubset small large = true ->
+      (p: PointT)
+      (SUBSET: isPolySubset small large = true),
       isPolySubset (getLexLeqPoly params small p)
                    (getLexLeqPoly params large p) = true.
+  Proof.
+    intros.
+    apply isPolySubset_spec.
+    rewrite isPolySubset_spec in SUBSET.
 
+    intros lexpt LEXPT_IN_LEXPOLY.
+    rewrite getLexLeqPoly_spec.
+    rewrite getLexLeqPoly_spec in LEXPT_IN_LEXPOLY.
+    auto.
+  Qed.
 
-  Axiom getLexLeqPoly_contains_leq_point:
+  Lemma getLexLeqPoly_contains_leq_point:
     forall (params: ParamsT)
       (poly: PolyT)
       (p: PointT),
       isPointInPoly p poly = true ->
       isPointInPoly p (getLexLeqPoly params poly p) = true.
+  Proof.
+    intros.
+    rewrite getLexLeqPoly_spec.
+    unfold isLexLE.
+    auto.
+  Qed.
+    
+
 
   (** {x | x <= lexmin(P), x \in P} = { lexmin(P)} *)
   Axiom getLexLeqPoly_from_lexmin_is_point:
@@ -282,6 +349,15 @@ Module Type POLYHEDRAL_THEORY.
 End POLYHEDRAL_THEORY.
 
 Module SCOP(P: POLYHEDRAL_THEORY).
+
+    Definition ChunkNum := Z.
+
+    Lemma chunk_num_eq_dec: forall (c1 c2: ChunkNum), {c1 = c2} + {c1 <> c2}.
+    Proof.
+      intros.
+      apply Z.eq_dec.
+    Qed.
+    Hint Resolve chunk_num_eq_dec.
 
   (* define semantics for evaluating a schedule *)
   (* 
@@ -480,8 +556,119 @@ Module SCOP(P: POLYHEDRAL_THEORY).
   Hint Resolve existsb_app: list.
   Hint Resolve orb_false_elim: list.
 
+  (* Value that expressions can take *)
+  Notation Value := Z.
+  Section MEMORY.
+
+
+Record MemoryChunk :=
+  mkMemoryChunk {
+      memoryChunkDim: nat;
+      memoryChunkModel: list Z -> option Value
+    }.
+
+Definition const {A B : Type} (a: A) (_: B) : A := a.
+
+Definition initMemoryChunk (n: nat): MemoryChunk :=
+  mkMemoryChunk n (const None).
+
+(* Need this to perform == on list of Z *)
+Program Instance Z_eq_eqdec : EqDec Z eq := Z.eq_dec.
+
+(** Only allows legal stores, so the length of six "store index"
+must be equal to the dimension of the memory chunk *)
+Definition storeMemoryChunk (six: list Z)
+           (v: Value) (mc: MemoryChunk): MemoryChunk :=
+  let dim := memoryChunkDim mc in
+  {| memoryChunkDim := dim;
+     memoryChunkModel := if  Nat.eqb (List.length six)  dim
+                         then (fun ix => if ix  == six
+                                      then Some v
+                                      else (memoryChunkModel mc) ix)
+                         else memoryChunkModel mc
+                                               
+                                               
+  |}.
+
+Definition loadMemoryChunk (lix: list Z)(mc: MemoryChunk): option Value :=
+  if Nat.eqb (List.length lix) (memoryChunkDim mc)
+  then (memoryChunkModel mc lix)
+  else None.
+
+(* Memory is a map indexed by naturals to disjoint memory chunks *)
+Definition Memory := (ZMap.t (option MemoryChunk)).
+
+
+Check (PMap.set).
+Definition storeMemory (chunknum: Z)
+           (chunkix: list Z)
+           (val: Value)
+           (mem: Memory) : Memory :=
+  let memchunk := mem ## chunknum in
+  let memchunk' := option_map (fun chk => storeMemoryChunk chunkix val chk )
+                              memchunk
+  in ZMap.set chunknum memchunk' mem.
+
+
+
+Definition loadMemory (chunknum: Z)
+           (chunkix: list Z)
+           (mem: Memory) : option Value :=
+  (mem ## chunknum) >>= (fun chk => loadMemoryChunk chunkix chk).
+
+
+(** **Reading from a different chunk allows to read the old value *)
+Definition memory_chunk_gso: forall (needle_chunk: Z)
+                               (needle_ix: list Z)
+                               (haystack_chunk: Z)
+                               (haystack_ix: list Z)
+                               (val: Value)
+                               (NOALIAS: needle_chunk <> haystack_chunk)
+                               (mem: Memory),
+    loadMemory needle_chunk needle_ix
+               (storeMemory haystack_chunk haystack_ix val mem) = 
+    loadMemory needle_chunk needle_ix mem.
+Proof.
+Admitted.
+
+Hint Resolve memory_chunk_gso.
+(** **Reading from a different index at the same chunk allows to read the old value *)
+Definition memory_ix_gso: forall (needle_chunk: Z)
+                            (needle_ix: list Z)
+                            (haystack_ix: list Z)
+                            (val: Value)
+                            (NOALIAS: needle_ix <> haystack_ix)
+                            (mem: Memory),
+    loadMemory needle_chunk needle_ix
+               (storeMemory needle_chunk haystack_ix val mem) =
+    loadMemory needle_chunk needle_ix mem.
+Proof.
+  intros.
+  unfold loadMemory.
+  unfold storeMemory.
+Admitted.
+Hint Resolve memory_ix_gso.
+
+
+Hint Resolve memory_chunk_gso.
+
+(** **Reading from a the same index and chunk as the store allows to read the stored value *)
+Definition memory_ix_gss: forall (needle_chunk: Z)
+                            (needle_ix: list Z)
+                            (val: Value)
+                            (mem: Memory),
+    loadMemory needle_chunk needle_ix
+               (storeMemory needle_chunk needle_ix val mem) = Some val.
+Proof.
+  intros.
+Admitted.
+Hint Resolve memory_ix_gss.
+  End MEMORY.
+
   (** *Section that define the semantics of scop evaluation *)
   Section EVALUATION.
+
+
 
     Definition viv := P.PointT.
     Definition Schedule := P.AffineFnT.
@@ -848,6 +1035,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
     
     (** **Define what it means for a memory access to not write to memory *)
+    (* 
     Inductive MAStoreNoWrite:
       P.ParamsT
       -> VIVSpace
@@ -871,6 +1059,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
           (MAStore needlechunk accessfn ssv)
           needlechunk
           needleix.
+    *)
 
     (** **Computational version of the write*)
     Definition MAWriteb
@@ -887,6 +1076,29 @@ Module SCOP(P: POLYHEDRAL_THEORY).
       | _ => false
       end.
 
+    Lemma MAWriteb_smaller_domain: forall
+               (params: P.ParamsT)
+               (larger smaller: VIVSpace)
+               (SUBSET: P.isPolySubset smaller larger = true)
+               (needlechunk: ChunkNum)
+               (needleix: list Z)
+               (memacc: MemoryAccess)
+               (WRITE: MAWriteb params larger needlechunk needleix memacc = false),
+               MAWriteb params smaller needlechunk needleix memacc = false.
+    Proof.
+      intros.
+      destruct memacc;
+        simpl in *; auto.
+
+      (* MAStore *)
+      simpl in *.
+      rewrite andb_false_iff in *.
+
+      destruct WRITE as [CHUNK | POINTINPOLY]; auto.
+      right.
+      eapply P.pointInSubsetPoly_false; eauto.
+    Qed.
+    
     (** **TODO: SSReflect MAStoreWrite, MAStoreNoWrite, and Mhere **)
 
     (** **Extension of MemoryAccessWritesmemoryatix to statements *)
@@ -970,6 +1182,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
     Hint Resolve point_not_in_memacc_implies_value_unchanged: proofdb.
 
 
+    (** A point not in the domain of the scop statement is not written to *)
     Lemma point_not_in_scop_stmt_implies_value_unchanged:
       forall (stmt: ScopStmt)
         (initmem finalmem: Memory)
@@ -1142,6 +1355,7 @@ Module SCOP(P: POLYHEDRAL_THEORY).
         {IsLastWrite params domain ma chunk viv ix} +
         {~IsLastWrite params domain ma chunk viv ix}.
     Proof.
+      intros.
     Admitted.
 
     Hint Resolve IsLastWriteDecidable: proofdb.
@@ -1156,10 +1370,25 @@ Module SCOP(P: POLYHEDRAL_THEORY).
            (lwchunk: ChunkNum)
            (lwviv: P.PointT)
            (lwix: list Z)
-           (SMALLERDOMAIN: P.isPolySubset smallerdomain largerdomain = true),
-           IsLastWrite params largerdomain ma lwchunk lwviv lwix ->
+           (SMALLERDOMAIN: P.isPolySubset smallerdomain largerdomain = true)
+           (LASTWRITE: IsLastWrite params largerdomain ma lwchunk lwviv lwix),
            IsLastWrite params smallerdomain ma lwchunk lwviv lwix.
     Proof.
+      intros.
+      destruct LASTWRITE.
+      
+      constructor; simpl; auto.
+      - eapply P.PointInSubsetPoly_spec; eauto.
+      - unfold MAWriteb in *.
+        destruct ma; auto.
+        admit.
+      -  intros.
+         assert (WRITEB_LARGER_DOMAIN:
+                   MAWriteb params largerdomain lwchunk lwix macur = false).
+         eapply lastWriteLast0; eauto.
+         (* TODO: theorem to convert larger domain to smaller domain *)
+         eapply MAWriteb_smaller_domain.
+
     Admitted.
      
     Hint Resolve LastWrite_domain_inclusive: proofdb.
@@ -1207,112 +1436,6 @@ Module SCOP(P: POLYHEDRAL_THEORY).
 
         
 
-    (** **Any write that runs after AT last write (LEXCUR_EQ_VIVLW) which aliases with the last write must write the value the last write wrote *)
-    Lemma LastWriteImposesMemoryValueAtLastWriteIx_scop_stmt:
-      forall (params: P.ParamsT)
-        (se: ScopEnvironment)
-        (initmem finalmem: Memory)
-        (stmt: ScopStmt)
-        (vivlw: viv)
-        (EXEC_SCOP_STMT: exec_scop_stmt params se  vivlw initmem stmt finalmem)
-        (lwaccessfn: AccessFunction)
-        (lwchunk: ChunkNum)
-        (lwix: list Z)
-        (lwssv: ScopStoreValue)
-        (lwssvval: Value)
-        (EVAL_LWSSV: exec_scop_store_value params se vivlw lwssv lwssvval)
-        (LASTWRITE: IsLastWrite params
-                                (P.getLexLeqPoly params (scopStmtDomain stmt) vivlw)
-                                (MAStore lwchunk lwaccessfn lwssv)
-                                lwchunk
-                                vivlw
-                                lwix)
-        (LASTWRITE_IN_STMT: List.In (MAStore lwchunk lwaccessfn lwssv)
-                                    (scopStmtMemAccesses stmt))
-      (NOWRITEALIAS: ScopStmt_noWritesAlias stmt),
-        loadMemory lwchunk lwix finalmem = Some lwssvval.
-    Proof.
-      intros until 1.
-      induction EXEC_SCOP_STMT; intros; simpl in *; try contradiction.
-      - (* stmt active *)
-        destruct LASTWRITE_IN_STMT as
-            [MA_IS_LASTWRITE | MA_IN_STMT_WRITES].
-
-        + (* MA is lastwrite *)
-          destruct ma; inversion MA_IS_LASTWRITE.
-          subst.
-          inversion MEMNEW_FROM_MEMSTMT. subst.
-
-          assert (STOREVAL_IS_LWSSVVAL: storeval = lwssvval).
-          eapply exec_scop_store_value_deterministic; eauto.
-
-          rewrite STOREVAL_IS_LWSSVVAL.
-
-          destruct LASTWRITE.
-          subst.
-          eauto with proofdb.
-
-        + (* MA is in the list of stmt writes *)
-        assert (LOADSTMT:
-                  loadMemory lwchunk lwix memstmt = Some lwssvval).
-        eapply IHEXEC_SCOP_STMT; eauto.
-        (* We can show this from NOWRITESALIAS *)
-        eauto with proofdb.
-
-
-
-
-        (* Consieder cases of MA, either it wrote to the last write, or it didn't.
-         If it did write to the last write, then it must _be_ the last write, thanks
-         to NOWRITEALIAS *)
-        destruct MEMNEW_FROM_MEMSTMT.
-
-        * assert (CHUNK_CASES: {chunk = lwchunk} + {chunk <> lwchunk}). auto.
-          destruct CHUNK_CASES as [CHUNK_EQ | CHUNK_NEQ];
-            try (rewrite <- LOADSTMT; eauto with proofdb; fail).
-
-          rewrite CHUNK_EQ in *.
-
-          assert (IX_CASES: {accessix = lwix} +
-                            {accessix <> lwix}). auto.
-          destruct IX_CASES as [IX_EQ | IX_NEQ];
-            try (rewrite <- LOADSTMT; eauto with proofdb; fail).
-          rewrite IX_EQ in *.
-
-          assert (CUR_WRITE_IS_LAST_WRITE:
-                    (MAStore chunk accessfn ssv = MAStore lwchunk lwaccessfn lwssv)).
-          destruct LASTWRITE.
-          rewrite CHUNK_EQ.
-          unfold ScopStmt_noWritesAlias in NOWRITEALIAS.
-          unfold noWritesAliasInDomain in NOWRITEALIAS.
-          simpl in NOWRITEALIAS.
-          eapply NOWRITEALIAS; simpl; eauto.
-          erewrite ACCESSIX.
-          auto.
-
-          inversion CUR_WRITE_IS_LAST_WRITE. subst.
-
-          assert (STOREVAL_IS_LWSSVVAL: storeval = lwssvval).
-          eapply exec_scop_store_value_deterministic; eauto.
-
-          (* Establish that we write the last write value *)
-          (* Tada, we're done! we've shown that the value we wanted was the last write
-          value *)
-          rewrite STOREVAL_IS_LWSSVVAL.
-          eauto with proofdb.
-        
-
-
-      - (* stmt inactive, contradiction since the last write actually happened *)
-        destruct LASTWRITE.
-
-        assert (PT_IN_DOMAIN': P.isPointInPoly viv0 domain = true).
-        eapply P.pointInSubsetPoly.
-        eapply lastWriteVivInDomain0.
-
-        assert (CONTRA: true = false). congruence.
-        inversion CONTRA.
-    Qed.
 
     
     (** No statements in the scop have write aliases between them *)
