@@ -1,0 +1,140 @@
+
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{makeidx}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{listing}
+\evensidemargin=0.20in
+\oddsidemargin=0.20in
+\topmargin=0.2in
+%\headheight=0.0in
+%\headsep=0.0in
+%\setlength{\parskip}{0mm}
+%\setlength{\parindent}{4mm}
+\setlength{\textwidth}{6.4in}
+\setlength{\textheight}{8.5in}
+%\leftmargin -2in
+%\setlength{\rightmargin}{-2in}
+%\usepackage{epsf}
+%\usepackage{url}
+
+\usepackage{booktabs}   %% For formal tables:
+                        %% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+                        %% http://ctan.org/pkg/subcaption
+\usepackage{enumitem}
+%\usepackage{minted}
+%\newminted{fortran}{fontsize=\footnotesize}
+
+\usepackage{xargs}
+\usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
+
+\usepackage{hyperref}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+
+\newcommand{\val}{\mathbb{V}}
+\newcommand{\chunkid}{\texttt{chunkid}}
+\newcommand{\chunk}{\texttt{chunk}}
+\newcommand{\mem}{\texttt{mem}}
+\newcommand{\scop}{\texttt{SCoP}}
+\newcommand{\scops}{\scop s}
+\newcommand{\memacc}{\texttt{memacc}}
+\newcommand{\MEMACC}{\texttt{MEMACC}}
+\newcommand{\timepoint}{\texttt{timepoint}}
+\newcommand{\iterspace}{\texttt{iterspace}}
+\newcommand{\arrspace}{\texttt{arrspace}}
+\newcommand{\readmemacc}{\texttt{readmemacc}}
+\newcommand{\writememacc}{\texttt{writememacc}}
+\newcommand{\schedule}{\texttt{schedule}}
+\newcommand{\readtag}{\texttt{tag}}
+\newcommand{\scatterspace}{\texttt{scatterspace}}
+\newcommand{\vivspace}{\texttt{vivspace}}
+\newcommand{\stmt}{\texttt{stmt}}
+
+
+\title{Polyhedral compilation formalism}
+\author{Siddharth Bhat}
+
+\begin{document}
+\maketitle
+\date{}
+\tableofcontents
+
+\section{Memory}
+A chunk (\chunk) is conceptually contiguous section of memory, usually associated
+with that of an array or a struct. It is mathematically represented as 
+a mapping from naturals to a value domain, $\val$.
+
+Memory (\mem) is conceptually a mapping of chunk-IDs (\chunkid) to chunks, where each chunk-ID
+is mathematically represented by a natural number.
+
+
+\begin{align*}
+    \chunk &: \N \to \val \\ 
+    \mem &: \text{\chunkid} \to \chunk
+\end{align*}
+
+Two chunks are considered to \textit{never alias}. Two memory accesses alias
+iff they access the same chunk and the same index within the chunk.
+
+\section{\scops}
+A \scop (Static Control Part) is mathematical representation of programs
+which have control-flow that can be analyzed statically.
+
+For this model, we require a notion of:
+
+\subsection{\memacc}
+A memory access is a mapping from a \timepoint~to an array index. More formally,
+it maps points in the iteration space of the scop to points in the array space
+of a given array.
+
+A memory access can either be a read access or a write access.
+
+\subsubsection{Read accesses}
+\begin{align*}
+    &\readmemacc(S, A) \equiv  (tag: \readtag) \times (ixfn: \iterspace(S) \to \arrspace(A)) \\
+\end{align*}
+
+Every read access has a $tag$, telling the abstract name of the read value,
+an $ixfn$, telling the index of the array which is read from at a given timepoint.
+
+\subsubsection{Write accesses}
+\begin{align*}
+    &\writememacc(S, A) \equiv  (valfn: \iterspace(S) \times (\readtag \to \val)  \to \val) \times (ixfn: \iterspace(S) \to \arrspace(A))
+\end{align*}
+Every write acces has a $valfn$, which given the timepoint and all the previous
+read values computes the value to write, and an $ixfn$, telling the index
+of the array which is written to at a given timepoint.
+
+
+\subsection{\schedule}
+\begin{align*}
+\vivspace \subset \Z^n \\
+\scatterspace \subseteq \Z^m \\
+\schedule : \vivspace \to \scatterspace \\
+\end{align*}
+
+A schedule is a mapping of virtual induction variables ($\vivspace \subset \Z^n$)
+into points in the scatter space ($\scatterspace \subseteq \Z^n$). In general, any polyhedral object is
+said to be \textit{scheduled} if it is mapped into the scatter space, and
+is arranged according to lexicographic-ascending order in this scatter space.
+
+In this formalism, we \textit{schedule statements}. 
+
+\subsection{\stmt}
+A scop statement is a collection of \readmemacc and \writememacc,
+where intuitively, all the \textbf{reads happen atomatically}, sequenced by 
+\textbf{all writes happening atomically}. Hence, all \textit{writes can commute} in a statement,
+with semantic preservation.
+
+The atomicity property is useful, since it allows us to not represent certain
+dependences between multiple reads or multiple writes, which we would
+otherwise be forced to do.
+
+Intuitively, a scop statement represents a "maximum chunk of atomic memory
+modifications" which can occur together.
+
+\end{document}
