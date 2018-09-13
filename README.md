@@ -1,4 +1,21 @@
-# Vellvm II
+# PolyCOQ
+
+`PolyCOQ` is a Coq formalization of polyhedral compilation semantics.
+
+We construct a new langauge, `polyir`, which is the first formalization
+(known to the author) of the informal semantics used by the polyhedral
+community.
+
+We prove the major cornerstone theorem that is used in polyhedral compilation:
+that dependence preserving schedule preserve program semantics.
+
+We wish to construct a pass that converts `LLVM` to `polyir`, and a 
+pass that generates `LLVM` from `polyir`. We use the Vellvm project
+to have a formal semantics of the LLVM instruction set to perform these
+translations.
+
+
+# Vellvm 
 
 Vellvm II is a Coq formalization of the semantics of (a subset of) the
 LLVM compiler IR that is intended for _formal verification_ of
