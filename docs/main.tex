@@ -53,6 +53,7 @@
 \newcommand{\scatterspace}{\texttt{scatterspace}}
 \newcommand{\vivspace}{\texttt{vivspace}}
 \newcommand{\stmt}{\texttt{stmt}}
+\newcommand{\arr}{\texttt{array}}
 
 
 \title{Polyhedral compilation formalism}
@@ -80,11 +81,11 @@ is mathematically represented by a natural number.
 Two chunks are considered to \textit{never alias}. Two memory accesses alias
 iff they access the same chunk and the same index within the chunk.
 
-\section{\scops}
-A \scop (Static Control Part) is mathematical representation of programs
-which have control-flow that can be analyzed statically.
 
-For this model, we require a notion of:
+\subsection{\arr}
+\begin{align*}
+    \arr \equiv (arrname: id) \times (arrdim: \N)
+\end{align*}
 
 \subsection{\memacc}
 A memory access is a mapping from a \timepoint~to an array index. More formally,
@@ -125,7 +126,7 @@ is arranged according to lexicographic-ascending order in this scatter space.
 In this formalism, we \textit{schedule statements}. 
 
 \subsection{\stmt}
-A scop statement is a collection of \readmemacc and \writememacc,
+A scop statement $stmt$ is a set of \readmemacc~and a set of \writememacc~,
 where intuitively, all the \textbf{reads happen atomatically}, sequenced by 
 \textbf{all writes happening atomically}. Hence, all \textit{writes can commute} in a statement,
 with semantic preservation.
@@ -136,5 +137,12 @@ otherwise be forced to do.
 
 Intuitively, a scop statement represents a "maximum chunk of atomic memory
 modifications" which can occur together.
+
+\section{\scops}
+A \scop (Static Control Part) is mathematical representation of programs
+which have control-flow that can be analyzed statically.
+
+A \scop~$S$ is a \textit{set} of \stmt, $stmts(S)$, along with a \textit{set}
+of \arr, $arrs(S)$.
 
 \end{document}
