@@ -84,7 +84,17 @@ iff they access the same chunk and the same index within the chunk.
 
 \subsection{\arr}
 \begin{align*}
-    \arr \equiv (arrname: id) \times (arrdim: \N)
+    \arr \equiv (arrname: ID) \times (arrdim: \N)  \times (arrsizes: \N^{arrdim})
+\end{align*}
+
+An array contains a unique identifier $arrname \in ID$, and a
+dimensionality $arrdim \in \N$. 
+
+Each array also has an associated \textit{array space}, which is an n-dimensional
+space, 
+
+\begin{align*}
+arrspace(A) = [0 \dots arrsizes(A)[0]] \times [0 \dots arrsizes(A)[1]] \times \dots [0 \dots arrsizes(A)[n]]
 \end{align*}
 
 \subsection{\memacc}
