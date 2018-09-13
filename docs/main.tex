@@ -49,11 +49,12 @@
 \newcommand{\readmemacc}{\texttt{readmemacc}}
 \newcommand{\writememacc}{\texttt{writememacc}}
 \newcommand{\schedule}{\texttt{schedule}}
-\newcommand{\readtag}{\texttt{tag}}
+\newcommand{\readtag}{\texttt{readtag}}
 \newcommand{\scatterspace}{\texttt{scatterspace}}
 \newcommand{\vivspace}{\texttt{vivspace}}
 \newcommand{\stmt}{\texttt{stmt}}
 \newcommand{\arr}{\texttt{array}}
+\newcommand{\env}{\texttt{env}}
 
 
 \title{Polyhedral compilation formalism}
@@ -112,6 +113,8 @@ A memory access can either be a read access or a write access.
 Every read access has a $tag$, telling the abstract name of the read value,
 an $ixfn$, telling the index of the array which is read from at a given timepoint.
 
+
+
 \subsubsection{Write accesses}
 \begin{align*}
     &\writememacc(S, A) \equiv  (valfn: \iterspace(S) \times (\readtag \to \val)  \to \val) \times (ixfn: \iterspace(S) \to \arrspace(A))
@@ -138,21 +141,33 @@ In this formalism, we \textit{schedule statements}.
 \subsection{\stmt}
 A scop statement $stmt$ is a set of \readmemacc~and a set of \writememacc~,
 where intuitively, all the \textbf{reads happen atomatically}, sequenced by 
-\textbf{all writes happening atomically}. Hence, all \textit{writes can commute} in a statement,
+a single write, which uses the data read by the reads.
 with semantic preservation.
 
 The atomicity property is useful, since it allows us to not represent certain
 dependences between multiple reads or multiple writes, which we would
 otherwise be forced to do.
 
-Intuitively, a scop statement represents a "maximum chunk of atomic memory
-modifications" which can occur together.
+Intuitively, a scop statement represents a sequence of reads followed by
+a single write, which occur atomically.
 
 \section{\scops}
 A \scop (Static Control Part) is mathematical representation of programs
 which have control-flow that can be analyzed statically.
 
 A \scop~$S$ is a \textit{set} of \stmt, $stmts(S)$, along with a \textit{set}
-of \arr, $arrs(S)$.
+of \arr s, $arrs(S)$.
+
+
+\section{Execution / dynamic semantics}
+To execute a \scop, we need memory \mem, and an enviroment $\env : \readtag \to \val$ (usually denoted by $\Gamma$),
+which maintains the values that were "last read".
+
+Next, we need to know what it means to \textit{execute} a memory access,
+a statement, and finally a scop.
+
+\subsection{Executing memory accesses}
+The execution of a memory access is a function from $\mem \times \env \to \mem \times \env$
+
 
 \end{document}
